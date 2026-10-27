@@ -11,7 +11,7 @@
 ```bash
 pnpm install --frozen-lockfile
 cp .env.example apps/web/.env.local     # điền NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY từ `pnpm exec supabase status`
-pnpm exec supabase start                # ports 554xx, không đụng project Supabase local khác
+pnpm exec supabase start                # ports 564xx, không đụng project Supabase local khác
 pnpm db:reset                           # migrations + seed giả (13 phòng, 9 bán)
 pnpm dev                                # http://localhost:3000
 ```
