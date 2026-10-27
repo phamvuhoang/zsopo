@@ -17,6 +17,7 @@ const NAV = [
   ["/admin/nhan-su", "Nhân sự"],
   ["/admin/cau-hinh", "Cấu hình"],
   ["/admin/audit", "Nhật ký"],
+  ["/admin/trang-thai", "Trạng thái"],
 ] as const;
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {

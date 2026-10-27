@@ -1103,6 +1103,20 @@ isOneToOne: false
                   Relationships: [
                     
                   ]
+                },"incident_records": {
+                  Row: {
+                    "entity_id": string,"id": string,"location_id": string | null,"opened_at": string,"opened_by": string | null,"resolution": string | null,"resolved_at": string | null,"runbook": string | null,"severity": string,"status": string,"title": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "entity_id": string,"id"?: string,"location_id"?: string | null,"opened_at"?: string,"opened_by"?: string | null,"resolution"?: string | null,"resolved_at"?: string | null,"runbook"?: string | null,"severity": string,"status"?: string,"title": string
+                  }
+                  Update: {
+                    "entity_id"?: string,"id"?: string,"location_id"?: string | null,"opened_at"?: string,"opened_by"?: string | null,"resolution"?: string | null,"resolved_at"?: string | null,"runbook"?: string | null,"severity"?: string,"status"?: string,"title"?: string
+                  }
+                  Relationships: [
+                    
+                  ]
                 },"job_runs": {
                   Row: {
                     "detail": NonNullable<Json>,"entity_id": string | null,"finished_at": string | null,"id": number,"job": string,"started_at": string,"status": string,"subject_id": string | null
@@ -1185,8 +1199,17 @@ isOneToOne: false
         isOneToOne: true
         isSetofReturn: false
       } },
+"health_summary":
+{ Args: { "p_entity": string }; Returns: Json
+                           },
+"open_incident":
+{ Args: { "p_location": string,"p_runbook"?: string,"p_severity": string,"p_title": string }; Returns: string
+                           },
 "publish_stay_policy":
 { Args: { "p_location": string,"p_params": Json,"p_summary": string }; Returns: string
+                           },
+"resolve_incident":
+{ Args: { "p_incident": string,"p_resolution": string }; Returns: undefined
                            },
 "set_setting":
 { Args: { "p_key": string,"p_public": boolean,"p_value": Json }; Returns: undefined

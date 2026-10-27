@@ -15,6 +15,7 @@ const NAV = [
   ["/ops/vat-tu", "Vật tư"],
   ["/ops/do-that-lac", "Đồ thất lạc"],
   ["/ops/huong-dan", "Hướng dẫn"],
+  ["/ops/trang-thai", "Trạng thái"],
 ] as const;
 
 export const metadata = { title: { default: "Vận hành", template: "%s | ZSOPO Ops" }, robots: { index: false, follow: false }, manifest: "/ops.webmanifest" };
