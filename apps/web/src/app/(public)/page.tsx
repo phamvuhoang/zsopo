@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import Image from "next/image";
 import Link from "next/link";
 import { NewsletterForm } from "@/features/content/forms";
@@ -6,11 +7,15 @@ import { listPosts } from "@/features/content/queries";
 import { ProductTile } from "@/features/shop/product-card";
 import { listProducts } from "@/features/shop/queries";
 import { FEATURES } from "@/lib/flags";
+import { JsonLd, organization } from "@/lib/seo/json-ld";
+
+export const metadata: Metadata = { alternates: { canonical: "/" } };
 
 export default async function Home() {
   const [posts, products] = await Promise.all([FEATURES.blog ? listPosts() : [], FEATURES.shop ? listProducts() : []]);
   return (
     <>
+      <JsonLd data={organization()} />
       <section className="mx-auto grid max-w-6xl items-center gap-10 px-4 py-12 md:grid-cols-2 md:py-20">
         <div>
           <p className="text-xs font-semibold tracking-[0.14em] text-[var(--accent-ink)] uppercase">Năng lượng trao truyền · Hạnh phúc sâu · Khai mở tiềm năng</p>

@@ -7,6 +7,7 @@ import { Markdown } from "@/components/markdown";
 import { RoomCalendar } from "@/features/stay/components/room-calendar";
 import { getLocation, getRoom, listRooms } from "@/features/stay/queries";
 import { FEATURES } from "@/lib/flags";
+import { JsonLd, hotelRoom } from "@/lib/seo/json-ld";
 
 export async function generateStaticParams() {
   const loc = await getLocation("da-lat");
@@ -33,6 +34,7 @@ export default async function RoomPage({ params }: PageProps<"/stay/da-lat/phong
   if (!room || !loc) notFound();
   return (
     <div className="mx-auto max-w-6xl px-4 py-12">
+      <JsonLd data={hotelRoom(room)} />
       <nav aria-label="Breadcrumb" className="text-sm text-[var(--ink-3)]">
         <Link href="/stay">Space</Link> / <Link href="/stay/da-lat">Đà Lạt</Link> / <Link href="/stay/da-lat/phong">Phòng</Link> / <span>{room.name}</span>
       </nav>

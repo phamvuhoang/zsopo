@@ -9,6 +9,7 @@ import { getProduct, listProducts } from "@/features/shop/queries";
 import { FEATURES } from "@/lib/flags";
 import { createPublicClient } from "@/lib/supabase/server";
 import { AddToCart } from "@/features/shop/add-to-cart";
+import { JsonLd, product } from "@/lib/seo/json-ld";
 
 export async function generateStaticParams() {
   const ps = await listProducts();
@@ -54,6 +55,7 @@ export default async function ProductPage({ params }: PageProps<"/shop/[slug]">)
   if (!p) notFound();
   return (
     <div className="mx-auto max-w-6xl px-4 py-12">
+      <JsonLd data={product(p)} />
       <nav aria-label="Breadcrumb" className="text-sm text-[var(--ink-3)]"><Link href="/shop">Shop</Link> / {p.name}</nav>
       <div className="mt-4 grid gap-8 lg:grid-cols-[3fr_2fr]">
         <div>

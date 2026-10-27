@@ -4,6 +4,7 @@ import { notFound, permanentRedirect } from "next/navigation";
 import { Markdown } from "@/components/markdown";
 import { PostTile, fmtDate } from "@/features/content/post-card";
 import { getPost, getRedirect, listPosts, toc } from "@/features/content/queries";
+import { JsonLd, article } from "@/lib/seo/json-ld";
 
 export async function generateStaticParams() {
   const ps = await listPosts();
@@ -33,6 +34,7 @@ export default async function PostPage({ params }: PageProps<"/blog/[slug]">) {
   const related = (await listPosts()).filter((x) => x.id !== p.id && x.category_id === p.category_id).slice(0, 3);
   return (
     <article className="mx-auto max-w-3xl px-4 py-12">
+      <JsonLd data={article(p)} />
       <nav aria-label="Breadcrumb" className="text-sm text-[var(--ink-3)]"><Link href="/blog">Blog</Link> / {p.title}</nav>
       <h1 className="mt-2 text-3xl font-semibold md:text-4xl">{p.title}</h1>
       <p className="mt-3 text-sm text-[var(--ink-3)]">{p.author_name} · <time dateTime={p.published_at}>{fmtDate(p.published_at)}</time> · cập nhật {fmtDate(p.updated_at)} · {p.reading_minutes} phút đọc</p>

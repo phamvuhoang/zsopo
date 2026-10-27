@@ -26,7 +26,9 @@ export async function updateSession(request: NextRequest) {
     const url = request.nextUrl.clone();
     url.pathname = "/dang-nhap";
     url.search = `?next=${encodeURIComponent(pathname + search)}`;
-    return NextResponse.redirect(url);
+    const redirect = NextResponse.redirect(url);
+    redirect.headers.set("X-Robots-Tag", "noindex, nofollow");
+    return redirect;
   }
   if (PROTECTED.test(pathname) || PRIVATE.test(pathname)) {
     response.headers.set("Cache-Control", "private, no-store");

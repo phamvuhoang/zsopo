@@ -5,6 +5,7 @@ import { notFound } from "next/navigation";
 import { Markdown } from "@/components/markdown";
 import { RoomCard } from "@/features/stay/components/room-card";
 import { getLocation, listRooms } from "@/features/stay/queries";
+import { JsonLd, lodging } from "@/lib/seo/json-ld";
 
 export const metadata: Metadata = {
   title: "Zen Homestay Đà Lạt",
@@ -19,6 +20,7 @@ export default async function DalatPage() {
   const open = rooms.filter((r) => r.sellable);
   return (
     <div className="mx-auto max-w-6xl px-4 py-12">
+      <JsonLd data={lodging({ ...loc, priceFrom: open.map((r) => r.basePrice).filter((x): x is string => !!x).sort((a, b) => Number(a) - Number(b))[0] ?? null })} />
       <nav aria-label="Breadcrumb" className="text-sm text-[var(--ink-3)]">
         <Link href="/stay">Space</Link> / <span>Đà Lạt</span>
       </nav>
