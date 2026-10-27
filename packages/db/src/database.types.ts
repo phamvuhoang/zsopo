@@ -5,7 +5,27 @@ export type Database = {
   
   "commerce": {
           Tables: {
-            "idempotency_keys": {
+            "cash_movements": {
+                  Row: {
+                    "amount": number,"created_at": string,"created_by": string | null,"entity_id": string,"evidence_id": string | null,"id": string,"kind": string,"note": string | null,"payment_id": string | null,"shift_id": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "amount": number,"created_at"?: string,"created_by"?: string | null,"entity_id": string,"evidence_id"?: string | null,"id"?: string,"kind": string,"note"?: string | null,"payment_id"?: string | null,"shift_id": string
+                  }
+                  Update: {
+                    "amount"?: number,"created_at"?: string,"created_by"?: string | null,"entity_id"?: string,"evidence_id"?: string | null,"id"?: string,"kind"?: string,"note"?: string | null,"payment_id"?: string | null,"shift_id"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "cash_movements_payment_id_fkey"
+      columns: ["payment_id"]
+isOneToOne: true
+      referencedRelation: "payments"
+      referencedColumns: ["id"]
+    }
+                  ]
+                },"idempotency_keys": {
                   Row: {
                     "created_at": string,"key": string,"request_hash": string,"result": Json | null,"scope": string
                   }
@@ -1036,6 +1056,26 @@ isOneToOne: false
       referencedColumns: ["id","entity_id","location_id"]
     }
                   ]
+                },"housekeeping_tasks": {
+                  Row: {
+                    "area_code": string | null,"assigned_to": string | null,"booking_id": string | null,"created_at": string,"due_at": string | null,"entity_id": string,"id": string,"kind": string,"location_id": string,"notes": string | null,"priority": number,"room_id": string | null,"state": string,"template_version": number | null,"updated_at": string,"version": number
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "area_code"?: string | null,"assigned_to"?: string | null,"booking_id"?: string | null,"created_at"?: string,"due_at"?: string | null,"entity_id": string,"id"?: string,"kind": string,"location_id": string,"notes"?: string | null,"priority"?: number,"room_id"?: string | null,"state"?: string,"template_version"?: number | null,"updated_at"?: string,"version"?: number
+                  }
+                  Update: {
+                    "area_code"?: string | null,"assigned_to"?: string | null,"booking_id"?: string | null,"created_at"?: string,"due_at"?: string | null,"entity_id"?: string,"id"?: string,"kind"?: string,"location_id"?: string,"notes"?: string | null,"priority"?: number,"room_id"?: string | null,"state"?: string,"template_version"?: number | null,"updated_at"?: string,"version"?: number
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "housekeeping_tasks_booking_id_fkey"
+      columns: ["booking_id"]
+isOneToOne: false
+      referencedRelation: "bookings"
+      referencedColumns: ["id"]
+    }
+                  ]
                 },"quotes": {
                   Row: {
                     "adults": number,"arrival": string,"children_ages": (number)[],"created_at": string,"departure": string,"deposit_due": number,"deposit_rate_bp": number,"discount": number,"entity_id": string,"expires_at": string,"id": string,"lines": NonNullable<Json>,"location_id": string,"policy_version_id": string,"room_id": string,"services": NonNullable<Json>,"subtotal": number,"total": number,"version": number
@@ -1116,6 +1156,26 @@ isOneToOne: false
       referencedColumns: ["id","entity_id","location_id"]
     }
                   ]
+                },"room_status_log": {
+                  Row: {
+                    "actor": string | null,"created_at": string,"field": string,"from_value": string | null,"id": number,"reason": string | null,"room_id": string,"to_value": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "actor"?: string | null,"created_at"?: string,"field": string,"from_value"?: string | null,"id"?: never,"reason"?: string | null,"room_id": string,"to_value": string
+                  }
+                  Update: {
+                    "actor"?: string | null,"created_at"?: string,"field"?: string,"from_value"?: string | null,"id"?: never,"reason"?: string | null,"room_id"?: string,"to_value"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "room_status_log_room_id_fkey"
+      columns: ["room_id"]
+isOneToOne: false
+      referencedRelation: "rooms"
+      referencedColumns: ["id"]
+    }
+                  ]
                 },"rooms": {
                   Row: {
                     "amenities": (string)[],"area_m2": number | null,"capacity_adults": number,"capacity_children": number,"cleanliness": string,"code": string,"created_at": string,"description": string,"energy_card_id": string | null,"entity_id": string,"id": string,"location_id": string,"max_guests": number,"name": string,"occupancy": string,"photo_ids": (string)[],"room_type": string,"safety_block": boolean,"sellable": boolean,"slug": string,"sort": number,"status": string,"updated_at": string,"version": number
@@ -1190,17 +1250,106 @@ isOneToOne: false
                   Relationships: [
                     
                   ]
+                },"shift_amendments": {
+                  Row: {
+                    "amount_delta": number,"created_at": string,"created_by": string,"id": string,"note": string,"shift_id": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "amount_delta"?: number,"created_at"?: string,"created_by": string,"id"?: string,"note": string,"shift_id": string
+                  }
+                  Update: {
+                    "amount_delta"?: number,"created_at"?: string,"created_by"?: string,"id"?: string,"note"?: string,"shift_id"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "shift_amendments_shift_id_fkey"
+      columns: ["shift_id"]
+isOneToOne: false
+      referencedRelation: "shifts"
+      referencedColumns: ["id"]
+    }
+                  ]
+                },"shifts": {
+                  Row: {
+                    "cash_counted": number | null,"cash_open": number,"content_hash": string | null,"entity_id": string,"expected_cash": number | null,"handed_over_at": string | null,"id": string,"location_id": string,"needs_manager_review": boolean,"notes": string | null,"opened_at": string,"opened_by": string,"receiver_ack_at": string | null,"receiver_id": string | null,"snapshot": Json | null,"status": string,"template_version": number,"updated_at": string,"variance": number | null,"version": number
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "cash_counted"?: number | null,"cash_open": number,"content_hash"?: string | null,"entity_id": string,"expected_cash"?: number | null,"handed_over_at"?: string | null,"id"?: string,"location_id": string,"needs_manager_review"?: boolean,"notes"?: string | null,"opened_at"?: string,"opened_by": string,"receiver_ack_at"?: string | null,"receiver_id"?: string | null,"snapshot"?: Json | null,"status"?: string,"template_version"?: number,"updated_at"?: string,"variance"?: number | null,"version"?: number
+                  }
+                  Update: {
+                    "cash_counted"?: number | null,"cash_open"?: number,"content_hash"?: string | null,"entity_id"?: string,"expected_cash"?: number | null,"handed_over_at"?: string | null,"id"?: string,"location_id"?: string,"needs_manager_review"?: boolean,"notes"?: string | null,"opened_at"?: string,"opened_by"?: string,"receiver_ack_at"?: string | null,"receiver_id"?: string | null,"snapshot"?: Json | null,"status"?: string,"template_version"?: number,"updated_at"?: string,"variance"?: number | null,"version"?: number
+                  }
+                  Relationships: [
+                    
+                  ]
+                },"ticket_events": {
+                  Row: {
+                    "actor": string | null,"created_at": string,"from_state": string | null,"id": number,"note": string | null,"ticket_id": string,"to_state": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "actor"?: string | null,"created_at"?: string,"from_state"?: string | null,"id"?: never,"note"?: string | null,"ticket_id": string,"to_state": string
+                  }
+                  Update: {
+                    "actor"?: string | null,"created_at"?: string,"from_state"?: string | null,"id"?: never,"note"?: string | null,"ticket_id"?: string,"to_state"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "ticket_events_ticket_id_fkey"
+      columns: ["ticket_id"]
+isOneToOne: false
+      referencedRelation: "tickets"
+      referencedColumns: ["id"]
+    }
+                  ]
+                },"tickets": {
+                  Row: {
+                    "assigned_to": string | null,"booking_id": string | null,"created_at": string,"created_by": string | null,"description": string,"entity_id": string,"escalated_at": string | null,"guest_confirmed": boolean | null,"id": string,"kind": string,"location_id": string,"priority": string,"resolution": string | null,"room_id": string | null,"sla_due_at": string,"state": string,"title": string,"updated_at": string,"version": number
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "assigned_to"?: string | null,"booking_id"?: string | null,"created_at"?: string,"created_by"?: string | null,"description"?: string,"entity_id": string,"escalated_at"?: string | null,"guest_confirmed"?: boolean | null,"id"?: string,"kind": string,"location_id": string,"priority": string,"resolution"?: string | null,"room_id"?: string | null,"sla_due_at": string,"state"?: string,"title": string,"updated_at"?: string,"version"?: number
+                  }
+                  Update: {
+                    "assigned_to"?: string | null,"booking_id"?: string | null,"created_at"?: string,"created_by"?: string | null,"description"?: string,"entity_id"?: string,"escalated_at"?: string | null,"guest_confirmed"?: boolean | null,"id"?: string,"kind"?: string,"location_id"?: string,"priority"?: string,"resolution"?: string | null,"room_id"?: string | null,"sla_due_at"?: string,"state"?: string,"title"?: string,"updated_at"?: string,"version"?: number
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "tickets_booking_id_fkey"
+      columns: ["booking_id"]
+isOneToOne: false
+      referencedRelation: "bookings"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "tickets_room_id_fkey"
+      columns: ["room_id"]
+isOneToOne: false
+      referencedRelation: "rooms"
+      referencedColumns: ["id"]
+    }
+                  ]
                 }
           }
           Views: {
             [_ in never]: never
           }
           Functions: {
-            "add_calendar_feed":
+            "ack_handover":
+{ Args: { "p_expected_version": number,"p_shift": string }; Returns: string
+                           },
+"add_calendar_feed":
 { Args: { "p_import_url": string,"p_provider": string,"p_room": string }; Returns: string
+                           },
+"add_cash_movement":
+{ Args: { "p_amount": number,"p_kind": string,"p_note": string,"p_shift": string }; Returns: string
                            },
 "add_service_request":
 { Args: { "b": Omit<Database["stay"]['Tables']["bookings"]['Row'], Database["stay"]['Tables']["bookings"]['ComputedFields']>,"p_idempotency": string,"p_notes": string,"p_qty": number,"p_scheduled_at": string,"p_service": string,"p_source": string }; Returns: Json
+                           },
+"amend_shift":
+{ Args: { "p_amount_delta"?: number,"p_note": string,"p_shift": string }; Returns: string
                            },
 "block_room":
 { Args: { "p_arrival": string,"p_departure": string,"p_kind": string,"p_reason": string,"p_room": string,"p_source"?: string }; Returns: string
@@ -1211,14 +1360,23 @@ isOneToOne: false
 "confirm_with_exception":
 { Args: { "p_booking": string,"p_due": number,"p_reason": string }; Returns: undefined
                            },
+"create_manual_booking":
+{ Args: { "p_adults": number,"p_arrival": string,"p_children": (number)[],"p_collected_by": string,"p_departure": string,"p_guest": Json,"p_idempotency": string,"p_notes": string,"p_room": string,"p_source": string }; Returns: Json
+                           },
 "create_stay_hold":
 { Args: { "p_arrival_time"?: string,"p_consents": Json,"p_guest": Json,"p_idempotency": string,"p_notes"?: string,"p_policy_version": string,"p_quote": string,"p_source"?: string }; Returns: Json
                            },
 "create_stay_hold_core":
 { Args: { "p_arrival_time"?: string,"p_consents": Json,"p_guest": Json,"p_idempotency": string,"p_notes"?: string,"p_policy_version": string,"p_quote": string,"p_source"?: string }; Returns: Json
                            },
+"create_ticket":
+{ Args: { "p_booking": string,"p_description": string,"p_kind": string,"p_location": string,"p_priority": string,"p_room": string,"p_title": string }; Returns: string
+                           },
 "deactivate_rate":
 { Args: { "p_rate": string,"p_reason": string }; Returns: undefined
+                           },
+"escalate_overdue_tickets":
+{ Args: Record<PropertyKey, never>; Returns: number
                            },
 "expire_all_holds":
 { Args: Record<PropertyKey, never>; Returns: number
@@ -1236,11 +1394,17 @@ isOneToOne: false
               "horizon_days": number,"id": string,"import_url": string
             }[]
                            },
+"handover_shift":
+{ Args: { "p_counted_cash": number,"p_expected_version": number,"p_notes": string,"p_receiver": string,"p_shift": string }; Returns: Json
+                           },
 "issue_stay_token":
 { Args: { "p_booking": string }; Returns: string
                            },
 "my_stay_services":
 { Args: { "p_token": string }; Returns: Json
+                           },
+"open_shift":
+{ Args: { "p_cash_open": number,"p_location": string }; Returns: string
                            },
 "price_nights":
 { Args: { "p_arrival": string,"p_departure": string,"p_room": string }; Returns: {
@@ -1288,14 +1452,25 @@ isOneToOne: false
 "set_room_sellable":
 { Args: { "p_reason": string,"p_room": string,"p_sellable": boolean }; Returns: undefined
                            },
+"shift_receivers":
+{ Args: { "p_location": string }; Returns: {
+              "display_name": string,"user_id": string
+            }[]
+                           },
 "staff_request_service":
 { Args: { "p_booking": string,"p_idempotency": string,"p_notes"?: string,"p_qty": number,"p_scheduled_at": string,"p_service": string }; Returns: Json
                            },
 "stay_range":
 { Args: { "p_arrival": string,"p_departure": string,"p_location": string }; Returns: unknown
                            },
+"transition_booking":
+{ Args: { "p_action": string,"p_booking": string,"p_expected_version": number,"p_idempotency": string,"p_opts"?: Json,"p_reason": string }; Returns: Json
+                           },
 "transition_service_request":
 { Args: { "p_expected_version": number,"p_note"?: string,"p_request": string,"p_to": string }; Returns: Json
+                           },
+"transition_ticket":
+{ Args: { "p_assignee"?: string,"p_expected_version": number,"p_note"?: string,"p_ticket": string,"p_to": string }; Returns: Json
                            },
 "try_reallocate":
 { Args: { "p_booking": string }; Returns: boolean

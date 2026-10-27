@@ -2,8 +2,12 @@ import Link from "next/link";
 import { Suspense } from "react";
 
 const NAV = [
-  ["/ops", "Ca"],
+  ["/ops", "Trang chính"],
+  ["/ops/ca", "Ca"],
+  ["/ops/phong", "Sơ đồ phòng"],
+  ["/ops/dat-phong", "Đặt phòng"],
   ["/ops/dich-vu", "Dịch vụ"],
+  ["/ops/tickets", "Sự cố"],
 ] as const;
 
 export const metadata = { title: { default: "Vận hành", template: "%s | ZSOPO Ops" }, robots: { index: false, follow: false } };
