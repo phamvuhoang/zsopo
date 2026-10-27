@@ -94,3 +94,34 @@ insert into shop.categories(slug, name, sort) values
 insert into shop.warehouses(id, entity_id, location_id, code, name) values
   ('90000000-0000-4000-8000-000000000001','e0000000-0000-4000-8000-000000000001','c0000000-0000-4000-8000-000000000001','showroom','Kho showroom Đà Lạt'),
   ('90000000-0000-4000-8000-000000000002','e0000000-0000-4000-8000-000000000001',null,'online','Kho online');
+
+-- Public pages and policies: DRAFT TEXT for local/staging. Owner and legal must approve before production.
+insert into content.pages(entity_id, slug, kind, title, excerpt, body_md, status, published_at) values
+('e0000000-0000-4000-8000-000000000001','gioi-thieu','page','Giới thiệu ZSOPO',
+ 'ZSOPO là hệ sinh thái nối không gian nghỉ dưỡng, kết nối học tập và hoạt động phụng sự cộng đồng.',
+ E'ZSOPO là hệ sinh thái giúp mỗi người trở về với chính mình qua ba trụ cột: nghỉ ngơi trong không gian năng lượng, kết nối với người dẫn đường, và phụng sự cộng đồng.\n\n## Space\n\nKhông gian lưu trú và trải nghiệm. Điểm đang mở: Zen Homestay Đà Lạt, nhà gỗ giữa đồi thông. Mỗi phòng có một bảng năng lượng riêng mô tả đá, biểu tượng và cách dùng.\n\n## Connect\n\nHọc tập, chuyên gia và sự kiện. Phân hệ đang được chuẩn bị; hiện ZSOPO giới thiệu sản phẩm năng lượng và bài viết trên Blog.\n\n## Give\n\nHoạt động thiện nguyện và cộng đồng phụng sự. Trang quyên góp chưa mở; thông tin chương trình sẽ được công bố minh bạch khi sẵn sàng.\n\n## Đội ngũ\n\nThông tin đội ngũ đang chờ biên tập.',
+ 'published', now()),
+('e0000000-0000-4000-8000-000000000001','noi-quy','policy','Nội quy lưu trú',
+ 'Giờ nhận phòng 14:00, trả phòng trước 12:00, giữ yên tĩnh từ 22:00 đến 06:00.',
+ E'> Bản nháp phục vụ kiểm thử, chờ chủ cơ sở và pháp lý duyệt.\n\n## 1. Nhận và trả phòng\n\n- Xuất trình căn cước công dân, hộ chiếu hoặc giấy tờ tùy thân có ảnh để đăng ký tạm trú theo quy định.\n- Nhận phòng từ **14:00**, trả phòng trước **12:00** hôm sau. Muốn gia hạn, vui lòng báo lễ tân trước.\n\n## 2. An ninh và an toàn\n\n- Không mang vũ khí, chất nổ, chất dễ cháy, chất độc hại hoặc chất cấm vào khu lưu trú.\n- Không tự ý thay đổi bố trí trang thiết bị hoặc mang tài sản của cơ sở ra ngoài.\n- Khóa cửa khi ra ngoài và khi ngủ. Tài sản giá trị vui lòng gửi tại quầy lễ tân.\n\n## 3. Sinh hoạt chung\n\n- Giữ vệ sinh phòng và hành lang; không nấu nướng, giặt phơi trái quy định trong phòng.\n- Không hút thuốc tại khu vực cấm.\n- Tiếp khách tại sảnh; khách ở qua đêm cần khai báo với lễ tân.\n- Giữ yên tĩnh từ **22:00** đến **06:00**.\n\n## 4. Bồi thường và thanh toán\n\n- Bồi thường theo giá thị trường nếu làm hư hỏng, mất mát tài sản do sơ suất.\n- Thanh toán tiền phòng và dịch vụ phát sinh trước khi trả phòng.',
+ 'published', now()),
+('e0000000-0000-4000-8000-000000000001','bao-mat','policy','Chính sách bảo mật',
+ 'Cách ZSOPO thu thập, sử dụng, lưu giữ và xóa dữ liệu cá nhân.',
+ E'> Bản nháp phục vụ kiểm thử, chờ pháp lý duyệt.\n\n## Dữ liệu chúng tôi thu thập\n\nHọ tên, số điện thoại, email, thông tin đặt phòng và đơn hàng do bạn cung cấp. Giấy tờ tùy thân chỉ thu tại quầy khi nhận phòng để đăng ký tạm trú.\n\n## Mục đích\n\nXử lý đặt phòng, đơn hàng, thanh toán, chăm sóc khách hàng. Tin tiếp thị chỉ gửi khi bạn đồng ý riêng và có thể hủy bất cứ lúc nào.\n\n## Lưu giữ và xóa\n\nẢnh giấy tờ tùy thân được mã hóa và xóa sau 30 ngày. Bạn có thể yêu cầu xuất, sửa hoặc xóa dữ liệu; chúng tôi phản hồi trong 72 giờ, trừ dữ liệu giao dịch phải lưu theo quy định.\n\n## Liên hệ\n\nGửi yêu cầu qua trang Liên hệ.',
+ 'published', now()),
+('e0000000-0000-4000-8000-000000000001','dieu-khoan','policy','Điều khoản sử dụng',
+ 'Điều khoản khi đặt phòng, mua hàng và sử dụng website ZSOPO.',
+ E'> Bản nháp phục vụ kiểm thử, chờ pháp lý duyệt.\n\n## Đặt phòng và mua hàng\n\nGiá và tổng tiền hiển thị tại bước xác nhận là giá cuối cùng do hệ thống tính. Đặt phòng chỉ được xác nhận khi ZSOPO ghi nhận tiền cọc.\n\n## Nội dung năng lượng\n\nNội dung mang tính hỗ trợ tinh thần, không thay thế tư vấn y khoa.',
+ 'published', now()),
+('e0000000-0000-4000-8000-000000000001','huy-hoan','policy','Chính sách hủy và hoàn tiền',
+ 'Điều kiện hủy, đổi ngày và hoàn tiền cọc.',
+ E'> Bản nháp phục vụ kiểm thử. Mức hoàn thực tế do chủ cơ sở duyệt và được lưu theo từng đặt phòng.\n\nĐiều kiện hủy và hoàn tiền áp dụng theo phiên bản chính sách tại thời điểm bạn đặt phòng, được ghi trong xác nhận đặt phòng. Mọi khoản hoàn được duyệt và ghi nhận bằng chứng.',
+ 'published', now()),
+('e0000000-0000-4000-8000-000000000001','giao-hang','policy','Chính sách giao hàng và đổi trả',
+ 'Phí giao hàng, thời gian xử lý và đổi trả sản phẩm.',
+ E'> Bản nháp phục vụ kiểm thử, chờ duyệt trước khi mở bán.\n\nPhí giao hàng tính theo khu vực, hiển thị trước khi đặt. Sản phẩm có nghi lễ chuẩn bị năng lượng có thể cần thêm 24 giờ trước khi giao.',
+ 'published', now());
+
+insert into ops_config.runtime_settings(key, entity_id, value, is_public) values
+('site.contact', 'e0000000-0000-4000-8000-000000000001',
+ '{"name":"Zen Homestay Đà Lạt","address":"Địa chỉ chờ chủ cơ sở duyệt","phone":null,"email":"lien-he@example.test","zalo":null,"mapsUrl":null,"approved":false}', true);

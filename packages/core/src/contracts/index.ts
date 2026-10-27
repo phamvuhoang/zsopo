@@ -82,3 +82,29 @@ export const err = (code: ErrorCode, message: string, field?: string): { ok: fal
   error: { code, message, ...(field ? { field } : {}), retryable: code === "RATE_LIMITED" || code === "UPSTREAM_UNAVAILABLE" },
 });
 export const httpStatus = (code: ErrorCode): number => ERROR_CODES[code];
+
+export const CHAKRAS = ["root", "sacral", "solar", "heart", "throat", "third_eye", "crown"] as const;
+export type Chakra = (typeof CHAKRAS)[number];
+export const CHAKRA_LABEL: Record<Chakra, string> = {
+  root: "Gốc",
+  sacral: "Xương cùng",
+  solar: "Tùng thái dương",
+  heart: "Tim",
+  throat: "Cổ họng",
+  third_eye: "Con mắt thứ ba",
+  crown: "Vương miện",
+};
+
+/** Public Energy Card projection (US-NRG-02), shared by rooms, products, services. */
+export type EnergyCardData = {
+  title: string;
+  purpose: string;
+  origin: string;
+  usage: string;
+  frequency: string | null;
+  stones: string[];
+  symbols: string[];
+  chakras: Chakra[];
+  ritualVideoUrl: string | null;
+  bovisReference: number | null;
+};

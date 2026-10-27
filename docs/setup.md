@@ -29,3 +29,7 @@ Production chỉ được coi là đã provision khi có tài khoản, domain v�
 - [ ] GitHub environments `staging`/`production`: `SUPABASE_ACCESS_TOKEN`, `SUPABASE_DB_PASSWORD`, `VERCEL_TOKEN`, var `SUPABASE_PROJECT_REF`.
 - [ ] SMTP/Resend DNS (SPF/DKIM), Google OAuth client, Sentry/PostHog project (chưa gắn SDK cho tới khi có DSN và chính sách consent được duyệt).
 - [ ] PITR add-on, storage backup, key custody cho giấy tờ: xem `docs/runbooks/`.
+
+## Ghi chú build
+
+`pnpm build` đọc CMS (chính sách, giới thiệu, cài đặt công khai) qua publishable key để prerender trang công khai, nên cần Supabase đang chạy (local) hoặc URL staging/production hợp lệ khi build trên Vercel.

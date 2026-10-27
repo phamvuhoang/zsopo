@@ -189,13 +189,29 @@ isOneToOne: false
           }
         },"content": {
           Tables: {
-            [_ in never]: never
+            "pages": {
+                  Row: {
+                    "approved_by": string | null,"body_md": string,"created_at": string,"entity_id": string,"excerpt": string,"id": string,"kind": string,"published_at": string | null,"slug": string,"status": string,"title": string,"updated_at": string,"updated_by": string | null,"version": number
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "approved_by"?: string | null,"body_md"?: string,"created_at"?: string,"entity_id": string,"excerpt"?: string,"id"?: string,"kind": string,"published_at"?: string | null,"slug": string,"status"?: string,"title": string,"updated_at"?: string,"updated_by"?: string | null,"version"?: number
+                  }
+                  Update: {
+                    "approved_by"?: string | null,"body_md"?: string,"created_at"?: string,"entity_id"?: string,"excerpt"?: string,"id"?: string,"kind"?: string,"published_at"?: string | null,"slug"?: string,"status"?: string,"title"?: string,"updated_at"?: string,"updated_by"?: string | null,"version"?: number
+                  }
+                  Relationships: [
+                    
+                  ]
+                }
           }
           Views: {
             [_ in never]: never
           }
           Functions: {
-            [_ in never]: never
+            "policies_published":
+{ Args: Record<PropertyKey, never>; Returns: boolean
+                           }
           }
           Enums: {
             [_ in never]: never
@@ -568,7 +584,21 @@ isOneToOne: false
           }
         },"ops_config": {
           Tables: {
-            [_ in never]: never
+            "runtime_settings": {
+                  Row: {
+                    "entity_id": string | null,"is_public": boolean,"key": string,"updated_at": string,"updated_by": string | null,"value": NonNullable<Json>,"version": number
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "entity_id"?: string | null,"is_public"?: boolean,"key": string,"updated_at"?: string,"updated_by"?: string | null,"value": NonNullable<Json>,"version"?: number
+                  }
+                  Update: {
+                    "entity_id"?: string | null,"is_public"?: boolean,"key"?: string,"updated_at"?: string,"updated_by"?: string | null,"value"?: NonNullable<Json>,"version"?: number
+                  }
+                  Relationships: [
+                    
+                  ]
+                }
           }
           Views: {
             [_ in never]: never
@@ -590,15 +620,7 @@ isOneToOne: false
             [_ in never]: never
           }
           Functions: {
-            "tests_as":
-{ Args: { "p_user": string }; Returns: undefined
-                           },
-"tests_as_aal2":
-{ Args: { "p_user": string }; Returns: undefined
-                           },
-"tests_make_order":
-{ Args: { "p_location"?: string }; Returns: string
-                           }
+            [_ in never]: never
           }
           Enums: {
             [_ in never]: never

@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Be_Vietnam_Pro, Lexend } from "next/font/google";
+import { THEME_SCRIPT } from "@/components/theme-toggle";
 import { env } from "@/lib/env";
 import "./globals.css";
 
@@ -19,6 +20,9 @@ export const metadata: Metadata = {
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   return (
     <html lang="vi" className={`${lexend.variable} ${beVietnam.variable}`} suppressHydrationWarning>
+      <head>
+        <script dangerouslySetInnerHTML={{ __html: THEME_SCRIPT }} />
+      </head>
       <body>{children}</body>
     </html>
   );
