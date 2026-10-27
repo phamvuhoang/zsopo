@@ -26,10 +26,13 @@ export type GuestReceipt = {
   transferReportedAt: string | null;
   vietqr: null | { bankBin: string; bankName: string; accountNo: string; accountName: string; amount: string; reference: string };
   policySummary: string;
+  serverNow: string;
+  notifications: { channel: string; status: string; at: string }[];
+  confirmationQueued: boolean;
 };
 
 export const getGuestReceipt = (client: Db, token: string): Promise<DomainResult<GuestReceipt>> =>
-  call(client, "commerce", "get_guest_receipt", { p_token: token });
+  call(client, "commerce", "get_guest_receipt_v2", { p_token: token });
 
 export const reportTransfer = (client: Db, token: string): Promise<DomainResult<{ reportedAt: string }>> =>
   call(client, "commerce", "report_transfer", { p_token: token });

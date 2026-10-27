@@ -350,8 +350,9 @@ create function core.upsert_guest_customer(p_entity uuid, p_guest jsonb, p_sourc
 language plpgsql security definer set search_path = '' as $$
 declare v_customer uuid; v_phone text := core.normalize_phone(p_guest ->> 'phone'); v_email text := lower(trim(p_guest ->> 'email'));
 begin
-  insert into core.customers(entity_id, display_name, source, user_id)
-  values (p_entity, trim(p_guest ->> 'name'), p_source, auth.uid()) returning id into v_customer;
+  -- user_id stays null: an order is linked to an account only through commerce.claim_order (verified email).
+  insert into core.customers(entity_id, display_name, source)
+  values (p_entity, trim(p_guest ->> 'name'), p_source) returning id into v_customer;
   if v_phone <> '' then
     insert into core.customer_contacts(entity_id, customer_id, kind, value, normalized) values (p_entity, v_customer, 'phone', p_guest ->> 'phone', v_phone);
   end if;

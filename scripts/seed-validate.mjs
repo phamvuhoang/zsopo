@@ -25,6 +25,7 @@ if (production) {
   if (/chờ chủ cơ sở duyệt/.test(seed)) problems.push("placeholder address in seed");
   if (/"fixture":true/.test(seed)) problems.push("fixture payment account in seed");
   if (/rate_limit.scale/.test(seed)) problems.push("rate limit scaling in seed");
+  if (/eyJ[\w-]+\.eyJ[\w-]+\./.test(seed)) problems.push("JWT in seed (local demo key)");
 }
 
 if (problems.length) {

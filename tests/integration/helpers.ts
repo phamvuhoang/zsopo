@@ -82,3 +82,16 @@ export async function seedSku(opts: { price?: bigint; onHand?: number } = {}) {
   );
   return { productId: product!.id, variantId: variant!.id };
 }
+
+/** Retry an assertion block until it passes or times out (Vitest has no toPass). */
+export async function eventually(fn: () => Promise<void>, timeoutMs = 10_000): Promise<void> {
+  const end = Date.now() + timeoutMs;
+  for (;;) {
+    try {
+      return await fn();
+    } catch (e) {
+      if (Date.now() > end) throw e;
+      await new Promise((r) => setTimeout(r, 300));
+    }
+  }
+}

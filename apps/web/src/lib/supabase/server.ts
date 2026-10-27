@@ -21,9 +21,19 @@ export async function createClient() {
   });
 }
 
-/** Cookie-less anon client for public, cacheable reads ('use cache' scopes). */
-export function createPublicClient() {
+/**
+ * Cookie-less anon client for public reads ('use cache' scopes) and guest RPCs.
+ * Pass the visitor IP for guest writes so the DB rate limiter keys on the visitor, not on this server.
+ */
+export function createPublicClient(forwardedFor?: string | null) {
   return createServerClient<Database>(env.supabaseUrl, env.supabaseKey, {
     cookies: { getAll: () => [], setAll: () => {} },
+    ...(forwardedFor ? { global: { headers: { "x-forwarded-for": forwardedFor } } } : {}),
   });
+}
+
+/** Visitor IP from the request (first X-Forwarded-For hop set by the hosting edge). */
+export async function visitorIp(): Promise<string | null> {
+  const { headers } = await import("next/headers");
+  return (await headers()).get("x-forwarded-for")?.split(",")[0]?.trim() ?? null;
 }

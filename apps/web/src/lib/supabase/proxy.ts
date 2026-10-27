@@ -3,6 +3,7 @@ import { NextResponse, type NextRequest } from "next/server";
 import { env } from "@/lib/env";
 
 const PROTECTED = /^\/(ops|admin)(\/|$)/;
+const PRIVATE = /^\/(dat-phong\/[A-Z0-9]+|don-hang|gio-hang|thanh-toan|api\/guest|auth)(\/|$)/;
 
 /** Refresh the Supabase session cookie and send anonymous visitors of /ops, /admin to login. */
 export async function updateSession(request: NextRequest) {
@@ -27,7 +28,7 @@ export async function updateSession(request: NextRequest) {
     url.search = `?next=${encodeURIComponent(pathname + search)}`;
     return NextResponse.redirect(url);
   }
-  if (PROTECTED.test(pathname) || pathname.startsWith("/auth")) {
+  if (PROTECTED.test(pathname) || PRIVATE.test(pathname)) {
     response.headers.set("Cache-Control", "private, no-store");
     response.headers.set("X-Robots-Tag", "noindex, nofollow");
   }

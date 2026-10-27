@@ -196,6 +196,7 @@ begin
         update commerce.orders set status = 'confirmed' where id = o.id;
         perform core.enqueue(o.entity_id, 'booking.confirmed', 'booking.confirmed:' || b.id, b.id, jsonb_build_object('orderCode', o.code));
         perform stay.schedule_journey(b.id);
+        perform core.kick_notify(); -- async via pg_net after commit: confirmation email target < 60s
       else
         -- Underpaid deposit: keep the room while staff reconcile; no automatic credit.
         update stay.bookings set state = 'needs_review' where id = b.id;

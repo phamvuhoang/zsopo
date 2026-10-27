@@ -150,3 +150,31 @@ from stay.rate_plans where kind = 'base';
 insert into ops_config.runtime_settings(key, entity_id, value, is_public) values
 ('payment.vietqr', 'e0000000-0000-4000-8000-000000000001', '{"bankBin":"970436","bankName":"Ngân hàng thử nghiệm","accountNo":"0000000000","accountName":"ZSOPO THU NGHIEM","approved":true,"fixture":true}', false),
 ('rate_limit.scale', null, '100', false);
+
+-- Transactional templates (plain text, {{var}} allow-list). Copy is a draft for owner review.
+insert into ops_config.notification_templates(entity_id, key, channel, subject, body, allowed_vars) values
+('e0000000-0000-4000-8000-000000000001','booking.confirmed','email','Xác nhận đặt phòng {{orderCode}} tại {{locationName}}',
+ E'Chào {{name}},\n\nZSOPO đã nhận tiền cọc và xác nhận đặt phòng {{orderCode}}.\n\nPhòng: {{roomName}}\nNhận phòng: {{arrival}} từ {{checkIn}}\nTrả phòng: {{departure}} trước {{checkOut}}\nĐã thanh toán: {{paid}} đ\nCòn lại thanh toán tại quầy: {{due}} đ\n\nXem đặt phòng: {{link}}\n\nHẹn gặp bạn tại Đà Lạt.\nZSOPO',
+ array['name','orderCode','locationName','roomName','arrival','checkIn','departure','checkOut','paid','due','link']),
+('e0000000-0000-4000-8000-000000000001','handbook.due','email','Cẩm nang lưu trú cho đặt phòng {{orderCode}}',
+ E'Chào {{name}},\n\nNgày {{arrival}} bạn sẽ nhận phòng {{roomName}} từ {{checkIn}}.\n\nCẩm nang, đường đi và nội quy: {{handbookUrl}}\nĐặt phòng của bạn: {{link}}\n\nZSOPO',
+ array['name','orderCode','arrival','roomName','checkIn','handbookUrl','link']),
+('e0000000-0000-4000-8000-000000000001','checkout.thanks','email','Cảm ơn bạn đã ở cùng ZSOPO',
+ E'Chào {{name}},\n\nCảm ơn bạn đã lưu trú tại {{locationName}}. Nếu có thời gian, chia sẻ trải nghiệm của bạn giúp chúng tôi: {{reviewUrl}}\n\nZSOPO',
+ array['name','locationName','reviewUrl']),
+('e0000000-0000-4000-8000-000000000001','ops.alert','email','[ZSOPO vận hành] {{kind}}',
+ E'Có việc cần xử lý: {{kind}}\n\nChi tiết: {{detail}}\n\nMở trang quản trị để xử lý.',
+ array['kind','detail']);
+
+insert into ops_config.runtime_settings(key, entity_id, value, is_public) values
+('ops.alerts', 'e0000000-0000-4000-8000-000000000001', '{"alertEmail":"van-hanh@example.test"}', false);
+
+-- Local only: let pg_cron/pg_net reach the notify Edge Function (demo service key of the local stack).
+select vault.create_secret('http://supabase_kong_zsopo:8000/functions/v1/notify', 'notify_url');
+select vault.create_secret('eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImV4cCI6MTk4MzgxMjk5Nn0.EGIM96RAZx35lJzdJsyH-qQwv8Hdp7fsn3W0YpN81IU', 'notify_key');
+
+insert into content.pages(entity_id, slug, kind, title, excerpt, body_md, status, published_at) values
+('e0000000-0000-4000-8000-000000000001','handbook-da-lat','page','Cẩm nang lưu trú Zen Homestay Đà Lạt',
+ 'Đường đi, giờ nhận và trả phòng, nội quy và lưu ý.',
+ E'> Bản nháp chờ quản lý điểm duyệt.\n\n## Giờ nhận và trả phòng\n\nNhận phòng từ 14:00, trả phòng trước 12:00. Báo lễ tân trước nếu cần nhận sớm hoặc trả muộn.\n\n## Khi đến\n\nVui lòng mang căn cước công dân hoặc hộ chiếu để đăng ký tạm trú. Thông tin Wifi và mã cửa được lễ tân trao khi nhận phòng.\n\n## Yên tĩnh\n\nGiữ yên tĩnh từ 22:00 đến 06:00. Thiền buổi sáng tại sân vườn nếu thời tiết cho phép.\n\n## Nội quy đầy đủ\n\nXem [Nội quy lưu trú](/chinh-sach/noi-quy).',
+ 'published', now());

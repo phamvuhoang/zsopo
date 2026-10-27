@@ -206,6 +206,9 @@ isOneToOne: false
 "get_guest_receipt":
 { Args: { "p_token": string }; Returns: Json
                            },
+"get_guest_receipt_v2":
+{ Args: { "p_token": string }; Returns: Json
+                           },
 "idem_get":
 { Args: { "p_hash": string,"p_key": string,"p_scope": string }; Returns: Json
                            },
@@ -577,6 +580,32 @@ isOneToOne: false
 "auth_has_role":
 { Args: { "p_entity": string,"p_location"?: string,"p_role": string }; Returns: boolean
                            },
+"claim_outbox":
+{ Args: { "p_lease": string,"p_limit": number,"p_worker": string }; Returns: {
+              "aggregate_id": string | null,
+"attempts": number,
+"created_at": string,
+"dedupe_key": string,
+"entity_id": string | null,
+"id": string,
+"kind": string,
+"last_error": string | null,
+"locked_until": string | null,
+"next_run_at": string,
+"payload": NonNullable<Json>,
+"provider_id": string | null,
+"status": string,
+"updated_at": string
+            }[]
+                          SetofOptions: {
+        from: "*"
+        to: "outbox"
+        isOneToOne: false
+        isSetofReturn: true
+      } },
+"complete_outbox":
+{ Args: { "p_error": string,"p_id": string,"p_provider_id": string,"p_status": string }; Returns: undefined
+                           },
 "disable_staff":
 { Args: { "p_reason": string,"p_user": string }; Returns: undefined
                            },
@@ -607,6 +636,12 @@ isOneToOne: false
 "issue_guest_token":
 { Args: { "p_expires": string,"p_scope": string,"p_subject": string }; Returns: string
                            },
+"kick_notify":
+{ Args: Record<PropertyKey, never>; Returns: undefined
+                           },
+"log_delivery":
+{ Args: { "p_channel": string,"p_error": string,"p_outbox": string,"p_provider": string,"p_provider_id": string,"p_recipient": string,"p_status": string }; Returns: undefined
+                           },
 "my_roles":
 { Args: Record<PropertyKey, never>; Returns: {
               "entity_id": string,"location_id": string,"role": string
@@ -623,6 +658,12 @@ isOneToOne: false
                            },
 "redact":
 { Args: { "p": Json }; Returns: Json
+                           },
+"render_outbox":
+{ Args: { "p_id": string }; Returns: Json
+                           },
+"retry_outbox":
+{ Args: { "p_id": string }; Returns: undefined
                            },
 "revoke_role":
 { Args: { "p_reason": string,"p_role_id": string }; Returns: undefined
@@ -660,7 +701,35 @@ isOneToOne: false
           }
         },"ops_config": {
           Tables: {
-            "policy_versions": {
+            "delivery_logs": {
+                  Row: {
+                    "channel": string,"created_at": string,"entity_id": string | null,"error": string | null,"id": number,"outbox_id": string,"provider": string,"provider_id": string | null,"recipient_masked": string | null,"status": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "channel": string,"created_at"?: string,"entity_id"?: string | null,"error"?: string | null,"id"?: never,"outbox_id": string,"provider": string,"provider_id"?: string | null,"recipient_masked"?: string | null,"status": string
+                  }
+                  Update: {
+                    "channel"?: string,"created_at"?: string,"entity_id"?: string | null,"error"?: string | null,"id"?: never,"outbox_id"?: string,"provider"?: string,"provider_id"?: string | null,"recipient_masked"?: string | null,"status"?: string
+                  }
+                  Relationships: [
+                    
+                  ]
+                },"notification_templates": {
+                  Row: {
+                    "active": boolean,"allowed_vars": (string)[],"body": string,"channel": string,"entity_id": string,"id": string,"key": string,"subject": string,"updated_at": string,"updated_by": string | null,"version": number
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "active"?: boolean,"allowed_vars": (string)[],"body": string,"channel": string,"entity_id": string,"id"?: string,"key": string,"subject"?: string,"updated_at"?: string,"updated_by"?: string | null,"version"?: number
+                  }
+                  Update: {
+                    "active"?: boolean,"allowed_vars"?: (string)[],"body"?: string,"channel"?: string,"entity_id"?: string,"id"?: string,"key"?: string,"subject"?: string,"updated_at"?: string,"updated_by"?: string | null,"version"?: number
+                  }
+                  Relationships: [
+                    
+                  ]
+                },"policy_versions": {
                   Row: {
                     "approved_by": string | null,"created_at": string,"created_by": string | null,"effective_from": string,"entity_id": string,"id": string,"kind": string,"location_id": string | null,"params": NonNullable<Json>,"summary_md": string,"version": number
                   }
@@ -732,15 +801,7 @@ isOneToOne: false
             [_ in never]: never
           }
           Functions: {
-            "tests_as":
-{ Args: { "p_user": string }; Returns: undefined
-                           },
-"tests_as_aal2":
-{ Args: { "p_user": string }; Returns: undefined
-                           },
-"tests_make_order":
-{ Args: { "p_location"?: string }; Returns: string
-                           }
+            [_ in never]: never
           }
           Enums: {
             [_ in never]: never
@@ -1000,6 +1061,9 @@ isOneToOne: false
                            },
 "deactivate_rate":
 { Args: { "p_rate": string,"p_reason": string }; Returns: undefined
+                           },
+"expire_all_holds":
+{ Args: Record<PropertyKey, never>; Returns: number
                            },
 "expire_room_holds":
 { Args: { "p_room": string }; Returns: number
