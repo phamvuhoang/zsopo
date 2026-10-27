@@ -186,3 +186,35 @@ insert into stay.services(entity_id, location_id, group_key, source_category, sl
 ('e0000000-0000-4000-8000-000000000001','c0000000-0000-4000-8000-000000000001','transport',null,'xe-don-lien-khuong','Xe đón sân bay Liên Khương','Xe 4 chỗ, đón theo giờ hạ cánh.','lượt',350000,1440,'05:00','23:00',500,'own_service',3),
 ('e0000000-0000-4000-8000-000000000001','c0000000-0000-4000-8000-000000000001','experience',null,'thien-am-thanh-chuong-xoay','Thiền âm thanh chuông xoay','Buổi thiền 60 phút cùng người hướng dẫn đồng tổ chức.','người',250000,240,'06:00','20:00',1000,'cohost_service',4),
 ('e0000000-0000-4000-8000-000000000001','c0000000-0000-4000-8000-000000000001','flex',null,'giat-ui','Giặt ủi','Trả trong ngày nếu gửi trước 10:00.','kg',80000,120,'07:00','18:00',0,'own_service',5);
+
+-- SOP templates v1: 7 groups (XLSX) carrying the 11 DOCX checkpoints (safe entry, clean/dirty separation, equipment check, self-check).
+insert into stay.checklist_templates(entity_id, kind, version, title, items) values
+('e0000000-0000-4000-8000-000000000001','room_checkout',1,'BP01 Dọn phòng khách trả',
+ '[{"code":"G1-1","group":"1. Vào phòng an toàn","label":"Gõ cửa, xưng danh, kiểm tra biển DND trước khi vào","safety":true},
+   {"code":"G1-2","group":"1. Vào phòng an toàn","label":"Mở rèm, cửa sổ thông gió; kiểm tra mùi lạ, khói","safety":true},
+   {"code":"G2-1","group":"2. Thu dọn","label":"Kiểm tra đồ khách để quên trước khi thu dọn","photo":true},
+   {"code":"G2-2","group":"2. Thu dọn","label":"Thu rác, đồ vải bẩn vào túi riêng; tách dụng cụ sạch và bẩn"},
+   {"code":"G3-1","group":"3. Giường","label":"Thay ga, vỏ gối, vỏ chăn sạch; giường phẳng, không vết"},
+   {"code":"G4-1","group":"4. Phòng tắm và WC","label":"Cọ bồn cầu, lavabo, sàn tắm; khử khuẩn tay nắm"},
+   {"code":"G4-2","group":"4. Phòng tắm và WC","label":"Kiểm tra nước nóng, thoát nước, rò rỉ","safety":true},
+   {"code":"G5-1","group":"5. Bề mặt và thiết bị","label":"Lau bụi bề mặt, gương, kính, góc đá năng lượng"},
+   {"code":"G5-2","group":"5. Bề mặt và thiết bị","label":"Kiểm tra đèn, ổ điện, điều hòa/sưởi, TV, Wifi","safety":true},
+   {"code":"G6-1","group":"6. Bổ sung vật tư","label":"Bổ sung khăn, amenities, trà thảo mộc, nước uống theo chuẩn"},
+   {"code":"G7-1","group":"7. Sàn và tự kiểm (BM02)","label":"Hút bụi, lau sàn; tự kiểm lần cuối mùi, ánh sáng, bố trí","photo":true}]'),
+('e0000000-0000-4000-8000-000000000001','room_stayover',1,'BP02 Dọn phòng đang ở',
+ '[{"code":"S1","group":"1. Vào phòng","label":"Có sự đồng ý của khách, không có DND","safety":true},
+   {"code":"S2","group":"2. Thu dọn","label":"Thu rác, không di chuyển đồ cá nhân của khách"},
+   {"code":"S3","group":"3. Giường","label":"Sửa giường; thay ga theo yêu cầu khách"},
+   {"code":"S4","group":"4. Phòng tắm","label":"Làm sạch phòng tắm, thay khăn đã dùng"},
+   {"code":"S5","group":"6. Bổ sung","label":"Bổ sung amenities, nước uống"}]'),
+('e0000000-0000-4000-8000-000000000001','common_area',1,'BP04 Khu chung',
+ '[{"code":"C-KITCHEN","group":"Bếp","label":"Bếp chung sạch, gas tắt, rác đổ","safety":true,"naAllowed":true},
+   {"code":"C-BBQ","group":"BBQ","label":"Khu BBQ sạch, than nguội","safety":true,"naAllowed":true},
+   {"code":"C-LOBBY","group":"Sảnh","label":"Sảnh, quầy lễ tân sạch, lối thoát hiểm thông thoáng","safety":true},
+   {"code":"C-GARDEN","group":"Sân vườn","label":"Sân vườn, khu thiền gọn gàng","naAllowed":true},
+   {"code":"C-POOL","group":"Hồ bơi","label":"Hồ bơi (nếu có): nước sạch, biển cảnh báo","safety":true,"naAllowed":true}]');
+
+insert into stay.supply_items(entity_id, location_id, code, name, kind, min_level) values
+('e0000000-0000-4000-8000-000000000001','c0000000-0000-4000-8000-000000000001','GA-DOI','Ga giường đôi','linen',20),
+('e0000000-0000-4000-8000-000000000001','c0000000-0000-4000-8000-000000000001','KHAN-TAM','Khăn tắm','linen',30),
+('e0000000-0000-4000-8000-000000000001','c0000000-0000-4000-8000-000000000001','TRA-TM','Trà thảo mộc gói','amenity',50);

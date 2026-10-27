@@ -288,7 +288,7 @@ begin
   if p_departure - p_arrival > 30 then perform core.fail('VALIDATION', 'Tối đa 30 đêm mỗi lần đặt'); end if;
   select * into r from stay.rooms where id = p_room and status = 'published';
   if not found then perform core.fail('NOT_FOUND', 'Không tìm thấy phòng'); end if;
-  if not r.sellable then perform core.fail('SOLD_OUT', 'Phòng chưa mở bán'); end if;
+  if not r.sellable or r.safety_block then perform core.fail('SOLD_OUT', 'Phòng chưa mở bán hoặc đang khóa an toàn'); end if;
   if p_adults < 1 or p_adults + coalesce(array_length(p_children, 1), 0) > r.max_guests then
     perform core.fail('VALIDATION', format('Phòng tối đa %s khách', r.max_guests));
   end if;
@@ -395,7 +395,7 @@ begin
   -- Room lock serialises every writer of this room (web, staff, OTA import, maintenance).
   select * into r from stay.rooms where id = q.room_id for update;
   perform stay.expire_room_holds(r.id);
-  if not r.sellable or r.status <> 'published' then perform core.fail('SOLD_OUT', 'Phòng chưa mở bán'); end if;
+  if not r.sellable or r.safety_block or r.status <> 'published' then perform core.fail('SOLD_OUT', 'Phòng chưa mở bán'); end if;
   pol := ops_config.current_policy(r.location_id, 'stay');
   if pol.id <> p_policy_version or q.policy_version_id <> pol.id then perform core.fail('PRICE_CHANGED', 'Chính sách đặt phòng vừa cập nhật. Vui lòng xem lại.'); end if;
   if (select coalesce(sum(price), 0) from stay.price_nights(r.id, q.arrival, q.departure)) <>

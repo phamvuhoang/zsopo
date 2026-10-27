@@ -8,6 +8,11 @@ const NAV = [
   ["/ops/dat-phong", "Đặt phòng"],
   ["/ops/dich-vu", "Dịch vụ"],
   ["/ops/tickets", "Sự cố"],
+  ["/ops/buong-phong", "Buồng phòng"],
+  ["/ops/lich-don", "Lịch dọn"],
+  ["/ops/vat-tu", "Vật tư"],
+  ["/ops/do-that-lac", "Đồ thất lạc"],
+  ["/ops/huong-dan", "Hướng dẫn"],
 ] as const;
 
 export const metadata = { title: { default: "Vận hành", template: "%s | ZSOPO Ops" }, robots: { index: false, follow: false } };

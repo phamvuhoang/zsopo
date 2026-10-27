@@ -2,6 +2,7 @@ import { Price, StatusBadge } from "@zsopo/ui";
 import { randomUUID } from "node:crypto";
 import { Field, inputCls } from "@/components/action-form";
 import { loadBooking } from "@/features/ops/booking-data";
+import { IdentityUpload } from "@/features/ops/identity-upload";
 import { TransitionForm } from "@/features/ops/transition-form";
 import { getStaffContext } from "@/lib/auth/context";
 import { requirePermission } from "@/lib/auth/require-permission";
@@ -25,6 +26,7 @@ export default async function CheckIn({ params }: PageProps<"/ops/dat-phong/[id]
         <li>Phòng: {ready ? <StatusBadge tone="success">Đã nghiệm thu, sẵn sàng</StatusBadge> : <StatusBadge tone="danger">Chưa sẵn sàng ({room.cleanliness}{room.safety_block ? ", khóa an toàn" : ""})</StatusBadge>}</li>
         <li>Khoản còn lại thu khi trả phòng: <Price value={String(due)} /></li>
       </ul>
+      <div className="mt-4"><IdentityUpload bookingId={b.id} /></div>
       <div className="mt-4">
         <TransitionForm submit="Xác nhận giao phòng">
           <input type="hidden" name="bookingId" value={b.id} />
