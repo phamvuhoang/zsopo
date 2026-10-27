@@ -8,9 +8,9 @@ test("shop có 9 danh mục, lọc theo luân xa, trang sản phẩm có bảng 
   await expect(page.getByRole("heading", { level: 3, name: "Vòng tay thạch anh hồng 8 ly" })).toBeVisible();
   await page.getByRole("heading", { level: 3, name: "Vòng tay thạch anh hồng 8 ly" }).click();
   await expect(page.getByLabel("Bảng năng lượng")).toContainText("Thạch anh hồng Madagascar");
-  const oos = page.getByRole("listitem").filter({ hasText: "Size L (18cm)" });
+  const oos = page.getByRole("complementary").getByRole("listitem").filter({ hasText: "Size L (18cm)" }).first();
   await expect(oos.getByText("Hết hàng")).toBeVisible();
-  await oos.getByLabel("Email").fill("bao-hang@example.test");
+  await oos.getByRole("textbox", { name: "Email" }).fill("bao-hang@example.test");
   await oos.getByLabel(/Đồng ý nhận email/).check();
   await oos.getByRole("button", { name: "Báo tôi khi có hàng" }).click();
   await expect(oos.getByRole("status")).toContainText("Đã đăng ký");
