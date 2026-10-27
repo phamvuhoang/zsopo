@@ -119,10 +119,11 @@ begin
           'vars', jsonb_build_object('subject', c.subject, 'body', c.body, 'unsubscribeToken', core.issue_guest_token('marketing', r.customer_id, now() + interval '180 days'))) end
       from crm.campaign_recipients r join crm.campaigns c on c.id = r.campaign_id where r.id = o.aggregate_id);
   elsif o.kind = 'newsletter.confirm' then
-    -- Fresh token per email; the subscription is not live until its owner opens the link.
-    v_token := translate(encode(extensions.gen_random_bytes(24), 'base64'), '+/=', '-_');
-    update content.newsletter_subscriptions set token_hash = extensions.digest(v_token, 'sha256') where id = o.aggregate_id and status <> 'subscribed' returning email into v_to;
+    -- New token per render, added (never replacing) so a link from an earlier attempt keeps working.
+    select email into v_to from content.newsletter_subscriptions where id = o.aggregate_id and status <> 'subscribed';
     if v_to is null then return jsonb_build_object('skip', 'already subscribed'); end if;
+    v_token := translate(encode(extensions.gen_random_bytes(24), 'base64'), '+/=', '-_');
+    insert into content.newsletter_tokens(token_hash, subscription_id) values (extensions.digest(v_token, 'sha256'), o.aggregate_id);
     return jsonb_build_object('channels', jsonb_build_array('email'), 'to', v_to, 'template', 'newsletter.confirm', 'entityId', o.entity_id,
       'vars', jsonb_build_object('confirmToken', v_token));
   elsif o.kind = 'stock.back' then

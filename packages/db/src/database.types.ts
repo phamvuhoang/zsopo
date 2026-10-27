@@ -318,17 +318,37 @@ isOneToOne: false
                   ]
                 },"newsletter_subscriptions": {
                   Row: {
-                    "consent_version": string,"email": string,"entity_id": string,"id": string,"status": string,"subscribed_at": string,"token_hash": string,"unsubscribed_at": string | null
+                    "consent_version": string,"email": string,"entity_id": string,"id": string,"status": string,"subscribed_at": string,"unsubscribed_at": string | null
                   }
                   ComputedFields: never
                   Insert: {
-                    "consent_version"?: string,"email": string,"entity_id": string,"id"?: string,"status"?: string,"subscribed_at"?: string,"token_hash": string,"unsubscribed_at"?: string | null
+                    "consent_version"?: string,"email": string,"entity_id": string,"id"?: string,"status"?: string,"subscribed_at"?: string,"unsubscribed_at"?: string | null
                   }
                   Update: {
-                    "consent_version"?: string,"email"?: string,"entity_id"?: string,"id"?: string,"status"?: string,"subscribed_at"?: string,"token_hash"?: string,"unsubscribed_at"?: string | null
+                    "consent_version"?: string,"email"?: string,"entity_id"?: string,"id"?: string,"status"?: string,"subscribed_at"?: string,"unsubscribed_at"?: string | null
                   }
                   Relationships: [
                     
+                  ]
+                },"newsletter_tokens": {
+                  Row: {
+                    "created_at": string,"subscription_id": string,"token_hash": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "created_at"?: string,"subscription_id": string,"token_hash": string
+                  }
+                  Update: {
+                    "created_at"?: string,"subscription_id"?: string,"token_hash"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "newsletter_tokens_subscription_id_fkey"
+      columns: ["subscription_id"]
+isOneToOne: false
+      referencedRelation: "newsletter_subscriptions"
+      referencedColumns: ["id"]
+    }
                   ]
                 },"page_revisions": {
                   Row: {

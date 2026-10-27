@@ -122,9 +122,14 @@ create table content.newsletter_subscriptions (
   email text not null unique,
   status text not null default 'pending' check (status in ('pending','subscribed','unsubscribed')),
   consent_version text not null default 'v1',
-  token_hash bytea not null,
   subscribed_at timestamptz not null default now(),
   unsubscribed_at timestamptz
+);
+-- Every link ever emailed stays valid (a retried send must not break the link already delivered); only hashes are stored.
+create table content.newsletter_tokens (
+  token_hash bytea primary key,
+  subscription_id uuid not null references content.newsletter_subscriptions(id),
+  created_at timestamptz not null default now()
 );
 
 -- ---------------------------------------------------------------- editorial RPCs
@@ -160,6 +165,8 @@ begin
     update content.posts set updated_by = auth.uid() where id = cur.id;
   else
     perform content.apply_snapshot(cur.id, s, 'draft');
+    -- s already folded any leftover pending draft in: the live row is now the current edit.
+    delete from content.post_drafts where post_id = cur.id;
   end if;
 end $$;
 
@@ -325,8 +332,7 @@ begin
   perform core.rate_limit('newsletter', 5);
   if not coalesce(p_consent, false) then perform core.fail('VALIDATION', 'Cần đồng ý nhận bản tin'); end if;
   if v_email !~ '^[^@\s]+@[^@\s]+\.[^@\s]+$' then perform core.fail('VALIDATION', 'Email không hợp lệ'); end if;
-  insert into content.newsletter_subscriptions(entity_id, email, token_hash) values (v_entity, v_email, extensions.digest(extensions.gen_random_bytes(32), 'sha256'))
-  on conflict (email) do nothing;
+  insert into content.newsletter_subscriptions(entity_id, email) values (v_entity, v_email) on conflict (email) do nothing;
   select * into n from content.newsletter_subscriptions where email = v_email;
   if n.status <> 'subscribed' then
     -- At most one confirmation email per address per day.
@@ -337,13 +343,14 @@ end $$;
 create function content.confirm_newsletter(p_token text) returns void language plpgsql security definer set search_path = '' as $$
 begin
   update content.newsletter_subscriptions set status = 'subscribed', subscribed_at = now(), unsubscribed_at = null
-  where token_hash = extensions.digest(coalesce(p_token, ''), 'sha256');
+  where id = (select subscription_id from content.newsletter_tokens where token_hash = extensions.digest(coalesce(p_token, ''), 'sha256'));
   if not found then perform core.fail('NOT_FOUND', 'Liên kết xác nhận không hợp lệ'); end if;
 end $$;
 
 create function content.unsubscribe_newsletter(p_token text) returns void language plpgsql security definer set search_path = '' as $$
 begin
-  update content.newsletter_subscriptions set status = 'unsubscribed', unsubscribed_at = now() where token_hash = extensions.digest(coalesce(p_token, ''), 'sha256');
+  update content.newsletter_subscriptions set status = 'unsubscribed', unsubscribed_at = now()
+  where id = (select subscription_id from content.newsletter_tokens where token_hash = extensions.digest(coalesce(p_token, ''), 'sha256'));
   if not found then perform core.fail('NOT_FOUND', 'Liên kết hủy không hợp lệ'); end if;
 end $$;
 
@@ -363,6 +370,7 @@ alter table content.redirects enable row level security;
 alter table content.campaign_calendar enable row level security;
 alter table content.contact_leads enable row level security;
 alter table content.newsletter_subscriptions enable row level security;
+alter table content.newsletter_tokens enable row level security;
 alter table content.post_drafts enable row level security;
 grant select on content.categories, content.posts, content.redirects to anon, authenticated;
 grant select on content.post_drafts, content.post_revisions, content.page_revisions, content.campaign_calendar, content.contact_leads, content.newsletter_subscriptions to authenticated;

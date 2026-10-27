@@ -26,6 +26,7 @@ test("BP01 -> BM02 -> BM03: buồng phòng làm checklist, quản lý nghiệm t
   const hk = await staff(browser, "buong-phong@example.test", `/ops/buong-phong/${taskId}`);
   await expect(hk.page.getByRole("heading", { level: 1 })).toContainText(code);
   const pass = hk.page.getByRole("button", { name: "Đạt", exact: true });
+  await expect(pass.first()).toBeVisible();
   const n = await pass.count();
   for (let i = 0; i < n; i++) {
     await pass.nth(i).click();

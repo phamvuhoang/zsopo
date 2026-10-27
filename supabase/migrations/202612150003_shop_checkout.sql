@@ -111,6 +111,9 @@ begin
     perform core.fail('VALIDATION', 'Khu vực giao hàng không hợp lệ');
   end if;
   if jsonb_array_length(coalesce(p_lines, '[]')) = 0 or jsonb_array_length(p_lines) > 20 then perform core.fail('VALIDATION', 'Giỏ hàng trống hoặc quá dài'); end if;
+  -- One line (and so one reservation, one warehouse) per variant: duplicate lines are merged.
+  p_lines := (select jsonb_agg(jsonb_build_object('variantId', k, 'qty', q)) from (
+    select e ->> 'variantId' k, sum(coalesce((e ->> 'qty')::int, 0)) q from jsonb_array_elements(p_lines) e group by 1) x);
 
   -- Server-side pricing.
   for l in select * from jsonb_array_elements(p_lines) loop
@@ -205,14 +208,16 @@ begin
   if not found then perform core.fail('NOT_FOUND'); end if;
   if not core.has_permission('inventory.manage', o.entity_id, null) then perform core.fail('FORBIDDEN'); end if;
   if o.fulfillment_status <> 'returned' or coalesce(trim(p_inspection_note), '') = '' then perform core.fail('VALIDATION', 'Chỉ nhập lại hàng trả đã kiểm, kèm biên bản'); end if;
-  -- Back into the warehouse it shipped from, never more than shipped.
+  -- Back into the warehouse it shipped from, never more than shipped (checkout keeps one reservation per variant).
   select warehouse_id, sum(qty) into w, v_shipped from shop.stock_reservations
   where order_id = p_order and variant_id = p_variant and state = 'shipped' group by warehouse_id limit 1;
   if w is null or p_qty is null or p_qty < 1 or p_qty > v_shipped then perform core.fail('VALIDATION', 'Số lượng nhập lại vượt số đã giao'); end if;
   v_ref := extensions.uuid_generate_v5(p_order, p_variant::text);
+  -- One inspection per order line: p_qty is everything that passed it.
   insert into shop.stock_movements(variant_id, warehouse_id, kind, qty, ref_id, note, actor) values (p_variant, w, 'return_restock', p_qty, v_ref, p_inspection_note, auth.uid())
   on conflict do nothing;
-  if found then update shop.inventory set on_hand = on_hand + p_qty where variant_id = p_variant and warehouse_id = w; end if;
+  if not found then perform core.fail('VALIDATION', 'Dòng hàng này đã được nhập lại'); end if;
+  update shop.inventory set on_hand = on_hand + p_qty where variant_id = p_variant and warehouse_id = w;
 end $$;
 
 -- Cron: bank-transfer orders not fully paid by due date release their stock (late money goes to review).

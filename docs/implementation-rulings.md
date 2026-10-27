@@ -137,6 +137,19 @@ Quyết định mới:
 - Ruling: khôi phục phiên bản giữ slug hiện tại, và với bài đã đăng thì thành bản nháp chờ đăng — cost if wrong: thêm lựa chọn khôi phục slug.
 - Ruling: service worker không lưu trang khi Next chỉ prefetch, nên việc chưa từng mở thì không dùng được ngoại tuyến — cost if wrong: lưu cả khi prefetch (thêm tải cho server).
 
+## Review 3 (commit d4f9b42): đã sửa
+
+- #1 tiền tới sau khi đơn trả một phần đã chờ đối soát: vào luồng đối soát (customer_credit, payment needs_review). Test `review3 #1`.
+- #2 BM02 sau khi đồng bộ từ ngoại tuyến: form nghe sự kiện đồng bộ xong và lấy version mới nhất từ hàng đợi. Lưu ý: không tái hiện được lỗi trên trình duyệt với code cũ (lời gọi đồng bộ của câu trả lời ngoại tuyến chạy xong khi có mạng lại; sau khi tải lại lúc mất mạng, trang tự lấy lại version), nên E2E mới là test bảo vệ luồng, không phải bằng chứng RED.
+- #3 bản nháp cũ ghi đè bản sửa mới sau khi lưu trữ: sửa bài chưa công khai sẽ gộp và xóa bản nháp còn sót. Test `review3 #3`.
+- #4 gửi lại email xác nhận bản tin: mỗi lần gửi thêm một token (bảng `content.newsletter_tokens`, chỉ lưu hash), link đã gửi vẫn dùng được. Test `review3 #4`.
+- #5 cùng sản phẩm hai dòng: checkout gộp dòng trùng (một giữ hàng, một kho); nhập lại lần hai cho cùng dòng báo lỗi rõ ràng thay vì im lặng. Test `review3 #5`.
+
+Quyết định mới:
+- Ruling: gộp dòng trùng sản phẩm khi đặt hàng; hệ quả là cả số lượng phải có trong một kho (theo quy tắc giữ hàng một kho) — cost if wrong: cho phép giữ hàng tách nhiều kho và nhập lại theo từng kho.
+- Ruling: nhập lại hàng trả một lần cho mỗi dòng đơn, `p_qty` là toàn bộ số đạt kiểm — cost if wrong: thêm nhập lại nhiều đợt có khóa idempotency.
+- Ruling: token bản tin không bao giờ hết hạn hoặc bị thu hồi khi gửi lại — cost if wrong: thêm hạn dùng cho token xác nhận.
+
 ## Hoãn (minor từ review cuối)
 - price_cart returns exact stock (maxQty) to anon.
 - ADR numerator includes extra-guest surcharge lines while nights exclude them.

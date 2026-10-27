@@ -73,6 +73,34 @@ test("mở việc từ danh sách (điều hướng trong app), mất mạng, t�
   await db.end();
 });
 
+test("mục cuối điền khi mất mạng (trang mở lại từ cache), có mạng lại đồng bộ, gửi BM02 không cần tải lại", async ({ page, context }) => {
+  const { db, taskId } = await taskInFreshRoom();
+  await login(page, `/ops/buong-phong/${taskId}`);
+  await controlled(page);
+  const pass = page.getByRole("button", { name: "Đạt", exact: true });
+  await expect(pass.first()).toBeVisible(); // checklist renders after the device queue loads
+  const n = await pass.count();
+  expect(n).toBeGreaterThan(1);
+  for (let i = 0; i < n - 1; i++) {
+    await pass.nth(i).click();
+    await expect(page.getByRole("status").filter({ hasText: "Đã lưu" })).toHaveCount(i + 1);
+  }
+  await context.setOffline(true);
+  await pass.nth(n - 1).click();
+  await expect(page.getByText(/Chờ đồng bộ \(1\)/)).toBeVisible();
+  // Phone locked / tab reopened while offline: the page comes from the cache with an older task version.
+  await page.reload();
+  await expect(page.getByText(/Chờ đồng bộ \(1\)/)).toBeVisible();
+  await context.setOffline(false);
+  await page.getByRole("button", { name: "Đồng bộ ngay" }).click();
+  await expect(page.getByText("Đã đồng bộ", { exact: true })).toBeVisible();
+  // From here on, no reload: BM02 must carry the version left by that sync.
+  await page.getByRole("button", { name: /Hoàn tất tự kiểm/ }).click();
+  await expect(page.getByText(/VERSION_CONFLICT|xung đột|thay đổi/i)).toHaveCount(0);
+  await expect.poll(async () => (await db.query(`select state from stay.housekeeping_tasks where id = $1`, [taskId])).rows[0].state).toBe("awaiting_inspection");
+  await db.end();
+});
+
 test("server đã đổi mục đó => xung đột hiển thị, giữ bản nháp", async ({ page, context }) => {
   const { db, taskId } = await taskInFreshRoom();
   await login(page, `/ops/buong-phong/${taskId}`);
