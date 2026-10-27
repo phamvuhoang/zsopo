@@ -398,3 +398,5 @@ insert into shop.shipping_rules(entity_id, region_code, fee, free_threshold) val
 insert into shop.regions(code, name, sort) values ('lam-dong','Lâm Đồng',1),('tp-ho-chi-minh','TP. Hồ Chí Minh',2),('ha-noi','Hà Nội',3);
 insert into ops_config.notification_templates(entity_id, key, channel, subject, body, allowed_vars) values
 ('e0000000-0000-4000-8000-000000000001','campaign','email','{{subject}}',E'{{body}}\n\nHủy nhận thư: {{unsubscribeUrl}}',array['subject','body','unsubscribeUrl']);
+-- Local only: shared secret that lets the web server forward the visitor IP to the DB rate limiter.
+select vault.create_secret('local-rate-limit-forward-secret', 'rate_limit_forward_secret');

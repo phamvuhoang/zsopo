@@ -28,7 +28,10 @@ export async function createClient() {
 export function createPublicClient(forwardedFor?: string | null) {
   return createServerClient<Database>(env.supabaseUrl, env.supabaseKey, {
     cookies: { getAll: () => [], setAll: () => {} },
-    ...(forwardedFor ? { global: { headers: { "x-forwarded-for": forwardedFor } } } : {}),
+    // The DB limiter only trusts this IP together with the shared secret (never the client-set X-Forwarded-For).
+    ...(forwardedFor && process.env.RATE_LIMIT_FORWARD_SECRET
+      ? { global: { headers: { "x-zs-client-ip": forwardedFor, "x-zs-forward-secret": process.env.RATE_LIMIT_FORWARD_SECRET } } }
+      : {}),
   });
 }
 

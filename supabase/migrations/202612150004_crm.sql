@@ -101,14 +101,21 @@ create function crm.segment_count(p_entity uuid, p_filter jsonb) returns int lan
   select count(*)::int from crm.segment_ids(p_entity, p_filter)
 $$;
 
-create function crm.segment_list(p_entity uuid, p_filter jsonb, p_limit int default 50, p_offset int default 0)
+-- All rows of a segment (export, campaign snapshot); segment_list pages it for screens.
+create function crm.segment_rows(p_entity uuid, p_filter jsonb)
 returns table(id uuid, display_name text, source text, email text, phone text, marketing boolean, created_at timestamptz)
 language sql stable security definer set search_path = '' as $$
   select c.id, c.display_name, c.source,
     (select value from core.customer_contacts where customer_id = c.id and kind = 'email' limit 1),
     (select value from core.customer_contacts where customer_id = c.id and kind = 'phone' limit 1),
     crm.has_marketing_consent(c.id), c.created_at
-  from core.customers c where c.id in (select crm.segment_ids(p_entity, p_filter)) order by c.created_at desc limit least(p_limit, 200) offset p_offset
+  from core.customers c where c.id in (select crm.segment_ids(p_entity, p_filter)) order by c.created_at desc
+$$;
+
+create function crm.segment_list(p_entity uuid, p_filter jsonb, p_limit int default 50, p_offset int default 0)
+returns table(id uuid, display_name text, source text, email text, phone text, marketing boolean, created_at timestamptz)
+language sql stable security definer set search_path = '' as $$
+  select * from crm.segment_rows(p_entity, p_filter) limit least(p_limit, 200) offset p_offset
 $$;
 
 -- Export needs crm.export (MFA) and is audited.
@@ -117,7 +124,7 @@ language plpgsql security definer set search_path = '' as $$
 begin
   if not core.has_permission('crm.export', p_entity, null) then perform core.fail('FORBIDDEN'); end if;
   perform core.audit(p_entity, 'crm.export', 'segment', null, jsonb_build_object('filter', p_filter));
-  return query select l.display_name, l.email, l.phone, l.source, l.marketing from crm.segment_list(p_entity, p_filter, 200000, 0) l;
+  return query select l.display_name, l.email, l.phone, l.source, l.marketing from crm.segment_rows(p_entity, p_filter) l;
 end $$;
 
 -- Same contact = a suggestion only; never proof of identity.
@@ -202,7 +209,7 @@ begin
   select * into seg from crm.segments where id = cp.segment_id;
   delete from crm.campaign_recipients where campaign_id = cp.id and status = 'pending';
   insert into crm.campaign_recipients(campaign_id, customer_id, email)
-  select cp.id, l.id, lower(l.email) from crm.segment_list(cp.entity_id, coalesce(seg.filter_json, '{}') || '{"marketingConsent":true}', 200000, 0) l
+  select cp.id, l.id, lower(l.email) from crm.segment_rows(cp.entity_id, coalesce(seg.filter_json, '{}') || '{"marketingConsent":true}') l
   where l.email is not null and not exists (select 1 from crm.suppressions s where s.entity_id = cp.entity_id and s.email = lower(l.email))
   on conflict do nothing;
   get diagnostics v_n = row_count;

@@ -63,7 +63,7 @@ export function SyncStatus({ userId, locationId, entityId }: { userId: string; l
         {!online && <span className="font-semibold text-[var(--warning)]">Đang ngoại tuyến: chỉ ghi checklist/ảnh/ghi chú; thanh toán, nhận/trả phòng, nghiệm thu cần mạng.</span>}
         <span role="status">{c.queued > 0 ? `Chờ đồng bộ (${c.queued})` : "Đã đồng bộ"}</span>
         {c.conflict.length > 0 && <span className="text-[var(--danger)]">Xung đột ({c.conflict.length})</span>}
-        {c.forbidden.length > 0 && <span className="text-[var(--danger)]">Không có quyền ({c.forbidden.length})</span>}
+        {c.forbidden.length > 0 && <span className="text-[var(--danger)]">Cần xử lý ({c.forbidden.length})</span>}
         <button type="button" onClick={sync} disabled={busy || !online} className="min-h-11 rounded-md border border-[var(--line-2)] px-3 disabled:opacity-50">
           {busy ? "Đang đồng bộ..." : "Đồng bộ ngay"}
         </button>
@@ -72,7 +72,7 @@ export function SyncStatus({ userId, locationId, entityId }: { userId: string; l
         <ul className="mx-auto mt-2 flex max-w-5xl flex-col gap-1">
           {problems.map((p) => (
             <li key={p.operationId} className="flex flex-wrap items-center gap-2 rounded-md bg-[var(--surface)] p-2">
-              <span>{p.status === "conflict" ? "Người khác đã cập nhật mục này trên máy chủ. Bản nháp của bạn:" : "Việc đã đổi phân công hoặc quyền. Bản nháp:"}</span>
+              <span>{p.status === "conflict" ? "Người khác đã cập nhật mục này trên máy chủ. Bản nháp của bạn:" : p.status === "rejected" ? `Máy chủ từ chối (${p.lastError ?? "dữ liệu không hợp lệ"}). Bản nháp:` : "Việc đã đổi phân công hoặc quyền. Bản nháp:"}</span>
               <span className="font-mono text-xs">{p.op.itemCode} = {p.op.result}</span>
               {p.op.note && <span>{p.op.note}</span>}
               <a href={`/ops/buong-phong/${p.taskId}`} className="underline">Xem bản máy chủ</a>

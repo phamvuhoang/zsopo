@@ -250,6 +250,9 @@ isOneToOne: false
 "record_payment_atomic":
 { Args: { "p_amount": number,"p_evidence_id"?: string,"p_evidence_note"?: string,"p_idempotency"?: string,"p_order": string,"p_provider": string,"p_provider_ref": string,"p_received_at": string,"p_shift"?: string }; Returns: Json
                            },
+"refundable":
+{ Args: { "p_order": string }; Returns: number
+                           },
 "report_transfer":
 { Args: { "p_token": string }; Returns: Json
                            },
@@ -1068,6 +1071,11 @@ isOneToOne: false
               "created_at": string,"display_name": string,"email": string,"id": string,"marketing": boolean,"phone": string,"source": string
             }[]
                            },
+"segment_rows":
+{ Args: { "p_entity": string,"p_filter": Json }; Returns: {
+              "created_at": string,"display_name": string,"email": string,"id": string,"marketing": boolean,"phone": string,"source": string
+            }[]
+                           },
 "send_campaign":
 { Args: { "p_campaign": string }; Returns: number
                            },
@@ -1229,7 +1237,15 @@ isOneToOne: false
             [_ in never]: never
           }
           Functions: {
-            [_ in never]: never
+            "tests_as":
+{ Args: { "p_user": string }; Returns: undefined
+                           },
+"tests_as_aal2":
+{ Args: { "p_user": string }; Returns: undefined
+                           },
+"tests_make_order":
+{ Args: { "p_location"?: string }; Returns: string
+                           }
           }
           Enums: {
             [_ in never]: never

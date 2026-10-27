@@ -62,3 +62,7 @@ end $$;
 
 revoke execute on function ops_config.open_incident, ops_config.resolve_incident, ops_config.health_summary from public;
 grant execute on function ops_config.open_incident, ops_config.resolve_incident, ops_config.health_summary to authenticated;
+
+-- Review fix: writes to rooms, products/variants and CMS pages go only through audited RPCs
+-- (set_room_sellable, clear_safety_block, update_room_energy, create_product/publish_product, save_page).
+revoke insert, update on stay.rooms, shop.products, shop.product_variants, content.pages from authenticated;

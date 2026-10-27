@@ -35,7 +35,9 @@ begin
   -- Liability at p_to: money allocated to orders minus what has been recognized for those orders (never negative), plus customer credit.
   select coalesce(sum(greatest(paid - recog, 0)), 0) into v_liab from (
     select o.id,
-      (select coalesce(sum(pa.amount), 0) from commerce.payment_allocations pa where pa.order_id = o.id and (pa.created_at at time zone 'Asia/Ho_Chi_Minh')::date <= p_to) as paid,
+      -- Net of refunds: deposit liability postings for the order (payment credits, refund debits).
+      (select coalesce(-sum(e.amount), 0) from commerce.ledger_entries e join commerce.ledger_events v on v.id = e.event_id
+        where v.order_id = o.id and e.account = 'deposit_liability' and e.recognition_date <= p_to) as paid,
       (select coalesce(sum(i.amount), 0) from commerce.order_items i left join stay.bookings b on b.order_id = o.id
         where i.order_id = o.id and i.status <> 'cancelled' and i.revenue_source is not null and (
           (i.revenue_source = 'room' and i.service_date <= p_to and i.service_date < v_today and b.state in ('checked_in','checked_out'))

@@ -48,10 +48,12 @@ create table stay.inspections (
 );
 
 create function stay.task_template(t stay.housekeeping_tasks) returns stay.checklist_templates language sql stable security definer set search_path = '' as $$
-  select * from stay.checklist_templates
-  where entity_id = t.entity_id and kind = case t.kind when 'stayover' then 'room_stayover' when 'common' then 'common_area' else 'room_checkout' end
-    and version = coalesce(t.template_version, (select max(version) from stay.checklist_templates c2 where c2.entity_id = t.entity_id and c2.active))
-  order by active desc limit 1
+  with k as (select case t.kind when 'stayover' then 'room_stayover' when 'common' then 'common_area' else 'room_checkout' end as kind)
+  select c.* from stay.checklist_templates c, k
+  where c.entity_id = t.entity_id and c.kind = k.kind
+    -- Pinned version once work started; otherwise the active template of the same kind.
+    and (case when t.template_version is not null then c.version = t.template_version else c.active end)
+  order by c.active desc, c.version desc limit 1
 $$;
 
 -- Invoker: RLS on checklist_results applies to staff callers; definer RPCs above read through it as owner.

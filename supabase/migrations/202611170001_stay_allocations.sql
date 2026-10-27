@@ -25,7 +25,16 @@ create function core.rate_limit(p_bucket text, p_max int, p_window interval defa
 returns void language plpgsql security definer set search_path = '' as $$
 declare
   v_headers jsonb := coalesce(nullif(current_setting('request.headers', true), ''), '{}')::jsonb;
-  v_ip text := coalesce(split_part(v_headers ->> 'x-forwarded-for', ',', 1), v_headers ->> 'cf-connecting-ip', 'local');
+  v_xff text[] := string_to_array(replace(coalesce(v_headers ->> 'x-forwarded-for', ''), ' ', ''), ',');
+  -- Never trust the first X-Forwarded-For entry (client-controlled). Use, in order: the visitor IP forwarded by our own
+  -- web server (proven by a shared secret in Vault), the CDN-set address, or the last hop appended by the gateway.
+  v_ip text := coalesce(
+    case when v_headers ->> 'x-zs-forward-secret' is not null
+      and v_headers ->> 'x-zs-forward-secret' = (select decrypted_secret from vault.decrypted_secrets where name = 'rate_limit_forward_secret')
+      then v_headers ->> 'x-zs-client-ip' end,
+    v_headers ->> 'cf-connecting-ip',
+    nullif(v_xff[array_length(v_xff, 1)], ''),
+    'local');
   v_start timestamptz := to_timestamp(floor(extract(epoch from now()) / extract(epoch from p_window)) * extract(epoch from p_window));
   v_hits int;
   -- Local/staging can scale limits (seed sets 100x for automated tests); production keeps 1.

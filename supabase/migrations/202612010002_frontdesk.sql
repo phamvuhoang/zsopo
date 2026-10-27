@@ -355,6 +355,10 @@ begin
   select * into l from core.locations where id = p_location;
   if not core.has_permission('ticket.manage', l.entity_id, l.id) then perform core.fail('FORBIDDEN'); end if;
   if coalesce(trim(p_title), '') = '' then perform core.fail('VALIDATION', 'Cần tiêu đề sự cố'); end if;
+  if (p_room is not null and not exists (select 1 from stay.rooms where id = p_room and location_id = l.id))
+     or (p_booking is not null and not exists (select 1 from stay.bookings where id = p_booking and location_id = l.id)) then
+    perform core.fail('VALIDATION', 'Phòng hoặc đặt phòng không thuộc điểm này');
+  end if;
   insert into stay.tickets(entity_id, location_id, room_id, booking_id, kind, priority, title, description, sla_due_at, created_by)
   values (l.entity_id, l.id, p_room, p_booking, p_kind, p_priority, p_title, coalesce(p_description, ''), now() + interval '15 minutes', auth.uid())
   returning id into v_id;

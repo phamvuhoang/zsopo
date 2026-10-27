@@ -1,6 +1,6 @@
 // OTA import worker (every 15 minutes, or "sync now"). Fetch with SSRF guards, parse, reconcile in one DB transaction per feed.
 import { parseIcs } from "../_shared/ical.ts";
-import { json, serviceClient } from "../_shared/supabase.ts";
+import { callerClient, json, serviceClient } from "../_shared/supabase.ts";
 
 const MAX_BYTES = 2 * 1024 * 1024;
 const DEFAULT_HOSTS = ["airbnb.com", "airbnb.com.vn", "booking.com", "agoda.com", "expedia.com", "vrbo.com", "google.com"];
@@ -45,8 +45,9 @@ Deno.serve(async (req) => {
   const body = await req.json().catch(() => ({}));
   const { data: setting } = await db.schema("ops_config").from("runtime_settings").select("value").eq("key", "calendar.allowedHosts").maybeSingle();
   const allowed = (setting?.value as string[] | undefined) ?? DEFAULT_HOSTS;
-  const { data: feeds, error } = await db.schema("stay").rpc("feeds_due", { p_interval: body.force ? "0 seconds" : "15 minutes" });
-  if (error) return json({ error: error.message }, 500);
+  // Gate: feeds_due is service-role only (cron / admin "sync now" through the server), never a customer JWT.
+  const { data: feeds, error } = await callerClient(req).schema("stay").rpc("feeds_due", { p_interval: body.force ? "0 seconds" : "15 minutes" });
+  if (error) return json({ code: "FORBIDDEN" }, 403);
 
   const results = [];
   for (const f of (feeds ?? []).filter((x: { id: string }) => !body.feedId || x.id === body.feedId)) {

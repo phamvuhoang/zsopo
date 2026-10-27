@@ -33,7 +33,7 @@ export async function counts(userId: string) {
   return {
     queued: all.filter((o) => o.status === "queued" || o.status === "syncing").length,
     conflict: all.filter((o) => o.status === "conflict"),
-    forbidden: all.filter((o) => o.status === "forbidden"),
+    forbidden: all.filter((o) => o.status === "forbidden" || o.status === "rejected"),
     applied: all.filter((o) => o.status === "applied").length,
   };
 }

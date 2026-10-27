@@ -1,6 +1,6 @@
 // Outbox worker: claim due jobs, render allow-listed templates, deliver, record outcome.
 // Email: Resend in staging/production (RESEND_API_KEY), Mailpit locally (MAILPIT_URL). Zalo: disabled until OA credentials exist.
-import { json, serviceClient } from "../_shared/supabase.ts";
+import { callerClient, json, serviceClient } from "../_shared/supabase.ts";
 
 const SITE_URL = Deno.env.get("SITE_URL") ?? "http://localhost:3000";
 const FROM = Deno.env.get("MAIL_FROM") ?? "ZSOPO <no-reply@example.test>";
@@ -41,8 +41,9 @@ async function sendEmail(to: string, subject: string, text: string, dedupe: stri
 Deno.serve(async (req) => {
   if (req.method !== "POST") return json({ error: "method" }, 405);
   const db = serviceClient();
-  const { data: jobs, error } = await db.schema("core").rpc("claim_outbox", { p_limit: 20, p_lease: "2 minutes", p_worker: crypto.randomUUID() });
-  if (error) return json({ error: error.message }, 500);
+  // Gate: claim_outbox is executable by the service role only, so a signed-in customer's JWT is refused here.
+  const { data: jobs, error } = await callerClient(req).schema("core").rpc("claim_outbox", { p_limit: 20, p_lease: "2 minutes", p_worker: crypto.randomUUID() });
+  if (error) return json({ code: "FORBIDDEN" }, 403);
 
   const results: { id: string; status: string }[] = [];
   for (const job of jobs ?? []) {

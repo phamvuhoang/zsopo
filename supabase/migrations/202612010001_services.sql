@@ -197,14 +197,20 @@ end $$;
 
 -- Charged lines are never deleted: cancellation adds a reversing adjustment line.
 create function stay.reverse_service_item(p_item uuid) returns void language plpgsql security definer set search_path = '' as $$
-declare i commerce.order_items;
+declare i commerce.order_items; v_discount bigint;
 begin
   select * into i from commerce.order_items where id = p_item for update;
   if i.status = 'cancelled' then return; end if;
   update commerce.order_items set status = 'cancelled' where id = p_item;
   insert into commerce.order_items(entity_id, order_id, item_type, item_id, title, qty, unit_price, amount, revenue_source, service_date, reversal_of, snapshot, created_by)
   values (i.entity_id, i.order_id, 'adjustment', i.item_id, 'Hủy: ' || i.title, -i.qty, i.unit_price, -i.amount, null, i.service_date, i.id, jsonb_build_object('reason', 'service cancelled'), auth.uid());
-  update commerce.orders set total = greatest(total - i.amount, 0), subtotal = greatest(subtotal - i.amount, 0) where id = i.order_id;
+  -- A prebooked line carried a discount on a separate order line: give that discount back too, so the order drops by what was charged.
+  v_discount := coalesce((i.snapshot ->> 'discount')::bigint, 0);
+  if v_discount > 0 then
+    insert into commerce.order_items(entity_id, order_id, item_type, item_id, title, qty, unit_price, amount, reversal_of, snapshot, created_by)
+    values (i.entity_id, i.order_id, 'adjustment', i.item_id, 'Hủy ưu đãi: ' || i.title, 1, v_discount, v_discount, i.id, jsonb_build_object('reason', 'service cancelled'), auth.uid());
+  end if;
+  update commerce.orders set total = greatest(total - i.amount + v_discount, 0), subtotal = greatest(subtotal - i.amount, 0), discount = greatest(discount - v_discount, 0) where id = i.order_id;
 end $$;
 
 create function stay.cancel_my_service(p_token text, p_request uuid) returns void language plpgsql security definer set search_path = '' as $$

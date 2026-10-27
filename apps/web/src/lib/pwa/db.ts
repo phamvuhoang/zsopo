@@ -7,7 +7,7 @@ export type QueuedOp = {
   taskId: string;
   op: ChecklistOp;
   mediaDraftIds: string[];
-  status: "queued" | "syncing" | "applied" | "conflict" | "forbidden";
+  status: "queued" | "syncing" | "applied" | "conflict" | "forbidden" | "rejected";
   attempts: number;
   createdAt: number;
   lastError?: string;

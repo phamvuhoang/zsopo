@@ -40,7 +40,8 @@ create function stay.create_stay_hold(p_quote uuid, p_guest jsonb, p_policy_vers
 returns jsonb language plpgsql security definer set search_path = '' as $$
 declare v_result jsonb; b stay.bookings;
 begin
-  v_result := stay.create_stay_hold_core(p_quote, p_guest, p_policy_version, p_idempotency, p_consents, p_arrival_time, p_notes, p_source);
+  -- Public entry point: the channel is always 'web' (staff channels go through create_manual_booking).
+  v_result := stay.create_stay_hold_core(p_quote, p_guest, p_policy_version, p_idempotency, p_consents, p_arrival_time, p_notes, 'web');
   select * into b from stay.bookings where id = (v_result ->> 'bookingId')::uuid;
   return v_result || jsonb_build_object('guestToken',
     core.issue_guest_token('order', b.order_id, (b.departure + 30)::timestamptz));
@@ -118,6 +119,11 @@ begin
   select * into o from commerce.orders where id = p_order for update;
   if not found then perform core.fail('NOT_FOUND', 'Không tìm thấy đơn'); end if;
   if not commerce.can_record_payment(o) then perform core.fail('FORBIDDEN'); end if;
+  -- Cash goes into the recorder's own open shift at this location (BM01 drawer integrity).
+  if p_shift is not null and not exists (select 1 from stay.shifts s where s.id = p_shift and s.status = 'open' and s.location_id = o.location_id
+      and (s.opened_by = auth.uid() or core.has_permission('shift.amend', s.entity_id, s.location_id))) then
+    perform core.fail('VALIDATION', 'Ca tiền không hợp lệ (không phải ca đang mở của bạn tại điểm này)');
+  end if;
 
   if p_idempotency is not null then
     begin
@@ -132,6 +138,9 @@ begin
   select * into p from commerce.payments where provider = p_provider and provider_ref = p_provider_ref;
   if found then
     if p.amount <> p_amount then perform core.fail('VERSION_CONFLICT', 'Mã giao dịch đã ghi với số tiền khác'); end if;
+    if not exists (select 1 from commerce.ledger_events where payment_id = p.id and order_id = o.id) then
+      perform core.fail('VERSION_CONFLICT', 'Mã giao dịch này đã ghi cho một đơn khác');
+    end if;
     select coalesce(b2.state, null) into v_booking_state from stay.bookings b2 where b2.order_id = o.id;
     v_result := jsonb_build_object('paymentId', p.id, 'orderId', o.id, 'state', case when p.state = 'needs_review' then 'needs_review' else 'allocated' end, 'bookingState', v_booking_state);
     if p_idempotency is not null then perform commerce.idem_put('payment', p_idempotency::text, v_hash, v_result); end if;
@@ -251,6 +260,13 @@ begin
 end $$;
 
 -- ---------------------------------------------------------------- refunds (request -> approve with payout evidence)
+-- Money held for an order: allocated payments still in deposit liability + customer credit tied to it (both net of refunds).
+create function commerce.refundable(p_order uuid) returns bigint language sql stable security definer set search_path = '' as $$
+  select coalesce(-sum(e.amount), 0) from commerce.ledger_entries e join commerce.ledger_events v on v.id = e.event_id
+  where v.order_id = p_order and e.account in ('deposit_liability','customer_credit')
+$$;
+revoke execute on function commerce.refundable from public, anon, authenticated;
+
 create function commerce.request_refund(p_order uuid, p_amount bigint, p_reason text) returns uuid language plpgsql security definer set search_path = '' as $$
 declare o commerce.orders; v_id uuid;
 begin
@@ -258,6 +274,10 @@ begin
   if not found then perform core.fail('NOT_FOUND'); end if;
   if not commerce.can_record_payment(o) and not core.has_permission('orders.manage', o.entity_id, null) then perform core.fail('FORBIDDEN'); end if;
   if p_amount <= 0 or coalesce(trim(p_reason), '') = '' then perform core.fail('VALIDATION', 'Cần số tiền và lý do hoàn'); end if;
+  -- Cap: what was actually received for this order (incl. customer credit) minus refunds already requested or paid out of it.
+  if p_amount > commerce.refundable(o.id) - (select coalesce(sum(amount), 0) from commerce.refund_requests where order_id = o.id and status = 'requested') then
+    perform core.fail('VALIDATION', 'Số tiền hoàn vượt số đã thu còn lại của đơn');
+  end if;
   insert into commerce.refund_requests(entity_id, order_id, amount, reason, requested_by) values (o.entity_id, o.id, p_amount, p_reason, auth.uid()) returning id into v_id;
   perform core.audit(o.entity_id, 'refund.request', 'order', o.id::text, jsonb_build_object('amount', p_amount), p_reason);
   return v_id;
@@ -273,6 +293,7 @@ begin
   if not core.has_permission('refund.approve', r.entity_id, null) then perform core.fail('FORBIDDEN'); end if;
   if r.requested_by = auth.uid() then perform core.fail('FORBIDDEN', 'Người yêu cầu không tự duyệt hoàn tiền'); end if;
   if coalesce(trim(p_provider_ref), '') = '' or coalesce(trim(p_evidence_note), '') = '' then perform core.fail('VALIDATION', 'Cần mã giao dịch hoàn và chứng cứ'); end if;
+  if r.amount > commerce.refundable(o.id) then perform core.fail('VALIDATION', 'Số tiền hoàn vượt số đã thu còn lại của đơn'); end if;
   -- Refund customer credit first, then the deposit liability tied to this order.
   select coalesce(-sum(e.amount), 0) into v_credit from commerce.ledger_entries e join commerce.ledger_events v on v.id = e.event_id
    where v.order_id = o.id and e.account = 'customer_credit';
