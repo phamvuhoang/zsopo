@@ -13,6 +13,7 @@ async function staff(browser: Browser, email: string, next: string) {
 test("LT01-LT05: mở ca, đặt thủ công, thu tiền mặt, nhận phòng, trả phòng, bàn giao ca", async ({ browser }) => {
   const { ctx, page } = await staff(browser, "le-tan@example.test", "/ops/ca");
   await expect(page.getByRole("heading", { level: 1, name: "Ca làm việc" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Mở ca" }).or(page.getByText("Dự kiến trong két"))).toBeVisible();
   if (await page.getByRole("button", { name: "Mở ca" }).isVisible()) {
     await page.getByLabel("Tiền mặt đầu ca (đ)").fill("1000000");
     await page.getByRole("button", { name: "Mở ca" }).click();
@@ -68,7 +69,7 @@ test("LT01-LT05: mở ca, đặt thủ công, thu tiền mặt, nhận phòng, t
   await page.getByLabel("Thực đếm (đ)").fill(expected.replace(/\D/g, ""));
   await page.getByRole("combobox", { name: /Người nhận ca/ }).selectOption({ label: "Quản lý điểm Đà Lạt" });
   await page.getByRole("button", { name: "Bàn giao" }).click();
-  await expect(page.getByText(/chờ người nhận xác nhận/)).toBeVisible();
+  await expect(page.getByText(/chờ người nhận xác nhận/).first()).toBeVisible();
   await ctx.close();
 
   const mgr = await staff(browser, "quan-ly@example.test", "/ops/ca");

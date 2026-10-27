@@ -14,11 +14,12 @@ export default async function ShiftPage() {
   await requirePermission("shift.manage", ctx.location.entity_id, ctx.location.id, "/ops/ca");
   const db = await createClient();
   const [{ data: mine }, { data: toAck }, { data: staff }] = await Promise.all([
-    db.schema("stay").from("shifts").select("*").eq("opened_by", ctx.actor.userId).in("status", ["open", "handover_pending"]).order("opened_at", { ascending: false }).limit(1),
+    db.schema("stay").from("shifts").select("*").eq("opened_by", ctx.actor.userId).in("status", ["open", "handover_pending"]).order("opened_at", { ascending: false }),
     db.schema("stay").from("shifts").select("id, opened_at, expected_cash, cash_counted, variance, notes, version").eq("receiver_id", ctx.actor.userId).eq("status", "handover_pending"),
     db.schema("stay").rpc("shift_receivers", { p_location: ctx.location.id }),
   ]);
-  const shift = mine?.[0];
+  const shift = mine?.find((s) => s.status === "open");
+  const waiting = (mine ?? []).filter((s) => s.status === "handover_pending");
   const { data: moves } = shift ? await db.schema("commerce").from("cash_movements").select("kind, amount, note, created_at").eq("shift_id", shift.id).order("created_at") : { data: [] };
   const sum = (k: string) => (moves ?? []).filter((m) => m.kind === k).reduce((a, m) => a + BigInt(m.amount), 0n);
   const expected = shift ? BigInt(shift.cash_open) + sum("receipt") - sum("expense") - sum("remit") : 0n;
@@ -37,13 +38,16 @@ export default async function ShiftPage() {
           </ActionForm>
         </section>
       ))}
+      {waiting.map((w) => (
+        <p key={w.id} className="mt-4 text-sm" role="status">
+          Ca mở lúc {new Date(w.opened_at).toLocaleTimeString("vi-VN", { timeZone: "Asia/Ho_Chi_Minh" })} đã bàn giao, chờ người nhận xác nhận. <Link href={`/ops/ca/${w.id}/ban-giao`} className="underline">BM01</Link>
+        </p>
+      ))}
       {!shift ? (
         <ActionForm action={openShift} submit="Mở ca" className="mt-6 flex flex-wrap items-end gap-2">
           <input type="hidden" name="locationId" value={ctx.location.id} />
           <Field label="Tiền mặt đầu ca (đ)"><input name="cashOpen" inputMode="numeric" required className={inputCls} /></Field>
         </ActionForm>
-      ) : shift.status === "handover_pending" ? (
-        <p className="mt-6" role="status">Đã bàn giao lúc {new Date(shift.handed_over_at!).toLocaleTimeString("vi-VN", { timeZone: "Asia/Ho_Chi_Minh" })}, chờ người nhận xác nhận. <Link href={`/ops/ca/${shift.id}/ban-giao`} className="underline">BM01</Link></p>
       ) : (
         <>
           <section className="mt-6 rounded-md border border-[var(--line)] bg-[var(--surface)] p-4">
