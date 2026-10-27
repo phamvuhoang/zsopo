@@ -467,6 +467,20 @@ isOneToOne: false
                   Relationships: [
                     
                   ]
+                },"rate_limits": {
+                  Row: {
+                    "bucket": string,"hits": number,"window_start": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "bucket": string,"hits"?: number,"window_start": string
+                  }
+                  Update: {
+                    "bucket"?: string,"hits"?: number,"window_start"?: string
+                  }
+                  Relationships: [
+                    
+                  ]
                 },"role_permissions": {
                   Row: {
                     "action": string,"requires_aal2": boolean,"role": string
@@ -528,6 +542,9 @@ isOneToOne: false
 "enqueue":
 { Args: { "p_aggregate": string,"p_dedupe": string,"p_entity": string,"p_kind": string,"p_payload": Json,"p_run_at"?: string }; Returns: string
                            },
+"fail":
+{ Args: { "p_code": string,"p_detail"?: string }; Returns: undefined
+                           },
 "forbid":
 { Args: { "p_msg"?: string }; Returns: undefined
                            },
@@ -545,8 +562,14 @@ isOneToOne: false
               "entity_id": string,"location_id": string,"role": string
             }[]
                            },
+"normalize_phone":
+{ Args: { "p": string }; Returns: string
+                           },
 "permission_needs_mfa":
 { Args: { "p_action": string,"p_entity": string,"p_location"?: string }; Returns: boolean
+                           },
+"rate_limit":
+{ Args: { "p_bucket": string,"p_max": number,"p_window"?: string }; Returns: undefined
                            },
 "redact":
 { Args: { "p": Json }; Returns: Json
@@ -558,6 +581,9 @@ isOneToOne: false
 { Args: Record<PropertyKey, never>; Returns: {
               "disabled_at": string,"display_name": string,"email": string,"roles": Json,"user_id": string
             }[]
+                           },
+"upsert_guest_customer":
+{ Args: { "p_consents": Json,"p_entity": string,"p_guest": Json,"p_source": string }; Returns: string
                            }
           }
           Enums: {
@@ -584,7 +610,21 @@ isOneToOne: false
           }
         },"ops_config": {
           Tables: {
-            "runtime_settings": {
+            "policy_versions": {
+                  Row: {
+                    "approved_by": string | null,"created_at": string,"created_by": string | null,"effective_from": string,"entity_id": string,"id": string,"kind": string,"location_id": string | null,"params": NonNullable<Json>,"summary_md": string,"version": number
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "approved_by"?: string | null,"created_at"?: string,"created_by"?: string | null,"effective_from"?: string,"entity_id": string,"id"?: string,"kind": string,"location_id"?: string | null,"params": NonNullable<Json>,"summary_md"?: string,"version": number
+                  }
+                  Update: {
+                    "approved_by"?: string | null,"created_at"?: string,"created_by"?: string | null,"effective_from"?: string,"entity_id"?: string,"id"?: string,"kind"?: string,"location_id"?: string | null,"params"?: NonNullable<Json>,"summary_md"?: string,"version"?: number
+                  }
+                  Relationships: [
+                    
+                  ]
+                },"runtime_settings": {
                   Row: {
                     "entity_id": string | null,"is_public": boolean,"key": string,"updated_at": string,"updated_by": string | null,"value": NonNullable<Json>,"version": number
                   }
@@ -604,7 +644,29 @@ isOneToOne: false
             [_ in never]: never
           }
           Functions: {
-            [_ in never]: never
+            "current_policy":
+{ Args: { "p_kind": string,"p_location": string }; Returns: {
+              "approved_by": string | null,
+"created_at": string,
+"created_by": string | null,
+"effective_from": string,
+"entity_id": string,
+"id": string,
+"kind": string,
+"location_id": string | null,
+"params": NonNullable<Json>,
+"summary_md": string,
+"version": number
+            }
+                          SetofOptions: {
+        from: "*"
+        to: "policy_versions"
+        isOneToOne: true
+        isSetofReturn: false
+      } },
+"publish_stay_policy":
+{ Args: { "p_location": string,"p_params": Json,"p_summary": string }; Returns: string
+                           }
           }
           Enums: {
             [_ in never]: never
@@ -740,7 +802,113 @@ isOneToOne: false
           }
         },"stay": {
           Tables: {
-            "rooms": {
+            "bookings": {
+                  Row: {
+                    "adults": number,"arrival": string,"arrival_time": string | null,"children_ages": (number)[],"created_at": string,"created_by": string | null,"departure": string,"entity_id": string,"held_until": string | null,"id": string,"location_id": string,"notes": string | null,"order_id": string,"policy_snapshot": NonNullable<Json>,"quote_id": string | null,"room_id": string,"source": string,"state": string,"updated_at": string,"version": number
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "adults": number,"arrival": string,"arrival_time"?: string | null,"children_ages"?: (number)[],"created_at"?: string,"created_by"?: string | null,"departure": string,"entity_id": string,"held_until"?: string | null,"id"?: string,"location_id": string,"notes"?: string | null,"order_id": string,"policy_snapshot"?: NonNullable<Json>,"quote_id"?: string | null,"room_id": string,"source"?: string,"state": string,"updated_at"?: string,"version"?: number
+                  }
+                  Update: {
+                    "adults"?: number,"arrival"?: string,"arrival_time"?: string | null,"children_ages"?: (number)[],"created_at"?: string,"created_by"?: string | null,"departure"?: string,"entity_id"?: string,"held_until"?: string | null,"id"?: string,"location_id"?: string,"notes"?: string | null,"order_id"?: string,"policy_snapshot"?: NonNullable<Json>,"quote_id"?: string | null,"room_id"?: string,"source"?: string,"state"?: string,"updated_at"?: string,"version"?: number
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "bookings_quote_id_fkey"
+      columns: ["quote_id"]
+isOneToOne: false
+      referencedRelation: "quotes"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "bookings_room_id_entity_id_location_id_fkey"
+      columns: ["room_id","entity_id","location_id"]
+isOneToOne: false
+      referencedRelation: "rooms"
+      referencedColumns: ["id","entity_id","location_id"]
+    }
+                  ]
+                },"quotes": {
+                  Row: {
+                    "adults": number,"arrival": string,"children_ages": (number)[],"created_at": string,"departure": string,"deposit_due": number,"deposit_rate_bp": number,"discount": number,"entity_id": string,"expires_at": string,"id": string,"lines": NonNullable<Json>,"location_id": string,"policy_version_id": string,"room_id": string,"services": NonNullable<Json>,"subtotal": number,"total": number,"version": number
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "adults": number,"arrival": string,"children_ages"?: (number)[],"created_at"?: string,"departure": string,"deposit_due": number,"deposit_rate_bp": number,"discount": number,"entity_id": string,"expires_at": string,"id"?: string,"lines": NonNullable<Json>,"location_id": string,"policy_version_id": string,"room_id": string,"services"?: NonNullable<Json>,"subtotal": number,"total": number,"version"?: number
+                  }
+                  Update: {
+                    "adults"?: number,"arrival"?: string,"children_ages"?: (number)[],"created_at"?: string,"departure"?: string,"deposit_due"?: number,"deposit_rate_bp"?: number,"discount"?: number,"entity_id"?: string,"expires_at"?: string,"id"?: string,"lines"?: NonNullable<Json>,"location_id"?: string,"policy_version_id"?: string,"room_id"?: string,"services"?: NonNullable<Json>,"subtotal"?: number,"total"?: number,"version"?: number
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "quotes_room_id_entity_id_location_id_fkey"
+      columns: ["room_id","entity_id","location_id"]
+isOneToOne: false
+      referencedRelation: "rooms"
+      referencedColumns: ["id","entity_id","location_id"]
+    }
+                  ]
+                },"rate_plans": {
+                  Row: {
+                    "active": boolean,"created_at": string,"created_by": string | null,"date_range": unknown,"dow": number | null,"entity_id": string,"extra_adult_fee": number,"extra_child_fee": number,"id": string,"kind": string,"label": string | null,"location_id": string,"price": number,"priority": number | null,"room_id": string,"updated_at": string,"version": number
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "active"?: boolean,"created_at"?: string,"created_by"?: string | null,"date_range"?: unknown,"dow"?: number | null,"entity_id": string,"extra_adult_fee"?: number,"extra_child_fee"?: number,"id"?: string,"kind": string,"label"?: string | null,"location_id": string,"price": number,"priority"?: never,"room_id": string,"updated_at"?: string,"version"?: number
+                  }
+                  Update: {
+                    "active"?: boolean,"created_at"?: string,"created_by"?: string | null,"date_range"?: unknown,"dow"?: number | null,"entity_id"?: string,"extra_adult_fee"?: number,"extra_child_fee"?: number,"id"?: string,"kind"?: string,"label"?: string | null,"location_id"?: string,"price"?: number,"priority"?: never,"room_id"?: string,"updated_at"?: string,"version"?: number
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "rate_plans_room_id_entity_id_location_id_fkey"
+      columns: ["room_id","entity_id","location_id"]
+isOneToOne: false
+      referencedRelation: "rooms"
+      referencedColumns: ["id","entity_id","location_id"]
+    }
+                  ]
+                },"room_allocations": {
+                  Row: {
+                    "active": boolean,"created_at": string,"entity_id": string,"id": string,"kind": string,"location_id": string,"occupied_range": unknown,"released_at": string | null,"room_id": string,"source_id": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "active"?: boolean,"created_at"?: string,"entity_id": string,"id"?: string,"kind": string,"location_id": string,"occupied_range": unknown,"released_at"?: string | null,"room_id": string,"source_id": string
+                  }
+                  Update: {
+                    "active"?: boolean,"created_at"?: string,"entity_id"?: string,"id"?: string,"kind"?: string,"location_id"?: string,"occupied_range"?: unknown,"released_at"?: string | null,"room_id"?: string,"source_id"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "room_allocations_room_id_entity_id_location_id_fkey"
+      columns: ["room_id","entity_id","location_id"]
+isOneToOne: false
+      referencedRelation: "rooms"
+      referencedColumns: ["id","entity_id","location_id"]
+    }
+                  ]
+                },"room_blocks": {
+                  Row: {
+                    "arrival": string,"created_at": string,"created_by": string | null,"departure": string,"entity_id": string,"id": string,"kind": string,"location_id": string,"reason": string,"released_at": string | null,"room_id": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "arrival": string,"created_at"?: string,"created_by"?: string | null,"departure": string,"entity_id": string,"id"?: string,"kind": string,"location_id": string,"reason": string,"released_at"?: string | null,"room_id": string
+                  }
+                  Update: {
+                    "arrival"?: string,"created_at"?: string,"created_by"?: string | null,"departure"?: string,"entity_id"?: string,"id"?: string,"kind"?: string,"location_id"?: string,"reason"?: string,"released_at"?: string | null,"room_id"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "room_blocks_room_id_entity_id_location_id_fkey"
+      columns: ["room_id","entity_id","location_id"]
+isOneToOne: false
+      referencedRelation: "rooms"
+      referencedColumns: ["id","entity_id","location_id"]
+    }
+                  ]
+                },"rooms": {
                   Row: {
                     "amenities": (string)[],"area_m2": number | null,"capacity_adults": number,"capacity_children": number,"cleanliness": string,"code": string,"created_at": string,"description": string,"energy_card_id": string | null,"entity_id": string,"id": string,"location_id": string,"max_guests": number,"name": string,"occupancy": string,"photo_ids": (string)[],"room_type": string,"safety_block": boolean,"sellable": boolean,"slug": string,"sort": number,"status": string,"updated_at": string,"version": number
                   }
@@ -760,7 +928,49 @@ isOneToOne: false
             [_ in never]: never
           }
           Functions: {
-            [_ in never]: never
+            "block_room":
+{ Args: { "p_arrival": string,"p_departure": string,"p_kind": string,"p_reason": string,"p_room": string,"p_source"?: string }; Returns: string
+                           },
+"create_stay_hold":
+{ Args: { "p_arrival_time"?: string,"p_consents": Json,"p_guest": Json,"p_idempotency": string,"p_notes"?: string,"p_policy_version": string,"p_quote": string,"p_source"?: string }; Returns: Json
+                           },
+"deactivate_rate":
+{ Args: { "p_rate": string,"p_reason": string }; Returns: undefined
+                           },
+"expire_room_holds":
+{ Args: { "p_room": string }; Returns: number
+                           },
+"price_nights":
+{ Args: { "p_arrival": string,"p_departure": string,"p_room": string }; Returns: {
+              "night": string,"price": number,"rate_kind": string
+            }[]
+                           },
+"quote_services":
+{ Args: { "p_arrival": string,"p_room": string,"p_services": Json }; Returns: Json
+                           },
+"quote_stay":
+{ Args: { "p_adults": number,"p_arrival": string,"p_children"?: (number)[],"p_departure": string,"p_room": string,"p_services"?: Json }; Returns: Json
+                           },
+"release_block":
+{ Args: { "p_block": string,"p_reason": string }; Returns: undefined
+                           },
+"room_calendar":
+{ Args: { "p_from": string,"p_room": string,"p_to": string }; Returns: {
+              "available": boolean,"date": string,"price": string
+            }[]
+                           },
+"save_rate":
+{ Args: { "p_dow"?: number,"p_extra_adult_fee"?: number,"p_extra_child_fee"?: number,"p_from"?: string,"p_kind": string,"p_label"?: string,"p_price": number,"p_room": string,"p_to"?: string }; Returns: string
+                           },
+"set_room_sellable":
+{ Args: { "p_reason": string,"p_room": string,"p_sellable": boolean }; Returns: undefined
+                           },
+"stay_range":
+{ Args: { "p_arrival": string,"p_departure": string,"p_location": string }; Returns: unknown
+                           },
+"update_room_energy":
+{ Args: { "p_card": Json,"p_room": string }; Returns: string
+                           }
           }
           Enums: {
             [_ in never]: never

@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Be_Vietnam_Pro, Lexend } from "next/font/google";
+import { InlineScript } from "@/components/inline-script";
 import { THEME_SCRIPT } from "@/components/theme-toggle";
 import { env } from "@/lib/env";
 import "./globals.css";
@@ -21,7 +22,7 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
   return (
     <html lang="vi" className={`${lexend.variable} ${beVietnam.variable}`} suppressHydrationWarning>
       <head>
-        <script dangerouslySetInnerHTML={{ __html: THEME_SCRIPT }} />
+        <InlineScript html={THEME_SCRIPT} />
       </head>
       <body>{children}</body>
     </html>

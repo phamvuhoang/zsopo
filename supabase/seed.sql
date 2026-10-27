@@ -125,3 +125,23 @@ insert into content.pages(entity_id, slug, kind, title, excerpt, body_md, status
 insert into ops_config.runtime_settings(key, entity_id, value, is_public) values
 ('site.contact', 'e0000000-0000-4000-8000-000000000001',
  '{"name":"Zen Homestay Đà Lạt","address":"Địa chỉ chờ chủ cơ sở duyệt","phone":null,"email":"lien-he@example.test","zalo":null,"mapsUrl":null,"approved":false}', true);
+
+-- Stay policy v1 (fixture: 30% deposit per prototype, NOT an approved business policy) and rates from rooms.json.
+insert into ops_config.policy_versions(entity_id, location_id, kind, version, params, summary_md) values
+('e0000000-0000-4000-8000-000000000001','c0000000-0000-4000-8000-000000000001','stay',1,
+ '{"deposit_rate_bp":3000,"hold_minutes":30,"quote_ttl_minutes":10,"child_free_under_age":6,"check_in":"14:00","check_out":"12:00","handbook_hours_before":24,"thanks_hours_after":24,"cancellation":"Theo chính sách hủy và hoàn tiền tại thời điểm đặt (bản nháp chờ duyệt)."}',
+ E'Cọc 30% để giữ phòng. Nhận phòng 14:00, trả phòng trước 12:00. Hủy và hoàn tiền theo chính sách tại thời điểm đặt.');
+
+insert into stay.rate_plans(entity_id, location_id, room_id, kind, price, extra_adult_fee, extra_child_fee)
+select entity_id, location_id, id, 'base',
+  case room_type when 'Đôi tiêu chuẩn' then 1250000 when 'Đôi ban công' then 1450000 when 'Gia đình' then 2200000 else 2800000 end,
+  250000, 150000
+from stay.rooms where location_id = 'c0000000-0000-4000-8000-000000000001';
+-- Weekend surcharge (Fri, Sat +200.000 đ) from the prototype.
+insert into stay.rate_plans(entity_id, location_id, room_id, kind, dow, price, label)
+select rp.entity_id, rp.location_id, rp.room_id, 'weekday', d, rp.price + 200000, 'Cuối tuần'
+from stay.rate_plans rp cross join unnest(array[5,6]) d where rp.kind = 'base';
+-- Holiday sample: 24-26/12 (+500.000 đ).
+insert into stay.rate_plans(entity_id, location_id, room_id, kind, date_range, price, label)
+select entity_id, location_id, room_id, 'date', daterange('2026-12-24','2026-12-26'), price + 500000, 'Giáng sinh'
+from stay.rate_plans where kind = 'base';
