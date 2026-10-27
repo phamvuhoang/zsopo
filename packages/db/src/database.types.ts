@@ -93,9 +93,9 @@ isOneToOne: false
                   ]
                 },"orders": {
                   Row: {
-                    "code": string,"collected_by": string | null,"contact_snapshot": NonNullable<Json>,"created_at": string,"created_by": string | null,"currency": string,"customer_id": string | null,"deposit_due": number,"discount": number,"due_at": string | null,"entity_id": string,"id": string,"kind": string,"location_id": string | null,"paid_amount": number,"payment_status": string,"policy_snapshot": NonNullable<Json>,"source": string,"status": string,"subtotal": number,"total": number,"updated_at": string,"version": number
+                    "code": string,"collected_by": string | null,"contact_snapshot": NonNullable<Json>,"created_at": string,"created_by": string | null,"currency": string,"customer_id": string | null,"deposit_due": number,"discount": number,"due_at": string | null,"entity_id": string,"id": string,"kind": string,"location_id": string | null,"paid_amount": number,"payment_status": string,"policy_snapshot": NonNullable<Json>,"source": string,"status": string,"subtotal": number,"total": number,"updated_at": string,"version": number,"can_record_payment": boolean | null
                   }
-                  ComputedFields: never
+                  ComputedFields: "can_record_payment"
                   Insert: {
                     "code"?: string,"collected_by"?: string | null,"contact_snapshot"?: NonNullable<Json>,"created_at"?: string,"created_by"?: string | null,"currency"?: string,"customer_id"?: string | null,"deposit_due"?: number,"discount"?: number,"due_at"?: string | null,"entity_id": string,"id"?: string,"kind": string,"location_id"?: string | null,"paid_amount"?: number,"payment_status"?: string,"policy_snapshot"?: NonNullable<Json>,"source"?: string,"status"?: string,"subtotal"?: number,"total"?: number,"updated_at"?: string,"version"?: number
                   }
@@ -128,6 +128,26 @@ isOneToOne: false
       columns: ["payment_id","entity_id"]
 isOneToOne: false
       referencedRelation: "payments"
+      referencedColumns: ["id","entity_id"]
+    }
+                  ]
+                },"payment_claims": {
+                  Row: {
+                    "entity_id": string,"id": string,"order_id": string,"reported_at": string,"resolved_at": string | null,"resolved_by": string | null,"status": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "entity_id": string,"id"?: string,"order_id": string,"reported_at"?: string,"resolved_at"?: string | null,"resolved_by"?: string | null,"status"?: string
+                  }
+                  Update: {
+                    "entity_id"?: string,"id"?: string,"order_id"?: string,"reported_at"?: string,"resolved_at"?: string | null,"resolved_by"?: string | null,"status"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "payment_claims_order_id_entity_id_fkey"
+      columns: ["order_id","entity_id"]
+isOneToOne: false
+      referencedRelation: "orders"
       referencedColumns: ["id","entity_id"]
     }
                   ]
@@ -171,7 +191,22 @@ isOneToOne: false
             [_ in never]: never
           }
           Functions: {
-            "idem_get":
+            "approve_refund":
+{ Args: { "p_evidence_note": string,"p_method"?: string,"p_provider_ref": string,"p_refund": string }; Returns: undefined
+                           },
+"can_record_payment":
+{ Args: { "o": Omit<Database["commerce"]['Tables']["orders"]['Row'], Database["commerce"]['Tables']["orders"]['ComputedFields']> }; Returns: boolean
+                           },
+"claim_order":
+{ Args: { "p_token": string }; Returns: undefined
+                           },
+"exchange_guest_token":
+{ Args: { "p_token": string }; Returns: Json
+                           },
+"get_guest_receipt":
+{ Args: { "p_token": string }; Returns: Json
+                           },
+"idem_get":
 { Args: { "p_hash": string,"p_key": string,"p_scope": string }; Returns: Json
                            },
 "idem_put":
@@ -179,6 +214,15 @@ isOneToOne: false
                            },
 "post_ledger":
 { Args: { "p_entity": string,"p_kind": string,"p_lines": Json,"p_location": string,"p_order": string,"p_payment": string,"p_recognition"?: string,"p_reversal_of"?: string,"p_source_key": string }; Returns: string
+                           },
+"record_payment_atomic":
+{ Args: { "p_amount": number,"p_evidence_id"?: string,"p_evidence_note"?: string,"p_idempotency"?: string,"p_order": string,"p_provider": string,"p_provider_ref": string,"p_received_at": string,"p_shift"?: string }; Returns: Json
+                           },
+"report_transfer":
+{ Args: { "p_token": string }; Returns: Json
+                           },
+"request_refund":
+{ Args: { "p_amount": number,"p_order": string,"p_reason": string }; Returns: string
                            }
           }
           Enums: {
@@ -551,11 +595,17 @@ isOneToOne: false
 "grant_role":
 { Args: { "p_entity": string,"p_location"?: string,"p_role": string,"p_user": string }; Returns: string
                            },
+"guest_subject":
+{ Args: { "p_scope": string,"p_token": string }; Returns: string
+                           },
 "has_permission":
 { Args: { "p_action": string,"p_entity": string,"p_location"?: string }; Returns: boolean
                            },
 "is_staff_of":
 { Args: { "p_entity": string,"p_location"?: string }; Returns: boolean
+                           },
+"issue_guest_token":
+{ Args: { "p_expires": string,"p_scope": string,"p_subject": string }; Returns: string
                            },
 "my_roles":
 { Args: Record<PropertyKey, never>; Returns: {
@@ -682,7 +732,15 @@ isOneToOne: false
             [_ in never]: never
           }
           Functions: {
-            [_ in never]: never
+            "tests_as":
+{ Args: { "p_user": string }; Returns: undefined
+                           },
+"tests_as_aal2":
+{ Args: { "p_user": string }; Returns: undefined
+                           },
+"tests_make_order":
+{ Args: { "p_location"?: string }; Returns: string
+                           }
           }
           Enums: {
             [_ in never]: never
@@ -931,7 +989,13 @@ isOneToOne: false
             "block_room":
 { Args: { "p_arrival": string,"p_departure": string,"p_kind": string,"p_reason": string,"p_room": string,"p_source"?: string }; Returns: string
                            },
+"confirm_with_exception":
+{ Args: { "p_booking": string,"p_due": number,"p_reason": string }; Returns: undefined
+                           },
 "create_stay_hold":
+{ Args: { "p_arrival_time"?: string,"p_consents": Json,"p_guest": Json,"p_idempotency": string,"p_notes"?: string,"p_policy_version": string,"p_quote": string,"p_source"?: string }; Returns: Json
+                           },
+"create_stay_hold_core":
 { Args: { "p_arrival_time"?: string,"p_consents": Json,"p_guest": Json,"p_idempotency": string,"p_notes"?: string,"p_policy_version": string,"p_quote": string,"p_source"?: string }; Returns: Json
                            },
 "deactivate_rate":
@@ -962,11 +1026,17 @@ isOneToOne: false
 "save_rate":
 { Args: { "p_dow"?: number,"p_extra_adult_fee"?: number,"p_extra_child_fee"?: number,"p_from"?: string,"p_kind": string,"p_label"?: string,"p_price": number,"p_room": string,"p_to"?: string }; Returns: string
                            },
+"schedule_journey":
+{ Args: { "p_booking": string }; Returns: undefined
+                           },
 "set_room_sellable":
 { Args: { "p_reason": string,"p_room": string,"p_sellable": boolean }; Returns: undefined
                            },
 "stay_range":
 { Args: { "p_arrival": string,"p_departure": string,"p_location": string }; Returns: unknown
+                           },
+"try_reallocate":
+{ Args: { "p_booking": string }; Returns: boolean
                            },
 "update_room_energy":
 { Args: { "p_card": Json,"p_room": string }; Returns: string

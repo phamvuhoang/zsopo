@@ -145,3 +145,8 @@ from stay.rate_plans rp cross join unnest(array[5,6]) d where rp.kind = 'base';
 insert into stay.rate_plans(entity_id, location_id, room_id, kind, date_range, price, label)
 select entity_id, location_id, room_id, 'date', daterange('2026-12-24','2026-12-26'), price + 500000, 'Giáng sinh'
 from stay.rate_plans where kind = 'base';
+
+-- Payment config: FAKE bank account for local QA only (approved=true so the flow is testable). Production needs Finance approval.
+insert into ops_config.runtime_settings(key, entity_id, value, is_public) values
+('payment.vietqr', 'e0000000-0000-4000-8000-000000000001', '{"bankBin":"970436","bankName":"Ngân hàng thử nghiệm","accountNo":"0000000000","accountName":"ZSOPO THU NGHIEM","approved":true,"fixture":true}', false),
+('rate_limit.scale', null, '100', false);

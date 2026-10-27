@@ -28,11 +28,13 @@ declare
   v_ip text := coalesce(split_part(v_headers ->> 'x-forwarded-for', ',', 1), v_headers ->> 'cf-connecting-ip', 'local');
   v_start timestamptz := to_timestamp(floor(extract(epoch from now()) / extract(epoch from p_window)) * extract(epoch from p_window));
   v_hits int;
+  -- Local/staging can scale limits (seed sets 100x for automated tests); production keeps 1.
+  v_scale int := coalesce((select (value #>> '{}')::int from ops_config.runtime_settings where key = 'rate_limit.scale'), 1);
 begin
   insert into core.rate_limits(bucket, window_start, hits) values (p_bucket || ':' || v_ip, v_start, 1)
   on conflict (bucket, window_start) do update set hits = core.rate_limits.hits + 1
   returning hits into v_hits;
-  if v_hits > p_max then perform core.fail('RATE_LIMITED'); end if;
+  if v_hits > p_max * v_scale then perform core.fail('RATE_LIMITED'); end if;
 end $$;
 revoke execute on function core.rate_limit from public, anon, authenticated;
 

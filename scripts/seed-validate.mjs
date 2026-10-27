@@ -23,6 +23,8 @@ if (/rating|aggregateRating|đã bán/i.test(JSON.stringify(products.products)))
 if (production) {
   for (const f of [rooms, products]) if (/demo|NOT approved|QA seed/i.test(f._provenance)) problems.push(`unapproved fixture: ${f._provenance}`);
   if (/chờ chủ cơ sở duyệt/.test(seed)) problems.push("placeholder address in seed");
+  if (/"fixture":true/.test(seed)) problems.push("fixture payment account in seed");
+  if (/rate_limit.scale/.test(seed)) problems.push("rate limit scaling in seed");
 }
 
 if (problems.length) {

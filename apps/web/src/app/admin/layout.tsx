@@ -6,6 +6,7 @@ export const metadata = { title: { default: "Quản trị", template: "%s | ZSOP
 const NAV = [
   ["/admin", "Tổng quan"],
   ["/admin/diem/da-lat", "Điểm Đà Lạt"],
+  ["/admin/thanh-toan", "Thanh toán"],
   ["/admin/nhan-su", "Nhân sự"],
 ] as const;
 
