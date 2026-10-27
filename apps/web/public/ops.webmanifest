@@ -1,0 +1,11 @@
+{
+  "name": "ZSOPO Vận hành",
+  "short_name": "ZSOPO Ops",
+  "start_url": "/ops",
+  "scope": "/ops/",
+  "display": "standalone",
+  "background_color": "#FAF8FC",
+  "theme_color": "#5A3889",
+  "lang": "vi",
+  "icons": [{ "src": "/assets/logo-zsopo-current.jpg", "sizes": "1280x1280", "type": "image/jpeg", "purpose": "any" }]
+}

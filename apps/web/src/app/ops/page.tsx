@@ -1,4 +1,4 @@
-import { signOut } from "@/app/(auth)/actions";
+import { LogoutButton } from "@/features/ops/logout-button";
 import { getStaffContext } from "@/lib/auth/context";
 import { ROLE_LABEL } from "@/lib/labels";
 
@@ -21,9 +21,7 @@ export default async function OpsHome() {
             ))}
           </ul>
         </div>
-        <form action={signOut}>
-          <button className="min-h-11 rounded-md border border-[var(--line)] px-3 text-sm">Đăng xuất</button>
-        </form>
+        <LogoutButton />
       </header>
     </main>
   );

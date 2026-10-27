@@ -1,5 +1,7 @@
 import Link from "next/link";
 import { Suspense } from "react";
+import { SyncStatus } from "@/features/ops/sync-status";
+import { getStaffContext } from "@/lib/auth/context";
 
 const NAV = [
   ["/ops", "Trang chính"],
@@ -15,7 +17,12 @@ const NAV = [
   ["/ops/huong-dan", "Hướng dẫn"],
 ] as const;
 
-export const metadata = { title: { default: "Vận hành", template: "%s | ZSOPO Ops" }, robots: { index: false, follow: false } };
+export const metadata = { title: { default: "Vận hành", template: "%s | ZSOPO Ops" }, robots: { index: false, follow: false }, manifest: "/ops.webmanifest" };
+
+async function OpsSync() {
+  const ctx = await getStaffContext("/ops");
+  return <SyncStatus userId={ctx.actor.userId} locationId={ctx.location.id} entityId={ctx.location.entity_id} />;
+}
 
 export default function OpsLayout({ children }: { children: React.ReactNode }) {
   return (
@@ -29,6 +36,9 @@ export default function OpsLayout({ children }: { children: React.ReactNode }) {
           ))}
         </ul>
       </nav>
+      <Suspense fallback={null}>
+        <OpsSync />
+      </Suspense>
       <Suspense fallback={<p className="p-4">Đang tải...</p>}>{children}</Suspense>
     </div>
   );

@@ -1,6 +1,6 @@
 import { ActionForm, Field, inputCls } from "@/components/action-form";
 import { refuseService, submitInspection } from "@/features/housekeeping/actions";
-import { ChecklistForm } from "@/features/housekeeping/checklist-form";
+import { OfflineChecklist } from "@/features/housekeeping/offline-checklist";
 import { loadTask } from "@/features/housekeeping/data";
 import { getStaffContext } from "@/lib/auth/context";
 import { requirePermission } from "@/lib/auth/require-permission";
@@ -26,7 +26,7 @@ export default async function TaskPage({ params }: PageProps<"/ops/buong-phong/[
           <Field label="Hẹn lại lúc"><input name="rescheduleAt" type="datetime-local" className={inputCls} /></Field>
         </ActionForm>
       )}
-      <div className="mt-6">{editable ? <ChecklistForm taskId={task.id} version={task.version} items={items} saved={saved} /> : <p>Việc không còn ở trạng thái làm được.</p>}</div>
+      <div className="mt-6">{editable ? <OfflineChecklist userId={ctx.actor.userId} locationId={ctx.location.id} entityId={ctx.location.entity_id} taskId={task.id} version={task.version} items={items} saved={saved} /> : <p>Việc không còn ở trạng thái làm được.</p>}</div>
       {editable && (
         <ActionForm action={submitInspection} submit="Hoàn tất tự kiểm (BM02), gửi nghiệm thu" className="mt-6">
           <input type="hidden" name="taskId" value={task.id} />
