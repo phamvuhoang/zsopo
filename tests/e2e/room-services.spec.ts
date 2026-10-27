@@ -32,10 +32,13 @@ test("khách quét QR kỳ ở -> gửi yêu cầu -> lễ tân nhận, phục v
   await ops.getByLabel("Mật khẩu", { exact: true }).fill("zsopo-local-1");
   await ops.getByRole("button", { name: "Đăng nhập" }).click();
   const card = ops.getByRole("listitem").filter({ hasText: "Trà thảo mộc tại phòng" }).filter({ hasText: code });
-  for (const action of ["Nhận yêu cầu", "Bắt đầu phục vụ", "Hoàn tất"]) {
-    await card.getByRole("button", { name: action }).click();
-    await expect(card.getByRole("button", { name: action })).toHaveCount(0);
-  }
+  // Wait for the server-confirmed next state (the button label flips to "Đang lưu..." while pending).
+  await card.getByRole("button", { name: "Nhận yêu cầu" }).click();
+  await expect(card.getByRole("button", { name: "Bắt đầu phục vụ" })).toBeVisible();
+  await card.getByRole("button", { name: "Bắt đầu phục vụ" }).click();
+  await expect(card.getByRole("button", { name: "Hoàn tất" })).toBeVisible();
+  await card.getByRole("button", { name: "Hoàn tất" }).click();
+  await expect(card).toHaveCount(0); // completed requests leave the open list
   await staff.close();
 
   await page.reload();
