@@ -4,5 +4,5 @@ export const FEATURES = {
   booking: true,
   shop: true,
   cart: false,
-  blog: false,
+  blog: true,
 } as const;

@@ -256,7 +256,89 @@ isOneToOne: false
           }
         },"content": {
           Tables: {
-            "pages": {
+            "campaign_calendar": {
+                  Row: {
+                    "channel": string,"created_at": string,"entity_id": string,"id": string,"owner": string | null,"post_id": string | null,"status": string,"topic": string,"week_start": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "channel": string,"created_at"?: string,"entity_id": string,"id"?: string,"owner"?: string | null,"post_id"?: string | null,"status"?: string,"topic": string,"week_start": string
+                  }
+                  Update: {
+                    "channel"?: string,"created_at"?: string,"entity_id"?: string,"id"?: string,"owner"?: string | null,"post_id"?: string | null,"status"?: string,"topic"?: string,"week_start"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "campaign_calendar_post_id_fkey"
+      columns: ["post_id"]
+isOneToOne: false
+      referencedRelation: "posts"
+      referencedColumns: ["id"]
+    }
+                  ]
+                },"categories": {
+                  Row: {
+                    "description": string,"id": string,"name": string,"slug": string,"sort": number
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "description"?: string,"id"?: string,"name": string,"slug": string,"sort"?: number
+                  }
+                  Update: {
+                    "description"?: string,"id"?: string,"name"?: string,"slug"?: string,"sort"?: number
+                  }
+                  Relationships: [
+                    
+                  ]
+                },"contact_leads": {
+                  Row: {
+                    "consent_at": string,"created_at": string,"email": string | null,"entity_id": string,"handled_at": string | null,"id": string,"message": string,"name": string,"phone": string | null
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "consent_at": string,"created_at"?: string,"email"?: string | null,"entity_id": string,"handled_at"?: string | null,"id"?: string,"message": string,"name": string,"phone"?: string | null
+                  }
+                  Update: {
+                    "consent_at"?: string,"created_at"?: string,"email"?: string | null,"entity_id"?: string,"handled_at"?: string | null,"id"?: string,"message"?: string,"name"?: string,"phone"?: string | null
+                  }
+                  Relationships: [
+                    
+                  ]
+                },"newsletter_subscriptions": {
+                  Row: {
+                    "consent_version": string,"email": string,"entity_id": string,"id": string,"status": string,"subscribed_at": string,"token_hash": string,"unsubscribed_at": string | null
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "consent_version"?: string,"email": string,"entity_id": string,"id"?: string,"status"?: string,"subscribed_at"?: string,"token_hash": string,"unsubscribed_at"?: string | null
+                  }
+                  Update: {
+                    "consent_version"?: string,"email"?: string,"entity_id"?: string,"id"?: string,"status"?: string,"subscribed_at"?: string,"token_hash"?: string,"unsubscribed_at"?: string | null
+                  }
+                  Relationships: [
+                    
+                  ]
+                },"page_revisions": {
+                  Row: {
+                    "created_at": string,"created_by": string | null,"id": string,"page_id": string,"snapshot": NonNullable<Json>,"version": number
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "created_at"?: string,"created_by"?: string | null,"id"?: string,"page_id": string,"snapshot": NonNullable<Json>,"version": number
+                  }
+                  Update: {
+                    "created_at"?: string,"created_by"?: string | null,"id"?: string,"page_id"?: string,"snapshot"?: NonNullable<Json>,"version"?: number
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "page_revisions_page_id_fkey"
+      columns: ["page_id"]
+isOneToOne: false
+      referencedRelation: "pages"
+      referencedColumns: ["id"]
+    }
+                  ]
+                },"pages": {
                   Row: {
                     "approved_by": string | null,"body_md": string,"created_at": string,"entity_id": string,"excerpt": string,"id": string,"kind": string,"published_at": string | null,"slug": string,"status": string,"title": string,"updated_at": string,"updated_by": string | null,"version": number
                   }
@@ -270,14 +352,109 @@ isOneToOne: false
                   Relationships: [
                     
                   ]
+                },"post_revisions": {
+                  Row: {
+                    "created_at": string,"created_by": string | null,"id": string,"post_id": string,"snapshot": NonNullable<Json>,"version": number
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "created_at"?: string,"created_by"?: string | null,"id"?: string,"post_id": string,"snapshot": NonNullable<Json>,"version": number
+                  }
+                  Update: {
+                    "created_at"?: string,"created_by"?: string | null,"id"?: string,"post_id"?: string,"snapshot"?: NonNullable<Json>,"version"?: number
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "post_revisions_post_id_fkey"
+      columns: ["post_id"]
+isOneToOne: false
+      referencedRelation: "posts"
+      referencedColumns: ["id"]
+    }
+                  ]
+                },"posts": {
+                  Row: {
+                    "author_id": string | null,"author_name": string,"body_md": string,"category_id": string | null,"cover_media_id": string | null,"created_at": string,"cta": Json | null,"entity_id": string,"excerpt": string,"id": string,"published_at": string | null,"reading_minutes": number,"scheduled_at": string | null,"search_tsv": unknown,"seo": NonNullable<Json>,"slug": string,"status": string,"title": string,"updated_at": string,"updated_by": string | null,"version": number,"snapshot_post": Json | null
+                  }
+                  ComputedFields: "snapshot_post"
+                  Insert: {
+                    "author_id"?: string | null,"author_name"?: string,"body_md"?: string,"category_id"?: string | null,"cover_media_id"?: string | null,"created_at"?: string,"cta"?: Json | null,"entity_id": string,"excerpt"?: string,"id"?: string,"published_at"?: string | null,"reading_minutes"?: number,"scheduled_at"?: string | null,"search_tsv"?: unknown,"seo"?: NonNullable<Json>,"slug": string,"status"?: string,"title": string,"updated_at"?: string,"updated_by"?: string | null,"version"?: number
+                  }
+                  Update: {
+                    "author_id"?: string | null,"author_name"?: string,"body_md"?: string,"category_id"?: string | null,"cover_media_id"?: string | null,"created_at"?: string,"cta"?: Json | null,"entity_id"?: string,"excerpt"?: string,"id"?: string,"published_at"?: string | null,"reading_minutes"?: number,"scheduled_at"?: string | null,"search_tsv"?: unknown,"seo"?: NonNullable<Json>,"slug"?: string,"status"?: string,"title"?: string,"updated_at"?: string,"updated_by"?: string | null,"version"?: number
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "posts_category_id_fkey"
+      columns: ["category_id"]
+isOneToOne: false
+      referencedRelation: "categories"
+      referencedColumns: ["id"]
+    }
+                  ]
+                },"redirects": {
+                  Row: {
+                    "created_at": string,"from_path": string,"to_path": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "created_at"?: string,"from_path": string,"to_path": string
+                  }
+                  Update: {
+                    "created_at"?: string,"from_path"?: string,"to_path"?: string
+                  }
+                  Relationships: [
+                    
+                  ]
                 }
           }
           Views: {
             [_ in never]: never
           }
           Functions: {
-            "policies_published":
+            "archive_post":
+{ Args: { "p_post": string }; Returns: undefined
+                           },
+"policies_published":
 { Args: Record<PropertyKey, never>; Returns: boolean
+                           },
+"publish_content":
+{ Args: { "p_expected_version": number,"p_post": string,"p_scheduled_at"?: string }; Returns: Json
+                           },
+"publish_due":
+{ Args: Record<PropertyKey, never>; Returns: number
+                           },
+"restore_revision":
+{ Args: { "p_post": string,"p_revision": string }; Returns: number
+                           },
+"save_page":
+{ Args: { "p_body": string,"p_excerpt": string,"p_expected_version": number,"p_page": string,"p_publish": boolean,"p_title": string }; Returns: number
+                           },
+"save_post":
+{ Args: { "p": Json }; Returns: string
+                           },
+"search_public":
+{ Args: { "p_kinds"?: (string)[],"p_page"?: number,"p_query": string }; Returns: {
+              "excerpt": string,"kind": string,"rank": number,"title": string,"url": string
+            }[]
+                           },
+"snapshot_post":
+{ Args: { "p": Omit<Database["content"]['Tables']["posts"]['Row'], Database["content"]['Tables']["posts"]['ComputedFields']> }; Returns: Json
+                           },
+"submit_contact":
+{ Args: { "p_consent": boolean,"p_email": string,"p_message": string,"p_name": string,"p_phone": string }; Returns: string
+                           },
+"submit_review":
+{ Args: { "p_post": string }; Returns: undefined
+                           },
+"subscribe_newsletter":
+{ Args: { "p_consent": boolean,"p_email": string }; Returns: string
+                           },
+"unsubscribe_newsletter":
+{ Args: { "p_token": string }; Returns: undefined
+                           },
+"vn_tsv":
+{ Args: { "p": string }; Returns: unknown
                            }
           }
           Enums: {

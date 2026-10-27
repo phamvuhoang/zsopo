@@ -379,3 +379,13 @@ insert into shop.ritual_contents(entity_id, slug, title, intro, steps, status) v
 ('e0000000-0000-4000-8000-000000000001','nghi-le-vong-tay-da-mat-trang','Nghi lễ: Vòng tay đá mặt trăng','Mềm mại với chu kỳ cảm xúc.',jsonb_build_array(jsonb_build_object('title','Chuẩn bị','text','Chọn nơi yên tĩnh, thở chậm 3 nhịp.'),jsonb_build_object('title','Thực hành','text','Đeo tay trái vào kỳ trăng non.'),jsonb_build_object('title','Làm sạch năng lượng','text','Làm sạch dưới trăng non')),'published');
 insert into ops_config.notification_templates(entity_id, key, channel, subject, body, allowed_vars) values
 ('e0000000-0000-4000-8000-000000000001','stock.back','email','{{productName}} đã có hàng trở lại',E'Sản phẩm bạn quan tâm đã có hàng: {{productName}}.\nXem: {{productUrl}}\n\nBạn nhận email này vì đã đăng ký báo có hàng.',array['productName','productUrl']);
+
+-- Blog categories and two sample posts (local QA only).
+insert into content.categories(slug, name, sort) values ('thien-va-chua-lanh','Thiền và chữa lành',1),('da-lat','Đà Lạt',2),('nang-luong','Năng lượng',3);
+insert into content.posts(entity_id, slug, title, excerpt, body_md, category_id, author_name, status, published_at, cta) values
+('e0000000-0000-4000-8000-000000000001','thien-buoi-sang-giua-doi-thong','Thiền buổi sáng giữa đồi thông Đà Lạt','Năm bước đơn giản để bắt đầu ngày mới bằng hơi thở chậm.',
+ E'## Vì sao thiền buổi sáng\n\nKhông khí se lạnh và yên tĩnh của Đà Lạt giúp hơi thở chậm lại tự nhiên.\n\n## Năm bước\n\n1. Ngồi thẳng lưng, thả lỏng vai.\n2. Hít vào bằng mũi 4 nhịp.\n3. Giữ 2 nhịp.\n4. Thở ra 6 nhịp.\n5. Lặp lại 10 lần.\n\n## Thực hành tại Zen Homestay\n\nKhách lưu trú có thể tham gia buổi thiền buổi sáng tại sân vườn. Xem [phòng tại Zen Homestay Đà Lạt](/stay/da-lat/phong).',
+ (select id from content.categories where slug='thien-va-chua-lanh'),'Ban biên tập ZSOPO','published', now() - interval '2 days', '{"label":"Xem phòng Zen Homestay","href":"/stay/da-lat/phong"}'),
+('e0000000-0000-4000-8000-000000000001','cach-chon-da-nang-luong','Cách chọn đá năng lượng phù hợp với bạn','Đọc bảng năng lượng: công dụng, nguồn gốc và cách dùng.',
+ E'## Bắt đầu từ ý định\n\nMỗi sản phẩm tại ZSOPO có bảng năng lượng ghi rõ công dụng, nguồn gốc, cách dùng.\n\n## Lưu ý\n\nNội dung mang tính hỗ trợ tinh thần, không thay thế tư vấn y khoa.\n\nXem [Shop năng lượng](/shop).',
+ (select id from content.categories where slug='nang-luong'),'Ban biên tập ZSOPO','published', now() - interval '1 day', '{"label":"Vào Shop","href":"/shop"}');

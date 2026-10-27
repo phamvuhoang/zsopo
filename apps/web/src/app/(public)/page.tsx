@@ -1,8 +1,14 @@
 import Image from "next/image";
 import Link from "next/link";
+import { NewsletterForm } from "@/features/content/forms";
+import { PostTile } from "@/features/content/post-card";
+import { listPosts } from "@/features/content/queries";
+import { ProductTile } from "@/features/shop/product-card";
+import { listProducts } from "@/features/shop/queries";
 import { FEATURES } from "@/lib/flags";
 
-export default function Home() {
+export default async function Home() {
+  const [posts, products] = await Promise.all([FEATURES.blog ? listPosts() : [], FEATURES.shop ? listProducts() : []]);
   return (
     <>
       <section className="mx-auto grid max-w-6xl items-center gap-10 px-4 py-12 md:grid-cols-2 md:py-20">
@@ -59,6 +65,28 @@ export default function Home() {
         <Link href="/gioi-thieu" className="mt-6 inline-flex min-h-11 items-center underline">
           Đọc giới thiệu ba trụ cột
         </Link>
+      </section>
+
+      {products.length > 0 && (
+        <section aria-labelledby="san-pham" className="mx-auto max-w-6xl px-4 py-10">
+          <h2 id="san-pham" className="text-2xl font-semibold">Mang nghi thức về nhà</h2>
+          <ul className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">{products.slice(0, 4).map((p) => <ProductTile key={p.id} p={p} />)}</ul>
+          <Link href="/shop" className="mt-4 inline-flex min-h-11 items-center underline">Vào Shop</Link>
+        </section>
+      )}
+
+      {posts.length > 0 && (
+        <section aria-labelledby="bai-viet" className="mx-auto max-w-6xl px-4 py-10">
+          <h2 id="bai-viet" className="text-2xl font-semibold">Bài viết mới</h2>
+          <ul className="mt-6 grid gap-4 md:grid-cols-3">{posts.slice(0, 3).map((p) => <PostTile key={p.id} p={p} />)}</ul>
+          <Link href="/blog" className="mt-4 inline-flex min-h-11 items-center underline">Vào Blog</Link>
+        </section>
+      )}
+
+      <section aria-labelledby="ban-tin" className="mx-auto max-w-6xl px-4 py-10">
+        <h2 id="ban-tin" className="text-2xl font-semibold">Thư năng lượng mỗi sáng Chủ nhật</h2>
+        <p className="mt-2 text-[var(--ink-2)]">Một bài thiền ngắn và tin từ các điểm. Không spam.</p>
+        <NewsletterForm />
       </section>
     </>
   );

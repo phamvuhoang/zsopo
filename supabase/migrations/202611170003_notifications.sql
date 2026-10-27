@@ -106,7 +106,7 @@ begin
       'guestToken', core.issue_guest_token('order', ord.id, (b.departure + 30)::timestamptz),
       'reviewUrl', (select value ->> 'reviewUrl' from ops_config.runtime_settings where key = 'site.contact'));
     return jsonb_build_object('channels', jsonb_build_array('email','zalo'), 'to', v_to, 'template', o.kind, 'vars', v_vars, 'entityId', o.entity_id);
-  elsif o.kind in ('payment.reported','payment.review','payment.overpaid','calendar.sync_failed','calendar.conflict','ticket.escalated') then
+  elsif o.kind in ('payment.reported','payment.review','payment.overpaid','calendar.sync_failed','calendar.conflict','ticket.escalated','contact.received','service.requested') then
     select value ->> 'alertEmail' into v_alert from ops_config.runtime_settings where key = 'ops.alerts';
     if coalesce(v_alert, '') = '' then return jsonb_build_object('disabled', 'Chưa cấu hình email nhận cảnh báo vận hành (ops.alerts)'); end if;
     return jsonb_build_object('channels', jsonb_build_array('email'), 'to', v_alert, 'template', 'ops.alert',

@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { ContactForm } from "@/features/content/forms";
 import { getSiteContact } from "@/lib/content";
 
 export const metadata: Metadata = {
@@ -28,6 +29,8 @@ export default async function ContactPage() {
       ) : (
         <p className="mt-6">Thông tin liên hệ đang được cập nhật.</p>
       )}
+      <h2 className="mt-10 text-xl font-semibold">Gửi lời nhắn</h2>
+      <ContactForm />
     </div>
   );
 }

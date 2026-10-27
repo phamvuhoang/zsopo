@@ -9,6 +9,7 @@ const NAV = [
   ["/admin/thanh-toan", "Thanh toán"],
   ["/admin/san-pham", "Sản phẩm"],
   ["/admin/kho", "Kho"],
+  ["/admin/noi-dung", "Nội dung"],
   ["/admin/thong-bao", "Thông báo"],
   ["/admin/nhan-su", "Nhân sự"],
 ] as const;
