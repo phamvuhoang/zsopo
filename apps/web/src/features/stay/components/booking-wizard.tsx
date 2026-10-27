@@ -6,6 +6,8 @@ import { useEffect, useRef, useState, useTransition } from "react";
 import { holdAction, quoteAction, type QuoteView } from "../booking-actions";
 
 export type WizardRoom = { id: string; slug: string; name: string; maxGuests: number; capacityAdults: number };
+export type WizardService = { id: string; name: string; group: string; unit: string; price: number; leadLabel: string; discountBp: number };
+type Picked = Record<string, { qty: number; at: string }>;
 
 const input = "min-h-11 w-full rounded-md border border-[var(--line)] bg-[var(--surface)] px-3 text-base";
 
@@ -22,7 +24,7 @@ function Countdown({ until }: { until: string }) {
 }
 
 /** W-16/W-18: dates and guests -> server quote -> guest details -> hold (idempotent per wizard session). */
-export function BookingWizard({ rooms, initialRoom, initialArrival, initialDeparture }: { rooms: WizardRoom[]; initialRoom?: string; initialArrival?: string; initialDeparture?: string }) {
+export function BookingWizard({ rooms, services = [], initialRoom, initialArrival, initialDeparture }: { rooms: WizardRoom[]; services?: WizardService[]; initialRoom?: string; initialArrival?: string; initialDeparture?: string }) {
   const router = useRouter();
   const [roomSlug, setRoomSlug] = useState(initialRoom && rooms.some((r) => r.slug === initialRoom) ? initialRoom : rooms[0]?.slug ?? "");
   const [arrival, setArrival] = useState(initialArrival ?? "");
@@ -30,6 +32,7 @@ export function BookingWizard({ rooms, initialRoom, initialArrival, initialDepar
   const [adults, setAdults] = useState(2);
   const [children, setChildren] = useState<number[]>([]);
   const [quote, setQuote] = useState<QuoteView | null>(null);
+  const [picked, setPicked] = useState<Picked>({});
   const [step, setStep] = useState<1 | 2>(1);
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
@@ -41,7 +44,12 @@ export function BookingWizard({ rooms, initialRoom, initialArrival, initialDepar
     start(async () => {
       setError(null);
       if (!room) return setError("Vui lòng chọn phòng.");
-      const r = await quoteAction({ roomId: room.id, arrival, departure, adults, childrenAges: children, services: [] });
+      const chosen = Object.entries(picked).filter(([, p]) => p.qty > 0 && p.at);
+      if (Object.values(picked).some((p) => p.qty > 0 && !p.at)) return setError("Chọn thời gian cho dịch vụ đã đánh dấu.");
+      const r = await quoteAction({
+        roomId: room.id, arrival, departure, adults, childrenAges: children,
+        services: chosen.map(([serviceId, p]) => ({ serviceId, qty: p.qty, scheduledAt: new Date(`${p.at}:00+07:00`).toISOString() })),
+      });
       if (!r.ok) return setError(r.error.message);
       setQuote(r.data);
       idem.current = crypto.randomUUID(); // new quote = new hold attempt
@@ -112,6 +120,30 @@ export function BookingWizard({ rooms, initialRoom, initialArrival, initialDepar
                     <input type="number" min={0} max={17} value={age} onChange={(e) => { const next = [...children]; next[i] = Number(e.target.value); setChildren(next); setQuote(null); }} className={`${input} w-20`} />
                   </label>
                 ))}
+              </fieldset>
+            )}
+            {services.length > 0 && (
+              <fieldset className="rounded-md border border-[var(--line)] p-3">
+                <legend className="px-1 text-sm font-medium">Dịch vụ đặt trước (không bắt buộc)</legend>
+                <ul className="flex flex-col gap-3">
+                  {services.map((s) => {
+                    const p = picked[s.id];
+                    return (
+                      <li key={s.id} className="flex flex-wrap items-end gap-2 text-sm">
+                        <label className="flex min-h-11 flex-1 items-center gap-2">
+                          <input type="checkbox" className="size-5" checked={!!p} onChange={(e) => { const next = { ...picked }; if (e.target.checked) next[s.id] = { qty: 1, at: "" }; else delete next[s.id]; setPicked(next); setQuote(null); }} />
+                          <span>{s.name} <span className="text-[var(--ink-3)]">({formatVnd(String(s.price))}/{s.unit}{s.discountBp ? `, giảm ${s.discountBp / 100}%` : ""}, đặt trước {s.leadLabel})</span></span>
+                        </label>
+                        {p && (
+                          <>
+                            <label className="flex flex-col gap-1 text-xs">Số lượng<input type="number" min={1} max={20} value={p.qty} onChange={(e) => { setPicked({ ...picked, [s.id]: { ...p, qty: Number(e.target.value) } }); setQuote(null); }} className={`${input} w-20`} /></label>
+                            <label className="flex flex-col gap-1 text-xs">Thời gian<input type="datetime-local" value={p.at} onChange={(e) => { setPicked({ ...picked, [s.id]: { ...p, at: e.target.value } }); setQuote(null); }} className={`${input} w-52`} /></label>
+                          </>
+                        )}
+                      </li>
+                    );
+                  })}
+                </ul>
               </fieldset>
             )}
             {error && <p role="alert" className="text-sm text-[var(--danger)]">{error}</p>}

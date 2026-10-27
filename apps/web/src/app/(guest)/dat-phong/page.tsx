@@ -1,5 +1,6 @@
 import { BookingWizard } from "@/features/stay/components/booking-wizard";
 import { getLocation, listRooms } from "@/features/stay/queries";
+import { SERVICE_GROUPS, leadLabel, listServices } from "@/features/stay/service-queries";
 import { createPublicClient } from "@/lib/supabase/server";
 
 export const metadata = { title: "Đặt phòng" };
@@ -11,6 +12,7 @@ export default async function BookingPage({ searchParams }: PageProps<"/dat-phon
   const sp = await searchParams;
   const loc = await getLocation("da-lat");
   const rooms = loc ? (await listRooms(loc.id)).filter((r) => r.sellable && r.basePrice) : [];
+  const services = loc ? await listServices(loc.id) : [];
   const { data: open } = await createPublicClient().schema("content").rpc("policies_published");
   return (
     <>
@@ -22,6 +24,7 @@ export default async function BookingPage({ searchParams }: PageProps<"/dat-phon
         ) : (
           <BookingWizard
             rooms={rooms.map((r) => ({ id: r.id, slug: r.slug, name: r.name, maxGuests: r.maxGuests, capacityAdults: r.capacityAdults }))}
+            services={services.map((s) => ({ id: s.id, name: s.name, group: SERVICE_GROUPS[s.group_key], unit: s.unit, price: s.price, leadLabel: leadLabel(s.lead_time_min), discountBp: s.prebook_discount_bp }))}
             initialRoom={typeof sp.phong === "string" ? sp.phong : undefined}
             initialArrival={isDate(sp.nhan) ? sp.nhan : undefined}
             initialDeparture={isDate(sp.tra) ? sp.tra : undefined}

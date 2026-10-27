@@ -1130,6 +1130,66 @@ isOneToOne: false
                   Relationships: [
                     
                   ]
+                },"service_request_events": {
+                  Row: {
+                    "actor": string | null,"created_at": string,"from_state": string | null,"id": number,"note": string | null,"request_id": string,"to_state": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "actor"?: string | null,"created_at"?: string,"from_state"?: string | null,"id"?: never,"note"?: string | null,"request_id": string,"to_state": string
+                  }
+                  Update: {
+                    "actor"?: string | null,"created_at"?: string,"from_state"?: string | null,"id"?: never,"note"?: string | null,"request_id"?: string,"to_state"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "service_request_events_request_id_fkey"
+      columns: ["request_id"]
+isOneToOne: false
+      referencedRelation: "service_requests"
+      referencedColumns: ["id"]
+    }
+                  ]
+                },"service_requests": {
+                  Row: {
+                    "booking_id": string,"created_at": string,"entity_id": string,"handled_by": string | null,"id": string,"idempotency_key": string | null,"location_id": string,"notes": string | null,"order_item_id": string,"qty": number,"scheduled_at": string,"service_id": string,"source": string,"state": string,"updated_at": string,"version": number
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "booking_id": string,"created_at"?: string,"entity_id": string,"handled_by"?: string | null,"id"?: string,"idempotency_key"?: string | null,"location_id": string,"notes"?: string | null,"order_item_id": string,"qty": number,"scheduled_at": string,"service_id": string,"source": string,"state"?: string,"updated_at"?: string,"version"?: number
+                  }
+                  Update: {
+                    "booking_id"?: string,"created_at"?: string,"entity_id"?: string,"handled_by"?: string | null,"id"?: string,"idempotency_key"?: string | null,"location_id"?: string,"notes"?: string | null,"order_item_id"?: string,"qty"?: number,"scheduled_at"?: string,"service_id"?: string,"source"?: string,"state"?: string,"updated_at"?: string,"version"?: number
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "service_requests_booking_id_fkey"
+      columns: ["booking_id"]
+isOneToOne: false
+      referencedRelation: "bookings"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "service_requests_service_id_fkey"
+      columns: ["service_id"]
+isOneToOne: false
+      referencedRelation: "services"
+      referencedColumns: ["id"]
+    }
+                  ]
+                },"services": {
+                  Row: {
+                    "active": boolean,"audience": string | null,"created_at": string,"description": string,"entity_id": string,"group_key": string,"id": string,"lead_time_min": number,"location_id": string,"name": string,"photo_id": string | null,"prebook_discount_bp": number,"price": number,"revenue_source": string,"serve_from": string,"serve_to": string,"slug": string,"sort": number,"source_category": string | null,"unit": string,"updated_at": string,"version": number
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "active"?: boolean,"audience"?: string | null,"created_at"?: string,"description"?: string,"entity_id": string,"group_key": string,"id"?: string,"lead_time_min"?: number,"location_id": string,"name": string,"photo_id"?: string | null,"prebook_discount_bp"?: number,"price": number,"revenue_source": string,"serve_from"?: string,"serve_to"?: string,"slug": string,"sort"?: number,"source_category"?: string | null,"unit": string,"updated_at"?: string,"version"?: number
+                  }
+                  Update: {
+                    "active"?: boolean,"audience"?: string | null,"created_at"?: string,"description"?: string,"entity_id"?: string,"group_key"?: string,"id"?: string,"lead_time_min"?: number,"location_id"?: string,"name"?: string,"photo_id"?: string | null,"prebook_discount_bp"?: number,"price"?: number,"revenue_source"?: string,"serve_from"?: string,"serve_to"?: string,"slug"?: string,"sort"?: number,"source_category"?: string | null,"unit"?: string,"updated_at"?: string,"version"?: number
+                  }
+                  Relationships: [
+                    
+                  ]
                 }
           }
           Views: {
@@ -1139,8 +1199,14 @@ isOneToOne: false
             "add_calendar_feed":
 { Args: { "p_import_url": string,"p_provider": string,"p_room": string }; Returns: string
                            },
+"add_service_request":
+{ Args: { "b": Omit<Database["stay"]['Tables']["bookings"]['Row'], Database["stay"]['Tables']["bookings"]['ComputedFields']>,"p_idempotency": string,"p_notes": string,"p_qty": number,"p_scheduled_at": string,"p_service": string,"p_source": string }; Returns: Json
+                           },
 "block_room":
 { Args: { "p_arrival": string,"p_departure": string,"p_kind": string,"p_reason": string,"p_room": string,"p_source"?: string }; Returns: string
+                           },
+"cancel_my_service":
+{ Args: { "p_request": string,"p_token": string }; Returns: undefined
                            },
 "confirm_with_exception":
 { Args: { "p_booking": string,"p_due": number,"p_reason": string }; Returns: undefined
@@ -1170,6 +1236,12 @@ isOneToOne: false
               "horizon_days": number,"id": string,"import_url": string
             }[]
                            },
+"issue_stay_token":
+{ Args: { "p_booking": string }; Returns: string
+                           },
+"my_stay_services":
+{ Args: { "p_token": string }; Returns: Json
+                           },
 "price_nights":
 { Args: { "p_arrival": string,"p_departure": string,"p_room": string }; Returns: {
               "night": string,"price": number,"rate_kind": string
@@ -1187,8 +1259,17 @@ isOneToOne: false
 "release_block":
 { Args: { "p_block": string,"p_reason": string }; Returns: undefined
                            },
+"request_stay_service":
+{ Args: { "p_idempotency": string,"p_notes"?: string,"p_qty": number,"p_scheduled_at": string,"p_service": string,"p_token": string }; Returns: Json
+                           },
 "resolve_conflict":
 { Args: { "p_conflict": string,"p_resolution": string }; Returns: undefined
+                           },
+"reverse_service_item":
+{ Args: { "p_item": string }; Returns: undefined
+                           },
+"revoke_stay_tokens":
+{ Args: { "p_booking": string }; Returns: undefined
                            },
 "room_calendar":
 { Args: { "p_from": string,"p_room": string,"p_to": string }; Returns: {
@@ -1207,8 +1288,14 @@ isOneToOne: false
 "set_room_sellable":
 { Args: { "p_reason": string,"p_room": string,"p_sellable": boolean }; Returns: undefined
                            },
+"staff_request_service":
+{ Args: { "p_booking": string,"p_idempotency": string,"p_notes"?: string,"p_qty": number,"p_scheduled_at": string,"p_service": string }; Returns: Json
+                           },
 "stay_range":
 { Args: { "p_arrival": string,"p_departure": string,"p_location": string }; Returns: unknown
+                           },
+"transition_service_request":
+{ Args: { "p_expected_version": number,"p_note"?: string,"p_request": string,"p_to": string }; Returns: Json
                            },
 "try_reallocate":
 { Args: { "p_booking": string }; Returns: boolean

@@ -51,3 +51,27 @@ export async function publishPolicy(_: ActionState, f: FormData): Promise<Action
     p_summary: str(f, "summary") ?? "",
   }, "Đã phát hành phiên bản chính sách mới. Đặt phòng cũ giữ nguyên phiên bản đã chấp nhận.", ["location:da-lat"]);
 }
+
+export async function saveService(_: ActionState, f: FormData): Promise<ActionState> {
+  const { createClient } = await import("@/lib/supabase/server");
+  const { updateTag } = await import("next/cache");
+  const supabase = await createClient();
+  const discount = int(f, "discountPct") ?? 0;
+  if (discount !== 0 && (discount < 5 || discount > 10)) return { error: "Giảm giá đặt trước phải là 0 hoặc từ 5% đến 10%." };
+  const row = {
+    name: str(f, "name") ?? "", group_key: str(f, "group") ?? "flex", unit: str(f, "unit") ?? "lượt", price: int(f, "price") ?? 0,
+    lead_time_min: int(f, "lead") ?? 0, serve_from: str(f, "from") ?? "00:00", serve_to: str(f, "to") ?? "23:59",
+    prebook_discount_bp: discount * 100, revenue_source: str(f, "revenue") ?? "own_service", description: str(f, "description") ?? "",
+    active: f.get("active") === "on",
+  };
+  const id = str(f, "id");
+  const { error } = id
+    ? await supabase.schema("stay").from("services").update(row).eq("id", id)
+    : await supabase.schema("stay").from("services").insert({
+        ...row, entity_id: str(f, "entityId")!, location_id: str(f, "locationId")!,
+        slug: `${row.name.normalize("NFD").replace(/[̀-ͯ]/g, "").replace(/đ/gi, "d").toLowerCase().replace(/[^a-z0-9]+/g, "-")}-${Date.now().toString(36).slice(-4)}`,
+      });
+  if (error) return { error: "Không lưu được dịch vụ (kiểm tra quyền và dữ liệu)." };
+  updateTag("services");
+  return { status: "Đã lưu dịch vụ." };
+}

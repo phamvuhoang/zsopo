@@ -178,3 +178,11 @@ insert into content.pages(entity_id, slug, kind, title, excerpt, body_md, status
  'Đường đi, giờ nhận và trả phòng, nội quy và lưu ý.',
  E'> Bản nháp chờ quản lý điểm duyệt.\n\n## Giờ nhận và trả phòng\n\nNhận phòng từ 14:00, trả phòng trước 12:00. Báo lễ tân trước nếu cần nhận sớm hoặc trả muộn.\n\n## Khi đến\n\nVui lòng mang căn cước công dân hoặc hộ chiếu để đăng ký tạm trú. Thông tin Wifi và mã cửa được lễ tân trao khi nhận phòng.\n\n## Yên tĩnh\n\nGiữ yên tĩnh từ 22:00 đến 06:00. Thiền buổi sáng tại sân vườn nếu thời tiết cho phép.\n\n## Nội quy đầy đủ\n\nXem [Nội quy lưu trú](/chinh-sach/noi-quy).',
  'published', now());
+
+-- Services (fixture menu from the homestay journey docs; prices NOT approved).
+insert into stay.services(entity_id, location_id, group_key, source_category, slug, name, description, unit, price, lead_time_min, serve_from, serve_to, prebook_discount_bp, revenue_source, sort) values
+('e0000000-0000-4000-8000-000000000001','c0000000-0000-4000-8000-000000000001','food',null,'bua-sang-thuc-duong','Bữa sáng thực dưỡng','Cháo gạo lứt, rau củ hấp, trà gừng.','phần',120000,720,'06:30','09:30',1000,'own_service',1),
+('e0000000-0000-4000-8000-000000000001','c0000000-0000-4000-8000-000000000001','food','b2b_upsell','tra-thao-moc-tai-phong','Trà thảo mộc tại phòng','Ấm trà hoa cúc và atiso Đà Lạt.','ấm',60000,30,'07:00','21:30',0,'beverage',2),
+('e0000000-0000-4000-8000-000000000001','c0000000-0000-4000-8000-000000000001','transport',null,'xe-don-lien-khuong','Xe đón sân bay Liên Khương','Xe 4 chỗ, đón theo giờ hạ cánh.','lượt',350000,1440,'05:00','23:00',500,'own_service',3),
+('e0000000-0000-4000-8000-000000000001','c0000000-0000-4000-8000-000000000001','experience',null,'thien-am-thanh-chuong-xoay','Thiền âm thanh chuông xoay','Buổi thiền 60 phút cùng người hướng dẫn đồng tổ chức.','người',250000,240,'06:00','20:00',1000,'cohost_service',4),
+('e0000000-0000-4000-8000-000000000001','c0000000-0000-4000-8000-000000000001','flex',null,'giat-ui','Giặt ủi','Trả trong ngày nếu gửi trước 10:00.','kg',80000,120,'07:00','18:00',0,'own_service',5);

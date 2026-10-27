@@ -2,6 +2,7 @@ import { CHAKRAS, CHAKRA_LABEL } from "@zsopo/core";
 import { Price, StatusBadge } from "@zsopo/ui";
 import { ActionForm, Field, inputCls } from "@/components/action-form";
 import { CalendarFeeds } from "@/features/stay/components/calendar-feeds";
+import { ServicesAdmin } from "@/features/stay/components/services-admin";
 import { blockRoom, deactivateRate, publishPolicy, releaseBlock, saveEnergy, saveRate, setSellable } from "@/features/stay/actions";
 import { getStaffContext } from "@/lib/auth/context";
 import { requirePermission } from "@/lib/auth/require-permission";
@@ -143,6 +144,8 @@ export default async function LocationAdmin() {
           })}
         </ul>
       </section>
+
+      <ServicesAdmin entityId={entityId} locationId={locationId} />
 
       <CalendarFeeds locationId={locationId} rooms={(rooms ?? []).map((r) => ({ id: r.id, code: r.code, name: r.name }))} />
 
