@@ -389,3 +389,10 @@ insert into content.posts(entity_id, slug, title, excerpt, body_md, category_id,
 ('e0000000-0000-4000-8000-000000000001','cach-chon-da-nang-luong','Cách chọn đá năng lượng phù hợp với bạn','Đọc bảng năng lượng: công dụng, nguồn gốc và cách dùng.',
  E'## Bắt đầu từ ý định\n\nMỗi sản phẩm tại ZSOPO có bảng năng lượng ghi rõ công dụng, nguồn gốc, cách dùng.\n\n## Lưu ý\n\nNội dung mang tính hỗ trợ tinh thần, không thay thế tư vấn y khoa.\n\nXem [Shop năng lượng](/shop).',
  (select id from content.categories where slug='nang-luong'),'Ban biên tập ZSOPO','published', now() - interval '1 day', '{"label":"Vào Shop","href":"/shop"}');
+
+-- Shop policy and shipping fixture (prototype: 30.000 đ, free from 500.000 đ): to be confirmed before selling.
+insert into ops_config.policy_versions(entity_id, location_id, kind, version, params, summary_md) values
+('e0000000-0000-4000-8000-000000000001', null, 'shop', 1, '{"bank_due_hours":24,"ritual_24h":true,"ritual_hours":24,"cod_confirm_hours":24}', 'Chuyển khoản trong 24 giờ. Sản phẩm có nghi lễ cần thêm 24 giờ trước khi giao.');
+insert into shop.shipping_rules(entity_id, region_code, fee, free_threshold) values ('e0000000-0000-4000-8000-000000000001', 'default', 30000, 500000);
+-- Region list is configuration (current administrative units must be loaded by the operator); fixture only.
+insert into shop.regions(code, name, sort) values ('lam-dong','Lâm Đồng',1),('tp-ho-chi-minh','TP. Hồ Chí Minh',2),('ha-noi','Hà Nội',3);

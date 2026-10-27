@@ -7,6 +7,7 @@ const NAV = [
   ["/admin", "Tổng quan"],
   ["/admin/diem/da-lat", "Điểm Đà Lạt"],
   ["/admin/thanh-toan", "Thanh toán"],
+  ["/admin/don-hang", "Đơn hàng"],
   ["/admin/san-pham", "Sản phẩm"],
   ["/admin/kho", "Kho"],
   ["/admin/noi-dung", "Nội dung"],

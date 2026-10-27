@@ -113,14 +113,14 @@ isOneToOne: false
                   ]
                 },"orders": {
                   Row: {
-                    "code": string,"collected_by": string | null,"contact_snapshot": NonNullable<Json>,"created_at": string,"created_by": string | null,"currency": string,"customer_id": string | null,"deposit_due": number,"discount": number,"due_at": string | null,"entity_id": string,"id": string,"kind": string,"location_id": string | null,"paid_amount": number,"payment_status": string,"policy_snapshot": NonNullable<Json>,"source": string,"status": string,"subtotal": number,"total": number,"updated_at": string,"version": number,"can_record_payment": boolean | null
+                    "code": string,"collected_by": string | null,"contact_snapshot": NonNullable<Json>,"created_at": string,"created_by": string | null,"currency": string,"customer_id": string | null,"deposit_due": number,"discount": number,"due_at": string | null,"entity_id": string,"fulfillment_status": string | null,"id": string,"kind": string,"location_id": string | null,"paid_amount": number,"payment_method": string | null,"payment_status": string,"policy_snapshot": NonNullable<Json>,"ritual_required": boolean,"ritual_started_at": string | null,"shipping_fee": number,"source": string,"status": string,"subtotal": number,"total": number,"updated_at": string,"version": number,"can_record_payment": boolean | null
                   }
                   ComputedFields: "can_record_payment"
                   Insert: {
-                    "code"?: string,"collected_by"?: string | null,"contact_snapshot"?: NonNullable<Json>,"created_at"?: string,"created_by"?: string | null,"currency"?: string,"customer_id"?: string | null,"deposit_due"?: number,"discount"?: number,"due_at"?: string | null,"entity_id": string,"id"?: string,"kind": string,"location_id"?: string | null,"paid_amount"?: number,"payment_status"?: string,"policy_snapshot"?: NonNullable<Json>,"source"?: string,"status"?: string,"subtotal"?: number,"total"?: number,"updated_at"?: string,"version"?: number
+                    "code"?: string,"collected_by"?: string | null,"contact_snapshot"?: NonNullable<Json>,"created_at"?: string,"created_by"?: string | null,"currency"?: string,"customer_id"?: string | null,"deposit_due"?: number,"discount"?: number,"due_at"?: string | null,"entity_id": string,"fulfillment_status"?: string | null,"id"?: string,"kind": string,"location_id"?: string | null,"paid_amount"?: number,"payment_method"?: string | null,"payment_status"?: string,"policy_snapshot"?: NonNullable<Json>,"ritual_required"?: boolean,"ritual_started_at"?: string | null,"shipping_fee"?: number,"source"?: string,"status"?: string,"subtotal"?: number,"total"?: number,"updated_at"?: string,"version"?: number
                   }
                   Update: {
-                    "code"?: string,"collected_by"?: string | null,"contact_snapshot"?: NonNullable<Json>,"created_at"?: string,"created_by"?: string | null,"currency"?: string,"customer_id"?: string | null,"deposit_due"?: number,"discount"?: number,"due_at"?: string | null,"entity_id"?: string,"id"?: string,"kind"?: string,"location_id"?: string | null,"paid_amount"?: number,"payment_status"?: string,"policy_snapshot"?: NonNullable<Json>,"source"?: string,"status"?: string,"subtotal"?: number,"total"?: number,"updated_at"?: string,"version"?: number
+                    "code"?: string,"collected_by"?: string | null,"contact_snapshot"?: NonNullable<Json>,"created_at"?: string,"created_by"?: string | null,"currency"?: string,"customer_id"?: string | null,"deposit_due"?: number,"discount"?: number,"due_at"?: string | null,"entity_id"?: string,"fulfillment_status"?: string | null,"id"?: string,"kind"?: string,"location_id"?: string | null,"paid_amount"?: number,"payment_method"?: string | null,"payment_status"?: string,"policy_snapshot"?: NonNullable<Json>,"ritual_required"?: boolean,"ritual_started_at"?: string | null,"shipping_fee"?: number,"source"?: string,"status"?: string,"subtotal"?: number,"total"?: number,"updated_at"?: string,"version"?: number
                   }
                   Relationships: [
                     
@@ -227,6 +227,9 @@ isOneToOne: false
 { Args: { "p_token": string }; Returns: Json
                            },
 "get_guest_receipt_v2":
+{ Args: { "p_token": string }; Returns: Json
+                           },
+"get_guest_receipt_v3":
 { Args: { "p_token": string }; Returns: Json
                            },
 "idem_get":
@@ -1018,7 +1021,15 @@ isOneToOne: false
             [_ in never]: never
           }
           Functions: {
-            [_ in never]: never
+            "tests_as":
+{ Args: { "p_user": string }; Returns: undefined
+                           },
+"tests_as_aal2":
+{ Args: { "p_user": string }; Returns: undefined
+                           },
+"tests_make_order":
+{ Args: { "p_location"?: string }; Returns: string
+                           }
           }
           Enums: {
             [_ in never]: never
@@ -1048,6 +1059,46 @@ isOneToOne: false
       referencedColumns: ["id"]
     }
                   ]
+                },"cart_items": {
+                  Row: {
+                    "cart_id": string,"qty": number,"variant_id": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "cart_id": string,"qty": number,"variant_id": string
+                  }
+                  Update: {
+                    "cart_id"?: string,"qty"?: number,"variant_id"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "cart_items_cart_id_fkey"
+      columns: ["cart_id"]
+isOneToOne: false
+      referencedRelation: "carts"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "cart_items_variant_id_fkey"
+      columns: ["variant_id"]
+isOneToOne: false
+      referencedRelation: "product_variants"
+      referencedColumns: ["id"]
+    }
+                  ]
+                },"carts": {
+                  Row: {
+                    "id": string,"updated_at": string,"user_id": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "id"?: string,"updated_at"?: string,"user_id": string
+                  }
+                  Update: {
+                    "id"?: string,"updated_at"?: string,"user_id"?: string
+                  }
+                  Relationships: [
+                    
+                  ]
                 },"categories": {
                   Row: {
                     "description": string,"id": string,"name": string,"slug": string,"sort": number
@@ -1058,6 +1109,20 @@ isOneToOne: false
                   }
                   Update: {
                     "description"?: string,"id"?: string,"name"?: string,"slug"?: string,"sort"?: number
+                  }
+                  Relationships: [
+                    
+                  ]
+                },"fulfillment_events": {
+                  Row: {
+                    "actor": string | null,"created_at": string,"from_status": string | null,"id": number,"note": string | null,"order_id": string,"to_status": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "actor"?: string | null,"created_at"?: string,"from_status"?: string | null,"id"?: never,"note"?: string | null,"order_id": string,"to_status": string
+                  }
+                  Update: {
+                    "actor"?: string | null,"created_at"?: string,"from_status"?: string | null,"id"?: never,"note"?: string | null,"order_id"?: string,"to_status"?: string
                   }
                   Relationships: [
                     
@@ -1128,6 +1193,20 @@ isOneToOne: false
       referencedColumns: ["id"]
     }
                   ]
+                },"regions": {
+                  Row: {
+                    "active": boolean,"code": string,"name": string,"sort": number
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "active"?: boolean,"code": string,"name": string,"sort"?: number
+                  }
+                  Update: {
+                    "active"?: boolean,"code"?: string,"name"?: string,"sort"?: number
+                  }
+                  Relationships: [
+                    
+                  ]
                 },"ritual_contents": {
                   Row: {
                     "entity_id": string,"id": string,"intro": string,"slug": string,"status": string,"steps": NonNullable<Json>,"title": string,"updated_at": string,"video_url": string | null
@@ -1138,6 +1217,34 @@ isOneToOne: false
                   }
                   Update: {
                     "entity_id"?: string,"id"?: string,"intro"?: string,"slug"?: string,"status"?: string,"steps"?: NonNullable<Json>,"title"?: string,"updated_at"?: string,"video_url"?: string | null
+                  }
+                  Relationships: [
+                    
+                  ]
+                },"shipments": {
+                  Row: {
+                    "address": NonNullable<Json>,"carrier": string | null,"delivered_at": string | null,"entity_id": string,"id": string,"order_id": string,"shipped_at": string | null,"tracking": string | null
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "address": NonNullable<Json>,"carrier"?: string | null,"delivered_at"?: string | null,"entity_id": string,"id"?: string,"order_id": string,"shipped_at"?: string | null,"tracking"?: string | null
+                  }
+                  Update: {
+                    "address"?: NonNullable<Json>,"carrier"?: string | null,"delivered_at"?: string | null,"entity_id"?: string,"id"?: string,"order_id"?: string,"shipped_at"?: string | null,"tracking"?: string | null
+                  }
+                  Relationships: [
+                    
+                  ]
+                },"shipping_rules": {
+                  Row: {
+                    "active": boolean,"entity_id": string,"fee": number,"free_threshold": number | null,"id": string,"region_code": string,"updated_at": string,"updated_by": string | null
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "active"?: boolean,"entity_id": string,"fee": number,"free_threshold"?: number | null,"id"?: string,"region_code": string,"updated_at"?: string,"updated_by"?: string | null
+                  }
+                  Update: {
+                    "active"?: boolean,"entity_id"?: string,"fee"?: number,"free_threshold"?: number | null,"id"?: string,"region_code"?: string,"updated_at"?: string,"updated_by"?: string | null
                   }
                   Relationships: [
                     
@@ -1199,6 +1306,18 @@ isOneToOne: false
             "create_product":
 { Args: { "p": Json }; Returns: string
                            },
+"create_shop_order":
+{ Args: { "p_address": Json,"p_consents": Json,"p_email": string,"p_idempotency": string,"p_lines": Json,"p_method": string,"p_notes"?: string }; Returns: Json
+                           },
+"expire_unpaid_orders":
+{ Args: Record<PropertyKey, never>; Returns: number
+                           },
+"merge_cart":
+{ Args: { "p_lines": Json }; Returns: Json
+                           },
+"price_cart":
+{ Args: { "p_lines": Json,"p_region"?: string }; Returns: Json
+                           },
 "publish_product":
 { Args: { "p_product": string }; Returns: undefined
                            },
@@ -1214,8 +1333,34 @@ isOneToOne: false
 "reserve_stock":
 { Args: { "p_expires": string,"p_order": string,"p_qty": number,"p_variant": string }; Returns: string
                            },
+"restock_return":
+{ Args: { "p_inspection_note": string,"p_order": string,"p_qty": number,"p_variant": string }; Returns: undefined
+                           },
+"rule_for":
+{ Args: { "p_entity": string,"p_region": string }; Returns: {
+              "active": boolean,
+"entity_id": string,
+"fee": number,
+"free_threshold": number | null,
+"id": string,
+"region_code": string,
+"updated_at": string,
+"updated_by": string | null
+            }
+                          SetofOptions: {
+        from: "*"
+        to: "shipping_rules"
+        isOneToOne: true
+        isSetofReturn: false
+      } },
+"set_cart":
+{ Args: { "p_lines": Json }; Returns: undefined
+                           },
 "ship_reservation":
 { Args: { "p_reservation": string }; Returns: undefined
+                           },
+"transition_fulfillment":
+{ Args: { "p_expected_version": number,"p_note"?: string,"p_order": string,"p_to": string,"p_tracking"?: string }; Returns: Json
                            },
 "variant_availability":
 { Args: { "p_variants": (string)[] }; Returns: {

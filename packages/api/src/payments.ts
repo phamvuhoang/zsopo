@@ -29,10 +29,11 @@ export type GuestReceipt = {
   serverNow: string;
   notifications: { channel: string; status: string; at: string }[];
   confirmationQueued: boolean;
+  shop: null | { fulfillment: string; method: string; shippingFee: string; ritualRequired: boolean; ritualReadyAt: string | null; tracking: string | null; shippedAt: string | null; events: { to: string; at: string }[]; rituals: string[] };
 };
 
 export const getGuestReceipt = (client: Db, token: string): Promise<DomainResult<GuestReceipt>> =>
-  call(client, "commerce", "get_guest_receipt_v2", { p_token: token });
+  call(client, "commerce", "get_guest_receipt_v3", { p_token: token });
 
 export const reportTransfer = (client: Db, token: string): Promise<DomainResult<{ reportedAt: string }>> =>
   call(client, "commerce", "report_transfer", { p_token: token });

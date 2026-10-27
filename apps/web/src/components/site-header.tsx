@@ -2,6 +2,7 @@ import { Sheet, SheetClose } from "@zsopo/ui";
 import { Menu } from "lucide-react";
 import Link from "next/link";
 import { FEATURES } from "@/lib/flags";
+import { CartLink } from "@/features/shop/cart-link";
 import { ThemeToggle } from "./theme-toggle";
 
 const NAV = [
@@ -39,6 +40,7 @@ export function SiteHeader() {
         </nav>
         <div className="ml-auto flex items-center gap-1">
           <ThemeToggle />
+          {FEATURES.cart && <CartLink />}
           <Link href="/dang-nhap" className="hidden min-h-11 items-center rounded-md px-3 hover:bg-[var(--surface-2)] md:flex">
             Đăng nhập
           </Link>

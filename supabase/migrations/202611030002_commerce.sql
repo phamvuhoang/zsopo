@@ -198,6 +198,8 @@ create function commerce.idem_get(p_scope text, p_key text, p_hash text) returns
 language plpgsql security definer set search_path = '' as $$
 declare r commerce.idempotency_keys;
 begin
+  -- Serialise concurrent requests with the same key until the first one commits its result.
+  perform pg_advisory_xact_lock(hashtextextended(p_scope || ':' || p_key, 0));
   select * into r from commerce.idempotency_keys where scope = p_scope and key = p_key for update;
   if not found then return null; end if;
   if r.request_hash <> p_hash then

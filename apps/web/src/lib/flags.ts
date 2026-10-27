@@ -3,6 +3,6 @@ export const FEATURES = {
   stay: true,
   booking: true,
   shop: true,
-  cart: false,
+  cart: true,
   blog: true,
 } as const;
