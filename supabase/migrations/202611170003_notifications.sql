@@ -111,6 +111,10 @@ begin
     if coalesce(v_alert, '') = '' then return jsonb_build_object('disabled', 'Chưa cấu hình email nhận cảnh báo vận hành (ops.alerts)'); end if;
     return jsonb_build_object('channels', jsonb_build_array('email'), 'to', v_alert, 'template', 'ops.alert',
       'vars', jsonb_build_object('kind', o.kind, 'detail', o.payload::text), 'entityId', o.entity_id);
+  elsif o.kind = 'stock.back' then
+    return (select jsonb_build_object('channels', jsonb_build_array('email'), 'to', r.email, 'template', 'stock.back', 'entityId', o.entity_id,
+        'vars', jsonb_build_object('productName', pr.name || ' - ' || v.name, 'productUrl', '/shop/' || pr.slug))
+      from shop.back_in_stock_requests r join shop.product_variants v on v.id = r.variant_id join shop.products pr on pr.id = v.product_id where r.id = o.aggregate_id);
   end if;
   return jsonb_build_object('skip', 'no renderer for ' || o.kind);
 end $$;

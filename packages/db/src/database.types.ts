@@ -851,7 +851,27 @@ isOneToOne: false
           }
         },"shop": {
           Tables: {
-            "categories": {
+            "back_in_stock_requests": {
+                  Row: {
+                    "consent_at": string,"created_at": string,"email": string,"entity_id": string,"id": string,"notified_at": string | null,"variant_id": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "consent_at": string,"created_at"?: string,"email": string,"entity_id": string,"id"?: string,"notified_at"?: string | null,"variant_id": string
+                  }
+                  Update: {
+                    "consent_at"?: string,"created_at"?: string,"email"?: string,"entity_id"?: string,"id"?: string,"notified_at"?: string | null,"variant_id"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "back_in_stock_requests_variant_id_fkey"
+      columns: ["variant_id"]
+isOneToOne: false
+      referencedRelation: "product_variants"
+      referencedColumns: ["id"]
+    }
+                  ]
+                },"categories": {
                   Row: {
                     "description": string,"id": string,"name": string,"slug": string,"sort": number
                   }
@@ -931,6 +951,54 @@ isOneToOne: false
       referencedColumns: ["id"]
     }
                   ]
+                },"ritual_contents": {
+                  Row: {
+                    "entity_id": string,"id": string,"intro": string,"slug": string,"status": string,"steps": NonNullable<Json>,"title": string,"updated_at": string,"video_url": string | null
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "entity_id": string,"id"?: string,"intro"?: string,"slug": string,"status"?: string,"steps"?: NonNullable<Json>,"title": string,"updated_at"?: string,"video_url"?: string | null
+                  }
+                  Update: {
+                    "entity_id"?: string,"id"?: string,"intro"?: string,"slug"?: string,"status"?: string,"steps"?: NonNullable<Json>,"title"?: string,"updated_at"?: string,"video_url"?: string | null
+                  }
+                  Relationships: [
+                    
+                  ]
+                },"stock_movements": {
+                  Row: {
+                    "actor": string | null,"created_at": string,"id": number,"kind": string,"note": string | null,"qty": number,"ref_id": string | null,"variant_id": string,"warehouse_id": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "actor"?: string | null,"created_at"?: string,"id"?: never,"kind": string,"note"?: string | null,"qty": number,"ref_id"?: string | null,"variant_id": string,"warehouse_id": string
+                  }
+                  Update: {
+                    "actor"?: string | null,"created_at"?: string,"id"?: never,"kind"?: string,"note"?: string | null,"qty"?: number,"ref_id"?: string | null,"variant_id"?: string,"warehouse_id"?: string
+                  }
+                  Relationships: [
+                    
+                  ]
+                },"stock_reservations": {
+                  Row: {
+                    "created_at": string,"entity_id": string,"expires_at": string | null,"id": string,"order_id": string,"qty": number,"state": string,"variant_id": string,"warehouse_id": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "created_at"?: string,"entity_id": string,"expires_at"?: string | null,"id"?: string,"order_id": string,"qty": number,"state"?: string,"variant_id": string,"warehouse_id": string
+                  }
+                  Update: {
+                    "created_at"?: string,"entity_id"?: string,"expires_at"?: string | null,"id"?: string,"order_id"?: string,"qty"?: number,"state"?: string,"variant_id"?: string,"warehouse_id"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "stock_reservations_variant_id_warehouse_id_fkey"
+      columns: ["variant_id","warehouse_id"]
+isOneToOne: false
+      referencedRelation: "inventory"
+      referencedColumns: ["variant_id","warehouse_id"]
+    }
+                  ]
                 },"warehouses": {
                   Row: {
                     "code": string,"entity_id": string,"id": string,"location_id": string | null,"name": string
@@ -951,7 +1019,32 @@ isOneToOne: false
             [_ in never]: never
           }
           Functions: {
-            [_ in never]: never
+            "create_product":
+{ Args: { "p": Json }; Returns: string
+                           },
+"publish_product":
+{ Args: { "p_product": string }; Returns: undefined
+                           },
+"receive_stock":
+{ Args: { "p_note": string,"p_qty": number,"p_variant": string,"p_warehouse": string }; Returns: undefined
+                           },
+"release_reservation":
+{ Args: { "p_reservation": string }; Returns: undefined
+                           },
+"request_back_in_stock":
+{ Args: { "p_consent": boolean,"p_email": string,"p_variant": string }; Returns: undefined
+                           },
+"reserve_stock":
+{ Args: { "p_expires": string,"p_order": string,"p_qty": number,"p_variant": string }; Returns: string
+                           },
+"ship_reservation":
+{ Args: { "p_reservation": string }; Returns: undefined
+                           },
+"variant_availability":
+{ Args: { "p_variants": (string)[] }; Returns: {
+              "in_stock": boolean,"variant_id": string
+            }[]
+                           }
           }
           Enums: {
             [_ in never]: never
