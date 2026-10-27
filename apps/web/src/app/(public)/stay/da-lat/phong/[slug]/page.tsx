@@ -2,6 +2,7 @@ import { EnergyCard, Price, StatusBadge } from "@zsopo/ui";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { Suspense } from "react";
 import { Markdown } from "@/components/markdown";
 import { RoomCalendar } from "@/features/stay/components/room-calendar";
 import { getLocation, getRoom, listRooms } from "@/features/stay/queries";
@@ -95,7 +96,12 @@ export default async function RoomPage({ params }: PageProps<"/stay/da-lat/phong
               </div>
             )}
           </div>
-          {room.sellable && <RoomCalendar roomId={room.id} bookingHref={FEATURES.booking ? `/dat-phong?phong=${room.slug}` : undefined} />}
+          {room.sellable && (
+            // The calendar reads the clock and live availability: browser-only, behind Suspense.
+            <Suspense fallback={<p className="rounded-[var(--radius-md)] border border-[var(--line)] p-4 text-sm">Đang tải lịch trống...</p>}>
+              <RoomCalendar roomId={room.id} bookingHref={FEATURES.booking ? `/dat-phong?phong=${room.slug}` : undefined} />
+            </Suspense>
+          )}
         </aside>
       </div>
     </div>
