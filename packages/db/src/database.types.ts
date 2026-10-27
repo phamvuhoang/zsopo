@@ -232,6 +232,9 @@ isOneToOne: false
 "get_guest_receipt_v3":
 { Args: { "p_token": string }; Returns: Json
                            },
+"get_location_metrics":
+{ Args: { "p_entity": string,"p_from": string,"p_location": string,"p_to": string }; Returns: Json
+                           },
 "idem_get":
 { Args: { "p_hash": string,"p_key": string,"p_scope": string }; Returns: Json
                            },
@@ -240,6 +243,9 @@ isOneToOne: false
                            },
 "post_ledger":
 { Args: { "p_entity": string,"p_kind": string,"p_lines": Json,"p_location": string,"p_order": string,"p_payment": string,"p_recognition"?: string,"p_reversal_of"?: string,"p_source_key": string }; Returns: string
+                           },
+"record_manual_sale":
+{ Args: { "p_amount": number,"p_evidence_note": string,"p_location": string,"p_provider": string,"p_revenue_source": string,"p_title": string }; Returns: string
                            },
 "record_payment_atomic":
 { Args: { "p_amount": number,"p_evidence_id"?: string,"p_evidence_note"?: string,"p_idempotency"?: string,"p_order": string,"p_provider": string,"p_provider_ref": string,"p_received_at": string,"p_shift"?: string }; Returns: Json
@@ -1181,6 +1187,9 @@ isOneToOne: false
       } },
 "publish_stay_policy":
 { Args: { "p_location": string,"p_params": Json,"p_summary": string }; Returns: string
+                           },
+"set_setting":
+{ Args: { "p_key": string,"p_public": boolean,"p_value": Json }; Returns: undefined
                            }
           }
           Enums: {

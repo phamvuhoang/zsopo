@@ -147,8 +147,9 @@ begin
   v_state := 'allocated';
 
   if o.kind = 'stay' and found then
-    if b.state in ('cancelled','checked_out','no_show') then
-      v_review := 'Đơn đã kết thúc/hủy';
+    -- A balance collected after check-in/out (debt) is a normal allocation; only cancelled/no-show stays need review.
+    if b.state in ('cancelled','no_show') then
+      v_review := 'Đơn đã hủy hoặc khách không đến';
     elsif b.state in ('held','expired','needs_review') then
       if b.state = 'expired' or (b.state = 'held' and b.held_until <= now()) then
         if not stay.try_reallocate(b.id) then v_review := 'Tiền tới sau khi hết giữ chỗ và phòng đã có khách khác'; end if;

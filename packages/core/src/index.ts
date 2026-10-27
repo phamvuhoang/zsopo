@@ -9,3 +9,4 @@ export * from "./ops/cash-shift";
 export * from "./shop/shipping";
 export * from "./shop/fulfillment";
 export * from "./crm/csv";
+export * from "./commerce/metrics";
