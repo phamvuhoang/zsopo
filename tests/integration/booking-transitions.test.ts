@@ -100,7 +100,10 @@ describe("LT04 trả phòng", () => {
 describe("LT05 / BM01 bàn giao ca", () => {
   it("tiền chuyển khoản không vào két; công thức dự kiến; chênh lệch giữ nguyên; người nhận khác người giao", async () => {
     const fd = await clientFor(USERS.frontDesk);
-    const { data: shift } = await fd.schema("stay").rpc("open_shift", { p_location: L1, p_cash_open: 1000000 });
+    // Other suites (e2e) may leave this user with an open shift; start from a clean drawer.
+    await sql(`update stay.shifts set status = 'closed' where opened_by = $1 and status = 'open'`, [USERS.frontDesk.id]);
+    const { data: shift, error: openError } = await fd.schema("stay").rpc("open_shift", { p_location: L1, p_cash_open: 1000000 });
+    expect(openError).toBeNull();
     const c = await confirmedToday();
     await recordPayment(fd, { orderId: c.orderId, provider: "cash", providerRef: `cash-${randomUUID()}`, amount: "500000", receivedAt: new Date().toISOString(), shiftId: shift as string, idempotencyKey: randomUUID() });
     await recordPayment(fd, { orderId: c.orderId, provider: "bank_transfer", providerRef: `bank-${randomUUID()}`, amount: "200000", receivedAt: new Date().toISOString(), evidenceNote: "Sao kê", shiftId: shift as string, idempotencyKey: randomUUID() });
