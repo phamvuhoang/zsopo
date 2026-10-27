@@ -199,24 +199,33 @@ end $$;
 
 -- Returned goods re-enter stock only after inspection (once per order item).
 create function shop.restock_return(p_order uuid, p_variant uuid, p_qty int, p_inspection_note text) returns void language plpgsql security definer set search_path = '' as $$
-declare o commerce.orders; w uuid; v_ref uuid;
+declare o commerce.orders; w uuid; v_ref uuid; v_shipped int;
 begin
   select * into o from commerce.orders where id = p_order;
+  if not found then perform core.fail('NOT_FOUND'); end if;
   if not core.has_permission('inventory.manage', o.entity_id, null) then perform core.fail('FORBIDDEN'); end if;
   if o.fulfillment_status <> 'returned' or coalesce(trim(p_inspection_note), '') = '' then perform core.fail('VALIDATION', 'Chỉ nhập lại hàng trả đã kiểm, kèm biên bản'); end if;
-  select warehouse_id into w from shop.stock_reservations where order_id = p_order and variant_id = p_variant limit 1;
+  -- Back into the warehouse it shipped from, never more than shipped.
+  select warehouse_id, sum(qty) into w, v_shipped from shop.stock_reservations
+  where order_id = p_order and variant_id = p_variant and state = 'shipped' group by warehouse_id limit 1;
+  if w is null or p_qty is null or p_qty < 1 or p_qty > v_shipped then perform core.fail('VALIDATION', 'Số lượng nhập lại vượt số đã giao'); end if;
   v_ref := extensions.uuid_generate_v5(p_order, p_variant::text);
   insert into shop.stock_movements(variant_id, warehouse_id, kind, qty, ref_id, note, actor) values (p_variant, w, 'return_restock', p_qty, v_ref, p_inspection_note, auth.uid())
   on conflict do nothing;
   if found then update shop.inventory set on_hand = on_hand + p_qty where variant_id = p_variant and warehouse_id = w; end if;
 end $$;
 
--- Cron: unpaid bank-transfer orders past due are cancelled and their stock released (late money goes to review).
+-- Cron: bank-transfer orders not fully paid by due date release their stock (late money goes to review).
+-- Partly paid ones go to needs_review: the money received stays a liability until refunded or re-ordered.
 create function shop.expire_unpaid_orders() returns int language plpgsql security definer set search_path = '' as $$
 declare o commerce.orders; r record; v_n int := 0;
 begin
-  for o in select * from commerce.orders where kind = 'shop' and payment_method = 'bank' and payment_status = 'unpaid' and status = 'pending' and due_at < now() for update skip locked loop
-    update commerce.orders set status = 'expired', fulfillment_status = 'cancelled' where id = o.id;
+  for o in select * from commerce.orders where kind = 'shop' and payment_method = 'bank' and payment_status in ('unpaid','partial') and status = 'pending' and due_at < now() for update skip locked loop
+    update commerce.orders set status = case when o.payment_status = 'partial' then 'needs_review' else 'expired' end, fulfillment_status = 'cancelled' where id = o.id;
+    if o.payment_status = 'partial' then
+      perform core.enqueue(o.entity_id, 'payment.review', 'payment.review:expired:' || o.id, o.id,
+        jsonb_build_object('orderCode', o.code, 'reason', 'Quá hạn chuyển khoản, mới thu một phần', 'amount', o.paid_amount));
+    end if;
     for r in select id from shop.stock_reservations where order_id = o.id and state = 'active' loop perform shop.release_reservation(r.id); end loop;
     insert into shop.fulfillment_events(order_id, from_status, to_status, note) values (o.id, o.fulfillment_status, 'cancelled', 'Quá hạn chuyển khoản');
     v_n := v_n + 1;

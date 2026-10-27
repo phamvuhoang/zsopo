@@ -364,6 +364,26 @@ isOneToOne: false
                   Relationships: [
                     
                   ]
+                },"post_drafts": {
+                  Row: {
+                    "post_id": string,"snapshot": NonNullable<Json>,"updated_at": string,"updated_by": string | null
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "post_id": string,"snapshot": NonNullable<Json>,"updated_at"?: string,"updated_by"?: string | null
+                  }
+                  Update: {
+                    "post_id"?: string,"snapshot"?: NonNullable<Json>,"updated_at"?: string,"updated_by"?: string | null
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "post_drafts_post_id_fkey"
+      columns: ["post_id"]
+isOneToOne: true
+      referencedRelation: "posts"
+      referencedColumns: ["id"]
+    }
+                  ]
                 },"post_revisions": {
                   Row: {
                     "created_at": string,"created_by": string | null,"id": string,"post_id": string,"snapshot": NonNullable<Json>,"version": number
@@ -424,8 +444,14 @@ isOneToOne: false
             [_ in never]: never
           }
           Functions: {
-            "archive_post":
+            "apply_snapshot":
+{ Args: { "p_post": string,"p_status"?: string,"s": Json }; Returns: undefined
+                           },
+"archive_post":
 { Args: { "p_post": string }; Returns: undefined
+                           },
+"confirm_newsletter":
+{ Args: { "p_token": string }; Returns: undefined
                            },
 "policies_published":
 { Args: Record<PropertyKey, never>; Returns: boolean
@@ -453,6 +479,9 @@ isOneToOne: false
 "snapshot_post":
 { Args: { "p": Omit<Database["content"]['Tables']["posts"]['Row'], Database["content"]['Tables']["posts"]['ComputedFields']> }; Returns: Json
                            },
+"stage_post":
+{ Args: { "cur": Omit<Database["content"]['Tables']["posts"]['Row'], Database["content"]['Tables']["posts"]['ComputedFields']>,"s": Json }; Returns: undefined
+                           },
 "submit_contact":
 { Args: { "p_consent": boolean,"p_email": string,"p_message": string,"p_name": string,"p_phone": string }; Returns: string
                            },
@@ -460,7 +489,7 @@ isOneToOne: false
 { Args: { "p_post": string }; Returns: undefined
                            },
 "subscribe_newsletter":
-{ Args: { "p_consent": boolean,"p_email": string }; Returns: string
+{ Args: { "p_consent": boolean,"p_email": string }; Returns: undefined
                            },
 "unsubscribe_newsletter":
 { Args: { "p_token": string }; Returns: undefined

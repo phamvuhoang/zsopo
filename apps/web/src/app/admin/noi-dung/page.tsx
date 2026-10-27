@@ -25,7 +25,10 @@ async function Editor({ searchParams }: Pick<PageProps<"/admin/noi-dung">, "sear
     db.schema("content").from("campaign_calendar").select("id, week_start, topic, channel, owner, status").order("week_start").limit(30),
   ]);
   const id = typeof sp.id === "string" ? sp.id : null;
-  const { data: post } = id ? await db.schema("content").from("posts").select("*").eq("id", id).maybeSingle() : { data: null };
+  const { data: live } = id ? await db.schema("content").from("posts").select("*").eq("id", id).maybeSingle() : { data: null };
+  const { data: draft } = id ? await db.schema("content").from("post_drafts").select("snapshot").eq("post_id", id).maybeSingle() : { data: null };
+  // A published post's pending edits are shown in the editor; the public keeps the live version until "Duyệt và đăng".
+  const post = live && { ...live, ...(draft?.snapshot as Partial<typeof live> | undefined) };
   const { data: revisions } = id ? await db.schema("content").from("post_revisions").select("id, version, created_at").eq("post_id", id).order("version", { ascending: false }) : { data: [] };
   return (
     <>
@@ -41,6 +44,7 @@ async function Editor({ searchParams }: Pick<PageProps<"/admin/noi-dung">, "sear
         </section>
         <section aria-labelledby="soan" className="rounded-md border border-[var(--line)] bg-[var(--surface)] p-4">
           <h2 id="soan" className="font-semibold">{post ? `Sửa: ${post.title} (phiên bản ${post.version})` : "Bài mới"}</h2>
+          {draft && <p className="mt-2 rounded-md bg-[var(--warning-soft)] p-2 text-sm">Có bản sửa chưa đăng. Bản công khai giữ nguyên cho tới khi bấm &quot;Duyệt và đăng&quot;.</p>}
           <ActionForm action={savePostAction} submit="Lưu nháp" className="mt-3 grid gap-2">
             {post && <input type="hidden" name="id" value={post.id} />}
             {post && <input type="hidden" name="version" value={post.version} />}

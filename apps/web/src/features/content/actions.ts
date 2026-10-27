@@ -17,7 +17,7 @@ export async function contactAction(_: ActionState, f: FormData): Promise<Action
 
 export async function newsletterAction(_: ActionState, f: FormData): Promise<ActionState> {
   const { error } = await createPublicClient(await visitorIp()).schema("content").rpc("subscribe_newsletter", { p_email: str(f, "email") ?? "", p_consent: f.get("consent") === "on" });
-  return error ? { error: error.details || "Không đăng ký được." } : { status: "Đã đăng ký thư năng lượng. Bạn có thể hủy bất cứ lúc nào bằng liên kết trong thư." };
+  return error ? { error: error.details || "Không đăng ký được." } : { status: "Vui lòng mở email và bấm liên kết xác nhận để bắt đầu nhận thư năng lượng." };
 }
 
 export async function savePostAction(_: ActionState, f: FormData): Promise<ActionState> {

@@ -28,9 +28,19 @@ self.addEventListener("fetch", (event) => {
     return;
   }
 
+  const allowed = OFFLINE_PAGES.some((re) => re.test(url.pathname));
+  // In-app navigation (Next Link) fetches RSC data, not the page: also fetch and keep the full page so a later
+  // offline reload works. Prefetches are skipped to avoid rendering every task on the list.
+  if (allowed && req.headers.get("RSC") && !req.headers.get("Next-Router-Prefetch")) {
+    event.waitUntil(fetch(url.pathname, { credentials: "same-origin" }).then(async (res) => {
+      if (res.ok && !res.redirected) await (await caches.open(PAGE_CACHE)).put(url.pathname, res);
+    }).catch(() => {}));
+    return;
+  }
+
   // Full-page navigations of allow-listed Ops pages: network-first, fall back to the last copy.
   const isNav = req.mode === "navigate" && !req.headers.get("RSC");
-  if (isNav && OFFLINE_PAGES.some((re) => re.test(url.pathname))) {
+  if (isNav && allowed) {
     event.respondWith((async () => {
       const cache = await caches.open(PAGE_CACHE);
       try {

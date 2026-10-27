@@ -11,6 +11,8 @@ export type QueuedOp = {
   attempts: number;
   createdAt: number;
   lastError?: string;
+  /** Task version after this op was applied (the next write, e.g. BM02, must carry it). */
+  serverVersion?: number;
 };
 export type MediaDraft = { id: string; taskId: string; blob: Blob; mime: string; size: number; createdAt: number };
 

@@ -31,9 +31,10 @@ test("BP01 -> BM02 -> BM03: buồng phòng làm checklist, quản lý nghiệm t
     await pass.nth(i).click();
     await expect(hk.page.getByRole("status").filter({ hasText: "Đã lưu" })).toHaveCount(i + 1);
   }
-  await hk.page.reload();
+  // Straight on, no reload: the submit must carry the version left by the answers just synced.
   await hk.page.getByRole("button", { name: /Hoàn tất tự kiểm/ }).click();
   await expect(hk.page.getByText(/Việc không còn ở trạng thái làm được|Đã gửi nghiệm thu/).first()).toBeVisible();
+  expect((await db.query(`select state from stay.housekeeping_tasks where id = $1`, [taskId])).rows[0].state).toBe("awaiting_inspection");
   await hk.ctx.close();
 
   const mgr = await staff(browser, "quan-ly@example.test", `/ops/nghiem-thu/${taskId}`);

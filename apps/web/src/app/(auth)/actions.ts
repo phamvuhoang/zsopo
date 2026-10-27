@@ -48,8 +48,8 @@ export async function updatePassword(_: FormState, form: FormData): Promise<Form
   return { status: "Đã đổi mật khẩu. Bạn có thể tiếp tục sử dụng tài khoản." };
 }
 
-export async function signOut() {
-  const supabase = await createClient();
-  await supabase.auth.signOut();
-  redirect("/dang-nhap");
+/** Ends the session; the caller wipes device data only after this succeeded, then navigates. */
+export async function signOut(): Promise<{ error?: string }> {
+  const { error } = await (await createClient()).auth.signOut();
+  return error ? { error: error.message } : {};
 }

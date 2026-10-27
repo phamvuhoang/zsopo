@@ -103,6 +103,9 @@ begin
   if p_action = 'check_in' then
     if b.state <> 'confirmed' then perform core.fail('INVALID_TRANSITION', 'Chỉ nhận phòng cho đặt phòng đã xác nhận'); end if;
     if b.arrival > (now() at time zone l.timezone)::date then perform core.fail('INVALID_TRANSITION', 'Chưa tới ngày nhận phòng'); end if;
+    if not exists (select 1 from stay.room_allocations where source_id = b.id and active) then
+      perform core.fail('INVALID_TRANSITION', 'Đặt phòng không còn giữ phòng (cần quản lý xử lý)');
+    end if;
     if r.cleanliness <> 'ready' or r.safety_block or r.occupancy <> 'vacant' then
       perform core.fail('INVALID_TRANSITION', 'Phòng chưa sẵn sàng (chưa nghiệm thu, đang bảo trì hoặc còn khách)');
     end if;

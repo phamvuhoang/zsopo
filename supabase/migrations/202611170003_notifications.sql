@@ -82,7 +82,7 @@ $$;
 
 -- What to send for a job: recipient + template + allow-listed vars, or {skip}. Mints a fresh guest link token when needed.
 create function core.render_outbox(p_id uuid) returns jsonb language plpgsql security definer set search_path = '' as $$
-declare o core.outbox; b stay.bookings; ord commerce.orders; r stay.rooms; l core.locations; v_to text; v_vars jsonb; v_alert text;
+declare o core.outbox; b stay.bookings; ord commerce.orders; r stay.rooms; l core.locations; v_to text; v_vars jsonb; v_alert text; v_token text;
 begin
   select * into o from core.outbox where id = p_id;
   if o.kind in ('booking.confirmed','handbook.due','checkout.thanks') then
@@ -118,6 +118,13 @@ begin
         else jsonb_build_object('channels', jsonb_build_array('email'), 'to', r.email, 'template', 'campaign', 'entityId', c.entity_id,
           'vars', jsonb_build_object('subject', c.subject, 'body', c.body, 'unsubscribeToken', core.issue_guest_token('marketing', r.customer_id, now() + interval '180 days'))) end
       from crm.campaign_recipients r join crm.campaigns c on c.id = r.campaign_id where r.id = o.aggregate_id);
+  elsif o.kind = 'newsletter.confirm' then
+    -- Fresh token per email; the subscription is not live until its owner opens the link.
+    v_token := translate(encode(extensions.gen_random_bytes(24), 'base64'), '+/=', '-_');
+    update content.newsletter_subscriptions set token_hash = extensions.digest(v_token, 'sha256') where id = o.aggregate_id and status <> 'subscribed' returning email into v_to;
+    if v_to is null then return jsonb_build_object('skip', 'already subscribed'); end if;
+    return jsonb_build_object('channels', jsonb_build_array('email'), 'to', v_to, 'template', 'newsletter.confirm', 'entityId', o.entity_id,
+      'vars', jsonb_build_object('confirmToken', v_token));
   elsif o.kind = 'stock.back' then
     return (select jsonb_build_object('channels', jsonb_build_array('email'), 'to', r.email, 'template', 'stock.back', 'entityId', o.entity_id,
         'vars', jsonb_build_object('productName', pr.name || ' - ' || v.name, 'productUrl', '/shop/' || pr.slug))

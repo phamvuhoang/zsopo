@@ -336,7 +336,8 @@ create policy media_read on core.media for select
 create policy media_insert on core.media for insert to authenticated
   with check (classification in ('public','internal','evidence') and owner_id = auth.uid() and core.is_staff_of(entity_id, location_id));
 create policy media_update on core.media for update to authenticated
-  using (core.has_permission('content.write', entity_id, null)) with check (classification in ('public','internal','evidence'));
+  using (core.has_permission('content.write', entity_id, null))
+  with check (classification in ('public','internal','evidence') and core.has_permission('content.write', entity_id, null));
 create policy energy_read on core.energy_cards for select using (status = 'published' or core.is_staff_of(entity_id));
 create policy energy_write on core.energy_cards for insert to authenticated with check (core.has_permission('catalog.write', entity_id, null));
 create policy energy_update on core.energy_cards for update to authenticated using (core.has_permission('catalog.write', entity_id, null));

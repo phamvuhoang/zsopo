@@ -2,9 +2,10 @@
 
 import type { ChecklistOp } from "@zsopo/core";
 import { useEffect, useState } from "react";
+import { ActionForm } from "@/components/action-form";
 import { enqueue, opsForTask } from "@/lib/pwa/queue";
 import { syncNow } from "@/lib/pwa/sync";
-import { applyChecklistOp } from "./actions";
+import { applyChecklistOp, submitInspection } from "./actions";
 import { ChecklistForm, type ChecklistItem } from "./checklist-form";
 
 type Saved = Record<string, { result: "pass" | "fail" | "na"; note: string }>;
@@ -12,6 +13,7 @@ type Saved = Record<string, { result: "pass" | "fail" | "na"; note: string }>;
 /** Checklist bound to the device queue: every answer is stored locally first, then synced when online. */
 export function OfflineChecklist(props: { userId: string; locationId: string; entityId: string; taskId: string; version: number; items: ChecklistItem[]; saved: Saved }) {
   const [saved, setSaved] = useState<Saved | null>(null);
+  const [version, setVersion] = useState(props.version);
   useEffect(() => {
     opsForTask(props.userId, props.taskId)
       .then((ops) => {
@@ -31,9 +33,19 @@ export function OfflineChecklist(props: { userId: string; locationId: string; en
     if (navigator.onLine) await syncNow(props.userId, { locationId: props.locationId, entityId: props.entityId }, applyChecklistOp);
     const mine = (await opsForTask(props.userId, props.taskId)).find((o) => o.operationId === op.operationId);
     const state = mine?.status === "applied" ? "applied" : mine?.status === "conflict" ? "conflict" : mine?.status === "forbidden" ? "forbidden" : "queued";
-    return { state, version: props.version };
+    const v = mine?.serverVersion;
+    if (v) setVersion((cur) => Math.max(cur, v));
+    return { state, version: v ?? version };
   };
 
   if (!saved) return <p>Đang tải checklist...</p>;
-  return <ChecklistForm taskId={props.taskId} version={props.version} items={props.items} saved={saved} send={send} />;
+  return (
+    <>
+      <ChecklistForm taskId={props.taskId} version={props.version} items={props.items} saved={saved} send={send} />
+      <ActionForm action={submitInspection} submit="Hoàn tất tự kiểm (BM02), gửi nghiệm thu" className="mt-6">
+        <input type="hidden" name="taskId" value={props.taskId} />
+        <input type="hidden" name="version" value={version} />
+      </ActionForm>
+    </>
+  );
 }

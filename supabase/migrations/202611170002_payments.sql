@@ -160,9 +160,8 @@ begin
     if b.state in ('cancelled','no_show') then
       v_review := 'Đơn đã hủy hoặc khách không đến';
     elsif b.state in ('held','expired','needs_review') then
-      if b.state = 'expired' or (b.state = 'held' and b.held_until <= now()) then
-        if not stay.try_reallocate(b.id) then v_review := 'Tiền tới sau khi hết giữ chỗ và phòng đã có khách khác'; end if;
-      end if;
+      -- Any path towards confirmed must hold (or regain) this booking's own allocation first.
+      if not stay.try_reallocate(b.id) then v_review := 'Tiền tới sau khi hết giữ chỗ và phòng đã có khách khác'; end if;
     end if;
   elsif o.status in ('cancelled','expired') then
     v_review := 'Đơn đã hủy hoặc hết hạn';

@@ -46,11 +46,13 @@ describe("CMS workflow, revision, lịch đăng", () => {
     }
   });
 
-  it("đổi slug bài đã đăng tạo redirect 301", async () => {
+  it("đổi slug bài đã đăng tạo redirect 301 khi đăng bản sửa", async () => {
     const { ed, id } = await draft("Bài đổi slug");
     await ed.schema("content").rpc("publish_content", { p_post: id, p_expected_version: await version(id), p_scheduled_at: null });
     const [old] = await sql<{ slug: string }>(`select slug from content.posts where id = $1`, [id]);
     await ed.schema("content").rpc("save_post", { p: { id, entityId: E1, slug: `${old!.slug}-moi`, title: "Bài đổi slug", bodyMd: "x", expectedVersion: await version(id) } });
+    expect(await sql(`select 1 from content.redirects where from_path = $1`, [`/blog/${old!.slug}`])).toHaveLength(0); // draft only
+    await ed.schema("content").rpc("publish_content", { p_post: id, p_expected_version: await version(id), p_scheduled_at: null });
     expect(await sql(`select 1 from content.redirects where from_path = $1 and to_path = $2`, [`/blog/${old!.slug}`, `/blog/${old!.slug}-moi`])).toHaveLength(1);
   });
 
@@ -65,7 +67,11 @@ describe("liên hệ và bản tin", () => {
   it("bản tin cần đồng ý; hủy đăng ký bằng token", async () => {
     const email = `nl-${uniq()}@example.test`;
     expect((await anonClient().schema("content").rpc("subscribe_newsletter", { p_email: email, p_consent: false })).error?.message).toBe("VALIDATION");
-    const { data: token } = await anonClient().schema("content").rpc("subscribe_newsletter", { p_email: email, p_consent: true });
+    expect((await anonClient().schema("content").rpc("subscribe_newsletter", { p_email: email, p_consent: true })).error).toBeNull();
+    const [job] = await sql<{ id: string }>(`select id from core.outbox where kind = 'newsletter.confirm' and payload ->> 'email' = $1`, [email]);
+    const [r] = await sql<{ v: { vars: { confirmToken: string } } }>(`select core.render_outbox($1) v`, [job!.id]);
+    const token = r!.v.vars.confirmToken;
+    expect((await anonClient().schema("content").rpc("confirm_newsletter", { p_token: token })).error).toBeNull();
     expect((await anonClient().schema("content").rpc("unsubscribe_newsletter", { p_token: token })).error).toBeNull();
     const [s] = await sql<{ status: string }>(`select status from content.newsletter_subscriptions where email = $1`, [email]);
     expect(s!.status).toBe("unsubscribed");

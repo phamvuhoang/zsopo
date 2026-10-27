@@ -1,5 +1,5 @@
 import { ActionForm, Field, inputCls } from "@/components/action-form";
-import { refuseService, submitInspection } from "@/features/housekeeping/actions";
+import { refuseService } from "@/features/housekeeping/actions";
 import { OfflineChecklist } from "@/features/housekeeping/offline-checklist";
 import { loadTask } from "@/features/housekeeping/data";
 import { getStaffContext } from "@/lib/auth/context";
@@ -27,12 +27,6 @@ export default async function TaskPage({ params }: PageProps<"/ops/buong-phong/[
         </ActionForm>
       )}
       <div className="mt-6">{editable ? <OfflineChecklist userId={ctx.actor.userId} locationId={ctx.location.id} entityId={ctx.location.entity_id} taskId={task.id} version={task.version} items={items} saved={saved} /> : <p>Việc không còn ở trạng thái làm được.</p>}</div>
-      {editable && (
-        <ActionForm action={submitInspection} submit="Hoàn tất tự kiểm (BM02), gửi nghiệm thu" className="mt-6">
-          <input type="hidden" name="taskId" value={task.id} />
-          <input type="hidden" name="version" value={task.version} />
-        </ActionForm>
-      )}
     </main>
   );
 }

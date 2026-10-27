@@ -5,27 +5,29 @@
 --   room: per night served (service_date < today) of checked-in/out stays; services/products/manual: when completed.
 create function commerce.get_location_metrics(p_entity uuid, p_location uuid, p_from date, p_to date) returns jsonb
 language plpgsql stable security definer set search_path = '' as $$
-declare v_today date := (now() at time zone 'Asia/Ho_Chi_Minh')::date; v_rev jsonb; v_cash bigint; v_liab bigint; v_occ int; v_sell int; v_room bigint; v_nights int; v_channels jsonb; v_shop jsonb;
+declare v_today date := (now() at time zone 'Asia/Ho_Chi_Minh')::date; v_rev jsonb; v_cash bigint; v_liab bigint; v_occ int; v_sell int; v_room bigint; v_nights int; v_channels jsonb; v_shop jsonb; v_online bigint;
 begin
   if not core.has_permission('metrics.read', p_entity, p_location) then perform core.fail('FORBIDDEN'); end if;
   if p_to < p_from or p_to - p_from > 366 then perform core.fail('VALIDATION', 'Khoảng ngày không hợp lệ (tối đa 1 năm)'); end if;
 
   with recognized as (
-    select i.revenue_source, i.amount, i.order_id from commerce.order_items i
-    join commerce.orders o on o.id = i.order_id and o.entity_id = p_entity and (o.location_id = p_location or (o.location_id is null and o.kind = 'shop' and p_location is null))
+    -- Online shop orders have no location: they count in the entity view, and appear separately (onlineShopRevenue) per location.
+    select i.revenue_source, i.amount, i.order_id, (o.location_id is null and p_location is not null) as online from commerce.order_items i
+    join commerce.orders o on o.id = i.order_id and o.entity_id = p_entity and (o.location_id = p_location or (o.location_id is null and o.kind = 'shop'))
     left join stay.bookings b on b.order_id = o.id
     where i.status <> 'cancelled' and i.revenue_source is not null and (
       (i.revenue_source = 'room' and i.service_date between p_from and p_to and i.service_date < v_today and b.state in ('checked_in','checked_out'))
       or (i.revenue_source <> 'room' and i.status = 'completed' and (i.completed_at at time zone 'Asia/Ho_Chi_Minh')::date between p_from and p_to))
   )
   select jsonb_build_object(
-    'room', coalesce(sum(amount) filter (where revenue_source = 'room'), 0)::text,
-    'beverage', coalesce(sum(amount) filter (where revenue_source = 'beverage'), 0)::text,
-    'own_service', coalesce(sum(amount) filter (where revenue_source = 'own_service'), 0)::text,
-    'product', coalesce(sum(amount) filter (where revenue_source = 'product'), 0)::text,
-    'cohost_service', coalesce(sum(amount) filter (where revenue_source = 'cohost_service'), 0)::text),
-    coalesce(sum(amount) filter (where revenue_source = 'room'), 0)
-  into v_rev, v_room from recognized;
+    'room', coalesce(sum(amount) filter (where revenue_source = 'room' and not online), 0)::text,
+    'beverage', coalesce(sum(amount) filter (where revenue_source = 'beverage' and not online), 0)::text,
+    'own_service', coalesce(sum(amount) filter (where revenue_source = 'own_service' and not online), 0)::text,
+    'product', coalesce(sum(amount) filter (where revenue_source = 'product' and not online), 0)::text,
+    'cohost_service', coalesce(sum(amount) filter (where revenue_source = 'cohost_service' and not online), 0)::text),
+    coalesce(sum(amount) filter (where revenue_source = 'room' and not online), 0),
+    coalesce(sum(amount) filter (where online), 0)
+  into v_rev, v_room, v_online from recognized;
 
   select coalesce(sum(distinct_amount), 0) into v_cash from (
     select distinct p.id, p.amount as distinct_amount from commerce.payments p
@@ -71,7 +73,7 @@ begin
   return jsonb_build_object('from', p_from, 'to', p_to, 'timezone', 'Asia/Ho_Chi_Minh',
     'recognizedRevenueBySource', v_rev, 'cashCollected', v_cash::text, 'depositsLiability', v_liab::text,
     'occupancy', jsonb_build_object('occupied', v_occ, 'sellable', v_sell, 'pct', case when v_sell > 0 then round(v_occ * 100.0 / v_sell, 1) end),
-    'adr', case when v_nights > 0 then (v_room / v_nights)::text end, 'bookingsByChannel', v_channels, 'shopOrders', v_shop);
+    'adr', case when v_nights > 0 then (v_room / v_nights)::text end, 'bookingsByChannel', v_channels, 'shopOrders', v_shop, 'onlineShopRevenue', v_online::text);
 end $$;
 
 -- Revenue taken outside the web (cafe counter, co-hosted activities): an order + completed item + recorded payment, with evidence.

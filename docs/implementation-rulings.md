@@ -89,7 +89,7 @@ Trích từ sổ thực thi plan `plans/01-implementation-plan.md`. Mỗi dòng:
 - Task 14: Ruling: Markdown safety = react-markdown with skipHtml (no raw HTML/MDX); only embed is youtube-nocookie iframe when a paragraph is exactly a YouTube URL; images require alt — cost if wrong: none.
 - Task 14: Ruling: preview is an in-admin rendered block (admin is noindex/no-store), not a separate public preview URL — cost if wrong: add /xem-truoc/[token] later.
 - Task 14: Ruling: media library = public 'media' bucket with entity-folder upload policy for content.write + core.media row with mandatory alt; returns Markdown snippet to paste — cost if wrong: no picker UI.
-- Task 14: Ruling: newsletter is single opt-in with explicit consent + tokenized unsubscribe (double opt-in not built) — cost if wrong: add confirmation email.
+- Task 14: Ruling: newsletter is single opt-in with explicit consent + tokenized unsubscribe (double opt-in not built) — cost if wrong: add confirmation email. (Thay bằng double opt-in ở review 2, xem dưới.)
 - Task 15: Ruling: commerce.idem_get takes a transaction advisory lock per (scope,key) so concurrent duplicates serialise (fixed for every RPC using idempotency, incl. stay holds and payments) — found by the shop duplicate test — cost if wrong: none.
 - Task 15: Ruling: whole shop order aborts if any line is short (no partial reservation); COD reserves too; bank orders expire after policy bank_due_hours (24h) via cron, releasing stock; late money -> needs_review without re-reserving — spec 6 — cost if wrong: none.
 - Task 15: Ruling: 24h ritual gate applies when any product has ritual_slug and shop policy ritual_24h=true; ready_to_ship refused before ritual_started_at+24h — cost if wrong: per-product flag instead of ritual_slug.
@@ -116,12 +116,31 @@ Trích từ sổ thực thi plan `plans/01-implementation-plan.md`. Mỗi dòng:
 - Final: Ruling: rate-limit counters inside a failing RPC roll back with it, so failed calls are not counted; token endpoints rely on 256-bit token entropy and successful holds are counted — cost if wrong: add an autonomous counter (dblink/pg_background) or edge limiter.
 - Final: Ruling: verification script used `a && b` under set -e which masked a mid-chain failure (check:types) in earlier full runs including the first T19 record; replaced with one command per line, full suite re-run green — cost if wrong: none now.
 
+## Review 2 (commit 1a09b4c): đã sửa, mỗi mục có test fail trước khi sửa
+
+- P1 khoản thanh toán thứ hai xác nhận booking không còn allocation: mọi đường tới confirmed đều giành lại allocation trước; check-in từ chối booking không có allocation. Test `review2 P1` (phần check-in kiểm bằng mutation).
+- #2 lưu nháp bài đã đăng/hẹn giờ: bản sửa nằm ở `content.post_drafts` (chỉ biên tập xem), chỉ `publish_content` mới áp vào bản công khai; đổi slug tạo redirect lúc đăng. `updated_at` chỉ đổi khi nội dung công khai đổi.
+- #3 nhập lại hàng trả: giới hạn theo số đã giao, đúng kho đã xuất.
+- #4 chuyển khoản một phần quá hạn: nhả hàng, đơn sang `needs_review`, báo vận hành; tiền đã thu vẫn là nghĩa vụ (hoàn qua luồng hoàn tiền).
+- #5 gửi BM02 sau khi điền checklist không cần tải lại: hàng đợi lưu version server trả về, form BM02 dùng version mới nhất. E2E không còn reload.
+- #6 mở việc bằng Link trong app: service worker tải và lưu trang đầy đủ ở nền (bỏ qua prefetch). E2E bắt đầu từ thao tác bấm.
+- #7 doanh thu sản phẩm shop online: hiện riêng trên dashboard theo điểm (`onlineShopRevenue`, toàn đơn vị, không cộng vào tổng của điểm).
+- #8 CI lấy URL và key Supabase từ `supabase status`, không khai báo cứng cổng.
+- #9 RLS media: WITH CHECK yêu cầu quyền content.write ở pháp nhân đích.
+- #10 đăng xuất: còn thao tác chưa đồng bộ thì cảnh báo và cần xác nhận; chỉ xóa dữ liệu máy sau khi đăng xuất thành công.
+- #11 bản tin: double opt-in. RPC không trả token; email xác nhận (token tạo lúc gửi) tới hộp thư; đăng ký lại không đổi token của người đã xác nhận; tối đa 1 email xác nhận mỗi địa chỉ mỗi ngày.
+
+Quyết định mới:
+- Ruling: doanh thu shop online không gán về điểm nào; dashboard theo điểm hiện dòng riêng "toàn đơn vị" — cost if wrong: thêm quy tắc gán địa điểm cho đơn online.
+- Ruling: đơn chuyển khoản trả một phần quá hạn bị hủy giao hàng và chờ đối soát, không tự hoàn tiền — cost if wrong: thêm thao tác "giữ đơn, gia hạn" cho quản lý.
+- Ruling: link xác nhận/hủy bản tin là GET (giống link hủy hiện có); trình quét link trong hộp thư có thể tự xác nhận — cost if wrong: chuyển sang trang có nút bấm POST.
+- Ruling: khôi phục phiên bản giữ slug hiện tại, và với bài đã đăng thì thành bản nháp chờ đăng — cost if wrong: thêm lựa chọn khôi phục slug.
+- Ruling: service worker không lưu trang khi Next chỉ prefetch, nên việc chưa từng mở thì không dùng được ngoại tuyến — cost if wrong: lưu cả khi prefetch (thêm tải cho server).
+
 ## Hoãn (minor từ review cuối)
 - price_cart returns exact stock (maxQty) to anon.
 - ADR numerator includes extra-guest surcharge lines while nights exclude them.
-- logout/account switch silently drops unsynced offline ops (spec requires wipe; warning not shown).
 - lock order differs between record_payment, transition_booking and hold sweeper (possible 40P01 under contention).
-- partially paid bank shop orders never expire or alert; stock stays reserved.
 - staff-admin sends an invite email before grant_role refuses, then deletes the user.
 
 ## Kết quả từng task

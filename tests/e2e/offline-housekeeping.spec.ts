@@ -14,7 +14,7 @@ async function taskInFreshRoom() {
     `with r as (insert into stay.rooms(entity_id, location_id, code, slug, name, room_type, capacity_adults, max_guests, status, cleanliness)
        values ('e0000000-0000-4000-8000-000000000001','c0000000-0000-4000-8000-000000000001',$1,lower($1),'Phòng Offline','Đôi tiêu chuẩn',2,2,'published','dirty') returning id)
      insert into stay.housekeeping_tasks(entity_id, location_id, room_id, kind, template_version) select 'e0000000-0000-4000-8000-000000000001','c0000000-0000-4000-8000-000000000001', r.id, 'checkout', 1 from r returning id`, [code]);
-  return { db, taskId: rows[0].id as string };
+  return { db, taskId: rows[0].id as string, code };
 }
 
 async function login(page: Page, next: string, email = "buong-phong@example.test") {
@@ -57,6 +57,22 @@ test("ghi chú offline sống sót qua reload, đồng bộ đúng một lần k
   await db.end();
 });
 
+test("mở việc từ danh sách (điều hướng trong app), mất mạng, tải lại vẫn dùng được", async ({ page, context }) => {
+  const { db, taskId, code } = await taskInFreshRoom();
+  await login(page, "/ops/buong-phong");
+  await controlled(page);
+  await page.getByRole("link", { name: new RegExp(code) }).click();
+  await page.waitForURL(`**/ops/buong-phong/${taskId}`);
+  await expect(page.getByRole("heading", { level: 1 })).toContainText(code);
+  // The service worker caches the full page in the background after the in-app navigation.
+  await expect.poll(() => page.evaluate(async (p) => !!(await (await caches.open("ops-pages-v1")).match(p)), `/ops/buong-phong/${taskId}`)).toBe(true);
+  await context.setOffline(true);
+  await page.reload();
+  await expect(page.getByRole("heading", { level: 1 })).toContainText(code);
+  await context.setOffline(false);
+  await db.end();
+});
+
 test("server đã đổi mục đó => xung đột hiển thị, giữ bản nháp", async ({ page, context }) => {
   const { db, taskId } = await taskInFreshRoom();
   await login(page, `/ops/buong-phong/${taskId}`);
@@ -75,14 +91,34 @@ test("server đã đổi mục đó => xung đột hiển thị, giữ bản nh�
   await db.end();
 });
 
-test("đăng xuất xóa dữ liệu offline trên thiết bị", async ({ page }) => {
+test("đăng xuất: còn bản nháp chưa đồng bộ thì hỏi trước; mất mạng thì không xóa gì; xác nhận mới xóa", async ({ page, context }) => {
   const { db, taskId } = await taskInFreshRoom();
   await login(page, `/ops/buong-phong/${taskId}`);
   await controlled(page);
+  await context.setOffline(true);
+  await page.getByLabel(/^Ghi chú Gõ cửa/).fill("Bản nháp chưa gửi");
+  await page.getByRole("button", { name: "Không đạt", exact: true }).first().click();
+  await expect(page.getByText("Chờ đồng bộ").first()).toBeVisible();
+  // A colleague's change makes it a conflict that stays on the device after sync.
+  await db.query(`insert into stay.checklist_results(task_id, item_code, result, note, operation_id, task_version, actor)
+     values ($1, 'G1-1', 'pass', 'Đồng nghiệp', gen_random_uuid(), 99, 'a0000000-0000-4000-8000-000000000009')`, [taskId]);
+  await context.setOffline(false);
   await page.goto("/ops");
+  await expect(page.getByText(/Xung đột \(1\)/)).toBeVisible();
+  const opsDbs = () => page.evaluate(async () => (await indexedDB.databases()).filter((d) => d.name?.startsWith("zsopo-ops")).length);
+
   await page.getByRole("button", { name: "Đăng xuất" }).click();
+  await expect(page.getByText(/1 thao tác chưa đồng bộ/)).toBeVisible();
+  expect(await opsDbs()).toBe(1);
+
+  await context.setOffline(true);
+  await page.getByRole("button", { name: "Bỏ dữ liệu và đăng xuất" }).click();
+  await expect(page.getByText(/Không đăng xuất được/)).toBeVisible();
+  expect(await opsDbs()).toBe(1);
+
+  await context.setOffline(false);
+  await page.getByRole("button", { name: "Bỏ dữ liệu và đăng xuất" }).click();
   await page.waitForURL("**/dang-nhap");
-  const left = await page.evaluate(async () => ({ dbs: (await indexedDB.databases()).filter((d) => d.name?.startsWith("zsopo-ops")).length, caches: (await caches.keys()).filter((k) => k.startsWith("ops-pages")).length }));
-  expect(left).toEqual({ dbs: 0, caches: 0 });
+  await expect.poll(() => page.evaluate(async () => ({ dbs: (await indexedDB.databases()).filter((d) => d.name?.startsWith("zsopo-ops")).length, caches: (await caches.keys()).filter((k) => k.startsWith("ops-pages")).length }))).toEqual({ dbs: 0, caches: 0 });
   await db.end();
 });

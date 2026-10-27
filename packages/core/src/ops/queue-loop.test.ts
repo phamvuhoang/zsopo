@@ -13,3 +13,9 @@ it("lỗi nghiệp vụ của một thao tác không chặn các thao tác sau; 
   await drainQueue([op("a"), op("bad"), op("b"), op("net"), op("c")], apply, async (o, patch) => void updates.push([o.operationId, patch.status]));
   expect(updates).toEqual([["a", "syncing"], ["a", "applied"], ["bad", "syncing"], ["bad", "rejected"], ["b", "syncing"], ["b", "applied"], ["net", "syncing"], ["net", "queued"]]);
 });
+
+it("ghi lại version server trả về để thao tác sau (BM02) dùng đúng version", async () => {
+  const patches: unknown[] = [];
+  await drainQueue([op("a")], async () => ({ state: "applied" as const, version: 7 }), async (_, p) => void patches.push(p));
+  expect(patches.at(-1)).toEqual({ status: "applied", serverVersion: 7 });
+});

@@ -9,7 +9,6 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 40
     env:
-      NEXT_PUBLIC_SUPABASE_URL: http://127.0.0.1:55421
       NEXT_PUBLIC_SITE_URL: http://localhost:3100
     steps:
       - uses: actions/checkout@v5
@@ -24,8 +23,13 @@ jobs:
       - run: pnpm test:unit
       - name: Start Supabase local
         run: pnpm exec supabase start -x studio,imgproxy,vector,logflare
-      - name: Export publishable key
-        run: echo "NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=$(pnpm exec supabase status -o env | sed -n 's/^PUBLISHABLE_KEY=\"\(.*\)\"$/\1/p')" >> "$GITHUB_ENV"
+      - name: Export Supabase URL and publishable key (from the running stack, never hard-coded)
+        run: |
+          pnpm exec supabase status -o env > /tmp/supabase.env
+          url=$(sed -n 's/^API_URL="\(.*\)"$/\1/p' /tmp/supabase.env)
+          key=$(sed -n 's/^PUBLISHABLE_KEY="\(.*\)"$/\1/p' /tmp/supabase.env)
+          test -n "$url" && test -n "$key"
+          { echo "NEXT_PUBLIC_SUPABASE_URL=$url"; echo "SUPABASE_URL=$url"; echo "NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=$key"; echo "SUPABASE_PUBLISHABLE_KEY=$key"; } >> "$GITHUB_ENV"
       - run: pnpm test:db
       - run: pnpm check:rls
       - run: pnpm check:types

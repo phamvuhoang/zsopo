@@ -48,7 +48,22 @@ begin
   return new;
 end $$;
 create trigger post_derive before insert or update of title, excerpt, body_md on content.posts for each row execute function content.post_derive();
-create trigger touch before update on content.posts for each row execute function core.touch();
+-- Every write bumps version (optimistic lock); updated_at is the public "last updated", so only live content changes move it.
+create function content.post_touch() returns trigger language plpgsql set search_path = '' as $$
+begin
+  new.version := old.version + 1;
+  if content.snapshot_post(new) is distinct from content.snapshot_post(old) or new.status is distinct from old.status then new.updated_at := now(); end if;
+  return new;
+end $$;
+create trigger touch before update on content.posts for each row execute function content.post_touch();
+
+-- Pending edits of a published/scheduled post: invisible to the public until publish_content applies them.
+create table content.post_drafts (
+  post_id uuid primary key references content.posts(id),
+  snapshot jsonb not null,
+  updated_by uuid,
+  updated_at timestamptz not null default now()
+);
 
 create table content.post_revisions (
   id uuid primary key default gen_random_uuid(),
@@ -105,7 +120,7 @@ create table content.newsletter_subscriptions (
   id uuid primary key default gen_random_uuid(),
   entity_id uuid not null references core.entities(id),
   email text not null unique,
-  status text not null default 'subscribed' check (status in ('subscribed','unsubscribed')),
+  status text not null default 'pending' check (status in ('pending','subscribed','unsubscribed')),
   consent_version text not null default 'v1',
   token_hash bytea not null,
   subscribed_at timestamptz not null default now(),
@@ -118,8 +133,38 @@ create function content.snapshot_post(p content.posts) returns jsonb language sq
     'author_name', p.author_name, 'seo', p.seo, 'cta', p.cta, 'cover_media_id', p.cover_media_id)
 $$;
 
+-- Write a snapshot onto the live row (redirecting a changed slug of a post that was ever public).
+create function content.apply_snapshot(p_post uuid, s jsonb, p_status text default null) returns void language plpgsql security definer set search_path = '' as $$
+declare cur content.posts;
+begin
+  select * into cur from content.posts where id = p_post;
+  if cur.published_at is not null and s ->> 'slug' <> cur.slug then
+    insert into content.redirects(from_path, to_path) values ('/blog/' || cur.slug, '/blog/' || (s ->> 'slug'))
+    on conflict (from_path) do update set to_path = excluded.to_path;
+    update content.redirects set to_path = '/blog/' || (s ->> 'slug') where to_path = '/blog/' || cur.slug;
+  end if;
+  update content.posts set slug = s ->> 'slug', title = s ->> 'title', excerpt = coalesce(s ->> 'excerpt', ''), body_md = coalesce(s ->> 'body_md', ''),
+    category_id = (s ->> 'category_id')::uuid, author_name = coalesce(s ->> 'author_name', author_name), seo = coalesce(s -> 'seo', '{}'),
+    cta = nullif(s -> 'cta', 'null'::jsonb), cover_media_id = (s ->> 'cover_media_id')::uuid, updated_by = auth.uid(), status = coalesce(p_status, status)
+  where id = p_post;
+exception when unique_violation then
+  perform core.fail('VALIDATION', 'Slug đã được dùng');
+end $$;
+
+-- An edit to a published/scheduled post waits in post_drafts; an unpublished post is edited in place (back to draft).
+create function content.stage_post(cur content.posts, s jsonb) returns void language plpgsql security definer set search_path = '' as $$
+begin
+  if cur.status in ('published','scheduled') then
+    insert into content.post_drafts(post_id, snapshot, updated_by) values (cur.id, s, auth.uid())
+    on conflict (post_id) do update set snapshot = excluded.snapshot, updated_by = excluded.updated_by, updated_at = now();
+    update content.posts set updated_by = auth.uid() where id = cur.id;
+  else
+    perform content.apply_snapshot(cur.id, s, 'draft');
+  end if;
+end $$;
+
 create function content.save_post(p jsonb) returns uuid language plpgsql security definer set search_path = '' as $$
-declare cur content.posts; v_id uuid := (p ->> 'id')::uuid; v_entity uuid := (p ->> 'entityId')::uuid;
+declare cur content.posts; v_id uuid := (p ->> 'id')::uuid; v_entity uuid := (p ->> 'entityId')::uuid; s jsonb;
 begin
   if v_id is null then
     if not core.has_permission('content.write', v_entity, null) then perform core.fail('FORBIDDEN'); end if;
@@ -127,24 +172,18 @@ begin
     values (v_entity, p ->> 'slug', p ->> 'title', coalesce(p ->> 'excerpt', ''), coalesce(p ->> 'bodyMd', ''), nullif(p ->> 'categoryId', '')::uuid, auth.uid(),
             coalesce(nullif(p ->> 'authorName', ''), 'Ban biên tập ZSOPO'), coalesce(p -> 'seo', '{}'), p -> 'cta', nullif(p ->> 'coverMediaId', '')::uuid, auth.uid())
     returning * into cur;
+    s := content.snapshot_post(cur);
   else
     select * into cur from content.posts where id = v_id for update;
     if not found or not core.has_permission('content.write', cur.entity_id, null) then perform core.fail('FORBIDDEN'); end if;
     if (p ->> 'expectedVersion')::int is distinct from cur.version then perform core.fail('VERSION_CONFLICT'); end if;
-    if cur.status = 'published' and coalesce(p ->> 'slug', cur.slug) <> cur.slug then
-      insert into content.redirects(from_path, to_path) values ('/blog/' || cur.slug, '/blog/' || (p ->> 'slug'))
-      on conflict (from_path) do update set to_path = excluded.to_path;
-      update content.redirects set to_path = '/blog/' || (p ->> 'slug') where to_path = '/blog/' || cur.slug;
-    end if;
-    update content.posts set slug = coalesce(p ->> 'slug', slug), title = coalesce(p ->> 'title', title), excerpt = coalesce(p ->> 'excerpt', excerpt),
-      body_md = coalesce(p ->> 'bodyMd', body_md), category_id = coalesce(nullif(p ->> 'categoryId', '')::uuid, category_id),
-      author_name = coalesce(nullif(p ->> 'authorName', ''), author_name), seo = coalesce(p -> 'seo', seo), cta = coalesce(p -> 'cta', cta),
-      cover_media_id = coalesce(nullif(p ->> 'coverMediaId', '')::uuid, cover_media_id), updated_by = auth.uid(),
-      -- An edit after publication goes back through review unless the editor republishes.
-      status = case when status in ('published','scheduled') then status else 'draft' end
-    where id = cur.id returning * into cur;
+    s := coalesce((select d.snapshot from content.post_drafts d where d.post_id = cur.id), content.snapshot_post(cur)) || jsonb_strip_nulls(jsonb_build_object(
+      'slug', p ->> 'slug', 'title', p ->> 'title', 'excerpt', p ->> 'excerpt', 'body_md', p ->> 'bodyMd', 'category_id', nullif(p ->> 'categoryId', ''),
+      'author_name', nullif(p ->> 'authorName', ''), 'seo', p -> 'seo', 'cta', p -> 'cta', 'cover_media_id', nullif(p ->> 'coverMediaId', '')));
+    perform content.stage_post(cur, s);
+    select * into cur from content.posts where id = cur.id;
   end if;
-  insert into content.post_revisions(post_id, version, snapshot, created_by) values (cur.id, cur.version, content.snapshot_post(cur), auth.uid());
+  insert into content.post_revisions(post_id, version, snapshot, created_by) values (cur.id, cur.version, s, auth.uid());
   return cur.id;
 exception when unique_violation then
   perform core.fail('VALIDATION', 'Slug đã được dùng');
@@ -166,6 +205,11 @@ begin
   select * into cur from content.posts where id = p_post for update;
   if not found or not core.has_permission('content.publish', cur.entity_id, null) then perform core.fail('FORBIDDEN'); end if;
   if cur.version <> p_expected_version then perform core.fail('VERSION_CONFLICT'); end if;
+  if exists (select 1 from content.post_drafts where post_id = p_post) then
+    perform content.apply_snapshot(p_post, (select snapshot from content.post_drafts where post_id = p_post));
+    delete from content.post_drafts where post_id = p_post;
+    select * into cur from content.posts where id = p_post;
+  end if;
   if coalesce(trim(cur.title), '') = '' or coalesce(trim(cur.body_md), '') = '' then perform core.fail('VALIDATION', 'Bài cần tiêu đề và nội dung'); end if;
   if p_scheduled_at is not null and p_scheduled_at > now() then
     update content.posts set status = 'scheduled', scheduled_at = p_scheduled_at where id = p_post returning * into cur;
@@ -192,10 +236,11 @@ begin
   if not core.has_permission('content.write', cur.entity_id, null) then perform core.fail('FORBIDDEN'); end if;
   select snapshot into s from content.post_revisions where id = p_revision and post_id = p_post;
   if s is null then perform core.fail('NOT_FOUND'); end if;
-  update content.posts set title = s ->> 'title', excerpt = s ->> 'excerpt', body_md = s ->> 'body_md', author_name = s ->> 'author_name',
-    seo = coalesce(s -> 'seo', '{}'), cta = s -> 'cta', updated_by = auth.uid(), status = case when status = 'published' then status else 'draft' end
-  where id = p_post returning * into cur;
-  insert into content.post_revisions(post_id, version, snapshot, created_by) values (cur.id, cur.version, content.snapshot_post(cur), auth.uid());
+  -- Restore keeps the current slug (no surprise redirects); like an edit, a published post gets it as a pending draft.
+  s := s || jsonb_build_object('slug', coalesce((select d.snapshot ->> 'slug' from content.post_drafts d where d.post_id = p_post), cur.slug));
+  perform content.stage_post(cur, s);
+  select * into cur from content.posts where id = p_post;
+  insert into content.post_revisions(post_id, version, snapshot, created_by) values (cur.id, cur.version, s, auth.uid());
   return cur.version;
 end $$;
 
@@ -272,15 +317,28 @@ begin
   return v_id;
 end $$;
 
-create function content.subscribe_newsletter(p_email text, p_consent boolean) returns text language plpgsql security definer set search_path = '' as $$
-declare v_token text := translate(encode(extensions.gen_random_bytes(24), 'base64'), '+/=', '-_'); v_entity uuid := (select id from core.entities where code = 'ZS-SPACE');
+-- Double opt-in: the caller never gets a token. The confirmation email (token minted at render) goes to the mailbox;
+-- an existing subscription keeps its token, and the reply is the same whether or not the email is known.
+create function content.subscribe_newsletter(p_email text, p_consent boolean) returns void language plpgsql security definer set search_path = '' as $$
+declare v_entity uuid := (select id from core.entities where code = 'ZS-SPACE'); v_email text := lower(trim(coalesce(p_email, ''))); n content.newsletter_subscriptions;
 begin
   perform core.rate_limit('newsletter', 5);
   if not coalesce(p_consent, false) then perform core.fail('VALIDATION', 'Cần đồng ý nhận bản tin'); end if;
-  if coalesce(p_email, '') !~ '^[^@\s]+@[^@\s]+\.[^@\s]+$' then perform core.fail('VALIDATION', 'Email không hợp lệ'); end if;
-  insert into content.newsletter_subscriptions(entity_id, email, token_hash) values (v_entity, lower(trim(p_email)), extensions.digest(v_token, 'sha256'))
-  on conflict (email) do update set status = 'subscribed', subscribed_at = now(), unsubscribed_at = null, token_hash = excluded.token_hash;
-  return v_token;
+  if v_email !~ '^[^@\s]+@[^@\s]+\.[^@\s]+$' then perform core.fail('VALIDATION', 'Email không hợp lệ'); end if;
+  insert into content.newsletter_subscriptions(entity_id, email, token_hash) values (v_entity, v_email, extensions.digest(extensions.gen_random_bytes(32), 'sha256'))
+  on conflict (email) do nothing;
+  select * into n from content.newsletter_subscriptions where email = v_email;
+  if n.status <> 'subscribed' then
+    -- At most one confirmation email per address per day.
+    perform core.enqueue(n.entity_id, 'newsletter.confirm', 'newsletter.confirm:' || n.id || ':' || current_date, n.id, jsonb_build_object('email', v_email));
+  end if;
+end $$;
+
+create function content.confirm_newsletter(p_token text) returns void language plpgsql security definer set search_path = '' as $$
+begin
+  update content.newsletter_subscriptions set status = 'subscribed', subscribed_at = now(), unsubscribed_at = null
+  where token_hash = extensions.digest(coalesce(p_token, ''), 'sha256');
+  if not found then perform core.fail('NOT_FOUND', 'Liên kết xác nhận không hợp lệ'); end if;
 end $$;
 
 create function content.unsubscribe_newsletter(p_token text) returns void language plpgsql security definer set search_path = '' as $$
@@ -305,14 +363,16 @@ alter table content.redirects enable row level security;
 alter table content.campaign_calendar enable row level security;
 alter table content.contact_leads enable row level security;
 alter table content.newsletter_subscriptions enable row level security;
+alter table content.post_drafts enable row level security;
 grant select on content.categories, content.posts, content.redirects to anon, authenticated;
-grant select on content.post_revisions, content.page_revisions, content.campaign_calendar, content.contact_leads, content.newsletter_subscriptions to authenticated;
+grant select on content.post_drafts, content.post_revisions, content.page_revisions, content.campaign_calendar, content.contact_leads, content.newsletter_subscriptions to authenticated;
 grant insert, update on content.campaign_calendar, content.categories to authenticated;
 grant update (handled_at) on content.contact_leads to authenticated;
 grant all on all tables in schema content to service_role;
 create policy categories_read on content.categories for select using (true);
 create policy categories_write on content.categories for insert to authenticated with check (core.auth_has_role('super_admin', null, null) or exists (select 1 from core.user_roles ur where ur.user_id = auth.uid() and ur.role = 'editor' and ur.disabled_at is null));
 create policy posts_read on content.posts for select using ((status = 'published' and published_at <= now()) or core.has_permission('content.write', entity_id, null));
+create policy drafts_read on content.post_drafts for select to authenticated using (exists (select 1 from content.posts p where p.id = post_id and core.has_permission('content.write', p.entity_id, null)));
 create policy revisions_read on content.post_revisions for select to authenticated using (exists (select 1 from content.posts p where p.id = post_id and core.has_permission('content.write', p.entity_id, null)));
 create policy page_revisions_read on content.page_revisions for select to authenticated using (exists (select 1 from content.pages p where p.id = page_id and core.has_permission('content.write', p.entity_id, null)));
 create policy redirects_read on content.redirects for select using (true);
@@ -324,6 +384,7 @@ create policy leads_update on content.contact_leads for update to authenticated 
 create policy newsletter_read on content.newsletter_subscriptions for select to authenticated using (core.has_permission('crm.read', entity_id, null));
 
 revoke execute on function content.vn_tsv, content.post_derive, content.snapshot_post, content.save_post, content.submit_review, content.publish_content, content.archive_post,
-  content.restore_revision, content.publish_due, content.save_page, content.search_public, content.submit_contact, content.subscribe_newsletter, content.unsubscribe_newsletter from public;
-grant execute on function content.vn_tsv, content.search_public, content.submit_contact, content.subscribe_newsletter, content.unsubscribe_newsletter to anon, authenticated;
+  content.restore_revision, content.publish_due, content.save_page, content.search_public, content.submit_contact, content.subscribe_newsletter, content.unsubscribe_newsletter,
+  content.confirm_newsletter, content.apply_snapshot, content.stage_post, content.post_touch from public;
+grant execute on function content.vn_tsv, content.search_public, content.submit_contact, content.subscribe_newsletter, content.unsubscribe_newsletter, content.confirm_newsletter to anon, authenticated;
 grant execute on function content.save_post, content.submit_review, content.publish_content, content.archive_post, content.restore_revision, content.save_page to authenticated;

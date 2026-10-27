@@ -71,8 +71,13 @@ Deno.serve(async (req) => {
       vars.handbookUrl = `${SITE_URL}/handbook/da-lat`;
       if (raw.unsubscribeToken) vars.unsubscribeUrl = `${SITE_URL}/huy-nhan-thu?t=${encodeURIComponent(String(raw.unsubscribeToken))}`;
       if (raw.productUrl) vars.productUrl = `${SITE_URL}${raw.productUrl}`;
+      if (raw.confirmToken) {
+        vars.confirmUrl = `${SITE_URL}/xac-nhan-ban-tin?t=${encodeURIComponent(String(raw.confirmToken))}`;
+        vars.unsubscribeUrl = `${SITE_URL}/huy-ban-tin?t=${encodeURIComponent(String(raw.confirmToken))}`;
+      }
       delete vars.guestToken;
       delete vars.unsubscribeToken;
+      delete vars.confirmToken;
 
       const { data: tpl } = await db.schema("ops_config").from("notification_templates").select("subject, body, allowed_vars")
         .eq("key", m.template!).eq("channel", "email").eq("active", true).maybeSingle();

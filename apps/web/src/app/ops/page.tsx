@@ -21,7 +21,7 @@ export default async function OpsHome() {
             ))}
           </ul>
         </div>
-        <LogoutButton />
+        <LogoutButton userId={ctx.actor.userId} />
       </header>
     </main>
   );

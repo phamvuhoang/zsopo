@@ -11,7 +11,7 @@ export const metadata = { title: "Tổng quan" };
 const SOURCES = [["room", "Phòng"], ["beverage", "Đồ uống"], ["own_service", "Dịch vụ tự vận hành"], ["product", "Sản phẩm"], ["cohost_service", "Dịch vụ đồng tổ chức"]] as const;
 type Metrics = {
   recognizedRevenueBySource: Record<string, string>; cashCollected: string; depositsLiability: string;
-  occupancy: { occupied: number; sellable: number; pct: number | null }; adr: string | null; bookingsByChannel: Record<string, number>; shopOrders: { count: number; total: string };
+  occupancy: { occupied: number; sellable: number; pct: number | null }; adr: string | null; bookingsByChannel: Record<string, number>; shopOrders: { count: number; total: string }; onlineShopRevenue: string;
 };
 
 async function Dashboard({ searchParams }: Pick<PageProps<"/admin">, "searchParams">) {
@@ -70,6 +70,7 @@ async function Dashboard({ searchParams }: Pick<PageProps<"/admin">, "searchPara
                 <ul className="text-sm">{channels.map(([k, n]) => <li key={k}>{k}: {n}{allBookings ? ` (${Math.round((n / allBookings) * 100)}%)` : ""}</li>)}</ul>
               )}
               <p className="mt-2 text-sm">Đơn shop: {m.shopOrders.count} · {formatVnd(m.shopOrders.total)}</p>
+              <p className="text-sm">Doanh thu sản phẩm shop online đã giao: {formatVnd(m.onlineShopRevenue)} <span className="text-[var(--ink-3)]">(toàn đơn vị, không cộng vào tổng của điểm)</span></p>
             </div>
           </section>
         </>
