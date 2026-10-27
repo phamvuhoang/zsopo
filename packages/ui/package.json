@@ -3,7 +3,18 @@
   "version": "0.0.0",
   "private": true,
   "type": "module",
-  "exports": { ".": "./src/index.ts" },
-  "scripts": { "typecheck": "tsc --noEmit", "lint": "eslint ." },
-  "devDependencies": { "@zsopo/config": "workspace:*", "eslint": "9.39.5", "typescript": "6.0.3" }
+  "exports": {
+    ".": "./src/index.ts",
+    "./theme.css": "./src/theme.css",
+    "./tokens": "./src/tokens/zsopo.json"
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint ."
+  },
+  "devDependencies": {
+    "@zsopo/config": "workspace:*",
+    "eslint": "9.39.5",
+    "typescript": "6.0.3"
+  }
 }

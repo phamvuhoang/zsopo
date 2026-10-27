@@ -30,6 +30,8 @@ jobs:
       - run: pnpm check:rls
       - run: pnpm check:types
       - run: pnpm check:seed
+      - name: Serve Edge Functions
+        run: pnpm exec supabase functions serve > /tmp/functions.log 2>&1 &
       - run: pnpm test:integration
       - run: pnpm build
       - run: pnpm exec playwright install --with-deps chromium

@@ -503,8 +503,20 @@ isOneToOne: false
 "auth_has_role":
 { Args: { "p_entity": string,"p_location"?: string,"p_role": string }; Returns: boolean
                            },
+"disable_staff":
+{ Args: { "p_reason": string,"p_user": string }; Returns: undefined
+                           },
+"enable_staff":
+{ Args: { "p_reason": string,"p_user": string }; Returns: undefined
+                           },
 "enqueue":
 { Args: { "p_aggregate": string,"p_dedupe": string,"p_entity": string,"p_kind": string,"p_payload": Json,"p_run_at"?: string }; Returns: string
+                           },
+"forbid":
+{ Args: { "p_msg"?: string }; Returns: undefined
+                           },
+"grant_role":
+{ Args: { "p_entity": string,"p_location"?: string,"p_role": string,"p_user": string }; Returns: string
                            },
 "has_permission":
 { Args: { "p_action": string,"p_entity": string,"p_location"?: string }; Returns: boolean
@@ -512,8 +524,24 @@ isOneToOne: false
 "is_staff_of":
 { Args: { "p_entity": string,"p_location"?: string }; Returns: boolean
                            },
+"my_roles":
+{ Args: Record<PropertyKey, never>; Returns: {
+              "entity_id": string,"location_id": string,"role": string
+            }[]
+                           },
+"permission_needs_mfa":
+{ Args: { "p_action": string,"p_entity": string,"p_location"?: string }; Returns: boolean
+                           },
 "redact":
 { Args: { "p": Json }; Returns: Json
+                           },
+"revoke_role":
+{ Args: { "p_reason": string,"p_role_id": string }; Returns: undefined
+                           },
+"staff_directory":
+{ Args: Record<PropertyKey, never>; Returns: {
+              "disabled_at": string,"display_name": string,"email": string,"roles": Json,"user_id": string
+            }[]
                            }
           }
           Enums: {

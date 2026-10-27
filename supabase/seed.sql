@@ -37,7 +37,8 @@ insert into core.profiles(user_id, display_name) values
   ('a0000000-0000-4000-8000-000000000006','Quản trị hệ thống'),
   ('a0000000-0000-4000-8000-000000000007','Lễ tân điểm 2'),
   ('a0000000-0000-4000-8000-000000000008','Lễ tân pháp nhân B'),
-  ('a0000000-0000-4000-8000-000000000009','Buồng phòng 2');
+  ('a0000000-0000-4000-8000-000000000009','Buồng phòng 2')
+on conflict (user_id) do update set display_name = excluded.display_name;
 insert into core.user_roles(user_id, role, entity_id, location_id) values
   ('a0000000-0000-4000-8000-000000000001','front_desk','e0000000-0000-4000-8000-000000000001','c0000000-0000-4000-8000-000000000001'),
   ('a0000000-0000-4000-8000-000000000002','housekeeping','e0000000-0000-4000-8000-000000000001','c0000000-0000-4000-8000-000000000001'),
