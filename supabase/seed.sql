@@ -396,3 +396,5 @@ insert into ops_config.policy_versions(entity_id, location_id, kind, version, pa
 insert into shop.shipping_rules(entity_id, region_code, fee, free_threshold) values ('e0000000-0000-4000-8000-000000000001', 'default', 30000, 500000);
 -- Region list is configuration (current administrative units must be loaded by the operator); fixture only.
 insert into shop.regions(code, name, sort) values ('lam-dong','Lâm Đồng',1),('tp-ho-chi-minh','TP. Hồ Chí Minh',2),('ha-noi','Hà Nội',3);
+insert into ops_config.notification_templates(entity_id, key, channel, subject, body, allowed_vars) values
+('e0000000-0000-4000-8000-000000000001','campaign','email','{{subject}}',E'{{body}}\n\nHủy nhận thư: {{unsubscribeUrl}}',array['subject','body','unsubscribeUrl']);

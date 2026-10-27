@@ -111,6 +111,13 @@ begin
     if coalesce(v_alert, '') = '' then return jsonb_build_object('disabled', 'Chưa cấu hình email nhận cảnh báo vận hành (ops.alerts)'); end if;
     return jsonb_build_object('channels', jsonb_build_array('email'), 'to', v_alert, 'template', 'ops.alert',
       'vars', jsonb_build_object('kind', o.kind, 'detail', o.payload::text), 'entityId', o.entity_id);
+  elsif o.kind = 'campaign.email' then
+    -- Re-check consent and suppression at the moment of sending.
+    return (select case when not crm.has_marketing_consent(r.customer_id) then jsonb_build_object('skip', 'opted out')
+        when exists (select 1 from crm.suppressions s where s.entity_id = c.entity_id and s.email = r.email) then jsonb_build_object('skip', 'suppressed')
+        else jsonb_build_object('channels', jsonb_build_array('email'), 'to', r.email, 'template', 'campaign', 'entityId', c.entity_id,
+          'vars', jsonb_build_object('subject', c.subject, 'body', c.body, 'unsubscribeToken', core.issue_guest_token('marketing', r.customer_id, now() + interval '180 days'))) end
+      from crm.campaign_recipients r join crm.campaigns c on c.id = r.campaign_id where r.id = o.aggregate_id);
   elsif o.kind = 'stock.back' then
     return (select jsonb_build_object('channels', jsonb_build_array('email'), 'to', r.email, 'template', 'stock.back', 'entityId', o.entity_id,
         'vars', jsonb_build_object('productName', pr.name || ' - ' || v.name, 'productUrl', '/shop/' || pr.slug))

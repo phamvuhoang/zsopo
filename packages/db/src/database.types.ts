@@ -891,13 +891,189 @@ isOneToOne: false
           }
         },"crm": {
           Tables: {
-            [_ in never]: never
+            "campaign_recipients": {
+                  Row: {
+                    "campaign_id": string,"customer_id": string,"email": string,"id": string,"status": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "campaign_id": string,"customer_id": string,"email": string,"id"?: string,"status"?: string
+                  }
+                  Update: {
+                    "campaign_id"?: string,"customer_id"?: string,"email"?: string,"id"?: string,"status"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "campaign_recipients_campaign_id_fkey"
+      columns: ["campaign_id"]
+isOneToOne: false
+      referencedRelation: "campaigns"
+      referencedColumns: ["id"]
+    }
+                  ]
+                },"campaigns": {
+                  Row: {
+                    "body": string,"channel": string,"created_at": string,"created_by": string | null,"entity_id": string,"id": string,"name": string,"segment_id": string | null,"sent_at": string | null,"sent_by": string | null,"status": string,"subject": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "body": string,"channel"?: string,"created_at"?: string,"created_by"?: string | null,"entity_id": string,"id"?: string,"name": string,"segment_id"?: string | null,"sent_at"?: string | null,"sent_by"?: string | null,"status"?: string,"subject": string
+                  }
+                  Update: {
+                    "body"?: string,"channel"?: string,"created_at"?: string,"created_by"?: string | null,"entity_id"?: string,"id"?: string,"name"?: string,"segment_id"?: string | null,"sent_at"?: string | null,"sent_by"?: string | null,"status"?: string,"subject"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "campaigns_segment_id_fkey"
+      columns: ["segment_id"]
+isOneToOne: false
+      referencedRelation: "segments"
+      referencedColumns: ["id"]
+    }
+                  ]
+                },"customer_merge_events": {
+                  Row: {
+                    "created_at": string,"entity_id": string,"id": string,"merged_id": string,"reason": string,"snapshot": NonNullable<Json>,"survivor_id": string,"verified_by": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "created_at"?: string,"entity_id": string,"id"?: string,"merged_id": string,"reason": string,"snapshot": NonNullable<Json>,"survivor_id": string,"verified_by": string
+                  }
+                  Update: {
+                    "created_at"?: string,"entity_id"?: string,"id"?: string,"merged_id"?: string,"reason"?: string,"snapshot"?: NonNullable<Json>,"survivor_id"?: string,"verified_by"?: string
+                  }
+                  Relationships: [
+                    
+                  ]
+                },"customer_notes": {
+                  Row: {
+                    "body": string,"created_at": string,"created_by": string | null,"customer_id": string,"entity_id": string,"id": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "body": string,"created_at"?: string,"created_by"?: string | null,"customer_id": string,"entity_id": string,"id"?: string
+                  }
+                  Update: {
+                    "body"?: string,"created_at"?: string,"created_by"?: string | null,"customer_id"?: string,"entity_id"?: string,"id"?: string
+                  }
+                  Relationships: [
+                    
+                  ]
+                },"customer_tags": {
+                  Row: {
+                    "customer_id": string,"tag_id": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "customer_id": string,"tag_id": string
+                  }
+                  Update: {
+                    "customer_id"?: string,"tag_id"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "customer_tags_tag_id_fkey"
+      columns: ["tag_id"]
+isOneToOne: false
+      referencedRelation: "tags"
+      referencedColumns: ["id"]
+    }
+                  ]
+                },"segments": {
+                  Row: {
+                    "created_at": string,"created_by": string | null,"entity_id": string,"filter_json": NonNullable<Json>,"id": string,"name": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "created_at"?: string,"created_by"?: string | null,"entity_id": string,"filter_json"?: NonNullable<Json>,"id"?: string,"name": string
+                  }
+                  Update: {
+                    "created_at"?: string,"created_by"?: string | null,"entity_id"?: string,"filter_json"?: NonNullable<Json>,"id"?: string,"name"?: string
+                  }
+                  Relationships: [
+                    
+                  ]
+                },"suppressions": {
+                  Row: {
+                    "created_at": string,"email": string,"entity_id": string,"reason": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "created_at"?: string,"email": string,"entity_id": string,"reason": string
+                  }
+                  Update: {
+                    "created_at"?: string,"email"?: string,"entity_id"?: string,"reason"?: string
+                  }
+                  Relationships: [
+                    
+                  ]
+                },"tags": {
+                  Row: {
+                    "entity_id": string,"id": string,"name": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "entity_id": string,"id"?: string,"name": string
+                  }
+                  Update: {
+                    "entity_id"?: string,"id"?: string,"name"?: string
+                  }
+                  Relationships: [
+                    
+                  ]
+                }
           }
           Views: {
             [_ in never]: never
           }
           Functions: {
-            [_ in never]: never
+            "add_note":
+{ Args: { "p_body": string,"p_customer": string }; Returns: undefined
+                           },
+"customer_timeline":
+{ Args: { "p_customer": string }; Returns: {
+              "at": string,"detail": Json,"kind": string,"title": string
+            }[]
+                           },
+"duplicate_suggestions":
+{ Args: { "p_entity": string }; Returns: {
+              "customer_ids": (string)[],"kind": string,"normalized": string
+            }[]
+                           },
+"export_segment":
+{ Args: { "p_entity": string,"p_filter": Json }; Returns: {
+              "display_name": string,"email": string,"marketing": boolean,"phone": string,"source": string
+            }[]
+                           },
+"has_marketing_consent":
+{ Args: { "p_customer": string }; Returns: boolean
+                           },
+"merge_customers":
+{ Args: { "p_merged": string,"p_reason": string,"p_survivor": string,"p_verified": boolean }; Returns: undefined
+                           },
+"segment_count":
+{ Args: { "p_entity": string,"p_filter": Json }; Returns: number
+                           },
+"segment_ids":
+{ Args: { "p_entity": string,"p_filter": Json }; Returns: string[]
+                           },
+"segment_list":
+{ Args: { "p_entity": string,"p_filter": Json,"p_limit"?: number,"p_offset"?: number }; Returns: {
+              "created_at": string,"display_name": string,"email": string,"id": string,"marketing": boolean,"phone": string,"source": string
+            }[]
+                           },
+"send_campaign":
+{ Args: { "p_campaign": string }; Returns: number
+                           },
+"snapshot_campaign":
+{ Args: { "p_campaign": string }; Returns: number
+                           },
+"tag_customer":
+{ Args: { "p_customer": string,"p_tag": string }; Returns: undefined
+                           },
+"unsubscribe":
+{ Args: { "p_token": string }; Returns: undefined
+                           }
           }
           Enums: {
             [_ in never]: never
@@ -1021,15 +1197,7 @@ isOneToOne: false
             [_ in never]: never
           }
           Functions: {
-            "tests_as":
-{ Args: { "p_user": string }; Returns: undefined
-                           },
-"tests_as_aal2":
-{ Args: { "p_user": string }; Returns: undefined
-                           },
-"tests_make_order":
-{ Args: { "p_location"?: string }; Returns: string
-                           }
+            [_ in never]: never
           }
           Enums: {
             [_ in never]: never
