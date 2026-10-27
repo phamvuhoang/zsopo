@@ -636,6 +636,9 @@ isOneToOne: false
 "issue_guest_token":
 { Args: { "p_expires": string,"p_scope": string,"p_subject": string }; Returns: string
                            },
+"kick_ical_sync":
+{ Args: Record<PropertyKey, never>; Returns: undefined
+                           },
 "kick_notify":
 { Args: Record<PropertyKey, never>; Returns: undefined
                            },
@@ -711,6 +714,20 @@ isOneToOne: false
                   }
                   Update: {
                     "channel"?: string,"created_at"?: string,"entity_id"?: string | null,"error"?: string | null,"id"?: never,"outbox_id"?: string,"provider"?: string,"provider_id"?: string | null,"recipient_masked"?: string | null,"status"?: string
+                  }
+                  Relationships: [
+                    
+                  ]
+                },"job_runs": {
+                  Row: {
+                    "detail": NonNullable<Json>,"entity_id": string | null,"finished_at": string | null,"id": number,"job": string,"started_at": string,"status": string,"subject_id": string | null
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "detail"?: NonNullable<Json>,"entity_id"?: string | null,"finished_at"?: string | null,"id"?: never,"job": string,"started_at"?: string,"status": string,"subject_id"?: string | null
+                  }
+                  Update: {
+                    "detail"?: NonNullable<Json>,"entity_id"?: string | null,"finished_at"?: string | null,"id"?: never,"job"?: string,"started_at"?: string,"status"?: string,"subject_id"?: string | null
                   }
                   Relationships: [
                     
@@ -947,6 +964,78 @@ isOneToOne: false
       referencedColumns: ["id","entity_id","location_id"]
     }
                   ]
+                },"calendar_blocks": {
+                  Row: {
+                    "ends_on": string,"external_uid": string,"feed_id": string,"first_seen_at": string,"id": string,"last_seen_at": string,"removed_at": string | null,"room_id": string,"source_payload_hash": string,"starts_on": string,"status": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "ends_on": string,"external_uid": string,"feed_id": string,"first_seen_at"?: string,"id"?: string,"last_seen_at"?: string,"removed_at"?: string | null,"room_id": string,"source_payload_hash": string,"starts_on": string,"status"?: string
+                  }
+                  Update: {
+                    "ends_on"?: string,"external_uid"?: string,"feed_id"?: string,"first_seen_at"?: string,"id"?: string,"last_seen_at"?: string,"removed_at"?: string | null,"room_id"?: string,"source_payload_hash"?: string,"starts_on"?: string,"status"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "calendar_blocks_feed_id_fkey"
+      columns: ["feed_id"]
+isOneToOne: false
+      referencedRelation: "calendar_feeds"
+      referencedColumns: ["id"]
+    }
+                  ]
+                },"calendar_conflicts": {
+                  Row: {
+                    "block_id": string,"booking_id": string | null,"detected_at": string,"entity_id": string,"feed_id": string,"id": string,"location_id": string,"night": string,"resolution": string | null,"resolved_at": string | null,"resolved_by": string | null,"room_id": string,"status": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "block_id": string,"booking_id"?: string | null,"detected_at"?: string,"entity_id": string,"feed_id": string,"id"?: string,"location_id": string,"night": string,"resolution"?: string | null,"resolved_at"?: string | null,"resolved_by"?: string | null,"room_id": string,"status"?: string
+                  }
+                  Update: {
+                    "block_id"?: string,"booking_id"?: string | null,"detected_at"?: string,"entity_id"?: string,"feed_id"?: string,"id"?: string,"location_id"?: string,"night"?: string,"resolution"?: string | null,"resolved_at"?: string | null,"resolved_by"?: string | null,"room_id"?: string,"status"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "calendar_conflicts_block_id_fkey"
+      columns: ["block_id"]
+isOneToOne: false
+      referencedRelation: "calendar_blocks"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "calendar_conflicts_booking_id_fkey"
+      columns: ["booking_id"]
+isOneToOne: false
+      referencedRelation: "bookings"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "calendar_conflicts_feed_id_fkey"
+      columns: ["feed_id"]
+isOneToOne: false
+      referencedRelation: "calendar_feeds"
+      referencedColumns: ["id"]
+    }
+                  ]
+                },"calendar_feeds": {
+                  Row: {
+                    "active": boolean,"consecutive_failures": number,"created_at": string,"created_by": string | null,"entity_id": string,"export_token_hash": string | null,"export_token_hint": string | null,"horizon_days": number,"id": string,"import_url": string | null,"last_attempt_at": string | null,"last_error": string | null,"last_success_at": string | null,"location_id": string,"provider": string,"room_id": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "active"?: boolean,"consecutive_failures"?: number,"created_at"?: string,"created_by"?: string | null,"entity_id": string,"export_token_hash"?: string | null,"export_token_hint"?: string | null,"horizon_days"?: number,"id"?: string,"import_url"?: string | null,"last_attempt_at"?: string | null,"last_error"?: string | null,"last_success_at"?: string | null,"location_id": string,"provider": string,"room_id": string
+                  }
+                  Update: {
+                    "active"?: boolean,"consecutive_failures"?: number,"created_at"?: string,"created_by"?: string | null,"entity_id"?: string,"export_token_hash"?: string | null,"export_token_hint"?: string | null,"horizon_days"?: number,"id"?: string,"import_url"?: string | null,"last_attempt_at"?: string | null,"last_error"?: string | null,"last_success_at"?: string | null,"location_id"?: string,"provider"?: string,"room_id"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "calendar_feeds_room_id_entity_id_location_id_fkey"
+      columns: ["room_id","entity_id","location_id"]
+isOneToOne: false
+      referencedRelation: "rooms"
+      referencedColumns: ["id","entity_id","location_id"]
+    }
+                  ]
                 },"quotes": {
                   Row: {
                     "adults": number,"arrival": string,"children_ages": (number)[],"created_at": string,"departure": string,"deposit_due": number,"deposit_rate_bp": number,"discount": number,"entity_id": string,"expires_at": string,"id": string,"lines": NonNullable<Json>,"location_id": string,"policy_version_id": string,"room_id": string,"services": NonNullable<Json>,"subtotal": number,"total": number,"version": number
@@ -1047,7 +1136,10 @@ isOneToOne: false
             [_ in never]: never
           }
           Functions: {
-            "block_room":
+            "add_calendar_feed":
+{ Args: { "p_import_url": string,"p_provider": string,"p_room": string }; Returns: string
+                           },
+"block_room":
 { Args: { "p_arrival": string,"p_departure": string,"p_kind": string,"p_reason": string,"p_room": string,"p_source"?: string }; Returns: string
                            },
 "confirm_with_exception":
@@ -1068,6 +1160,16 @@ isOneToOne: false
 "expire_room_holds":
 { Args: { "p_room": string }; Returns: number
                            },
+"export_busy":
+{ Args: { "p_token": string }; Returns: {
+              "ends_on": string,"starts_on": string,"uid": string
+            }[]
+                           },
+"feeds_due":
+{ Args: { "p_interval"?: string }; Returns: {
+              "horizon_days": number,"id": string,"import_url": string
+            }[]
+                           },
 "price_nights":
 { Args: { "p_arrival": string,"p_departure": string,"p_room": string }; Returns: {
               "night": string,"price": number,"rate_kind": string
@@ -1079,13 +1181,22 @@ isOneToOne: false
 "quote_stay":
 { Args: { "p_adults": number,"p_arrival": string,"p_children"?: (number)[],"p_departure": string,"p_room": string,"p_services"?: Json }; Returns: Json
                            },
+"reconcile_feed":
+{ Args: { "p_error"?: string,"p_events": Json,"p_feed": string }; Returns: Json
+                           },
 "release_block":
 { Args: { "p_block": string,"p_reason": string }; Returns: undefined
+                           },
+"resolve_conflict":
+{ Args: { "p_conflict": string,"p_resolution": string }; Returns: undefined
                            },
 "room_calendar":
 { Args: { "p_from": string,"p_room": string,"p_to": string }; Returns: {
               "available": boolean,"date": string,"price": string
             }[]
+                           },
+"rotate_export_token":
+{ Args: { "p_feed": string }; Returns: string
                            },
 "save_rate":
 { Args: { "p_dow"?: number,"p_extra_adult_fee"?: number,"p_extra_child_fee"?: number,"p_from"?: string,"p_kind": string,"p_label"?: string,"p_price": number,"p_room": string,"p_to"?: string }; Returns: string

@@ -178,6 +178,9 @@ importers:
       '@types/pg':
         specifier: 8.23.1
         version: 8.23.1
+      ical.js:
+        specifier: 2.2.1
+        version: 2.2.1
       pg:
         specifier: 8.23.1
         version: 8.23.1
@@ -2764,6 +2767,9 @@ packages:
 
   html-url-attributes@3.0.1:
     resolution: {integrity: sha512-ol6UPyBWqsrO6EJySPz2O7ZSr856WDrEzM5zMqp+FJJLGMW35cLYmmZnl0vztAZxRUoNZJFTCohfjuIJ8I4QBQ==}
+
+  ical.js@2.2.1:
+    resolution: {integrity: sha512-yK/UlPbEs316igb/tjRgbFA8ZV75rCsBJp/hWOatpyaPNlgw0dGDmU+FoicOcwX4xXkeXOkYiOmCqNPFpNPkQg==}
 
   iceberg-js@0.8.1:
     resolution: {integrity: sha512-1dhVQZXhcHje7798IVM+xoo/1ZdVfzOMIc8/rgVSijRK38EDqOJoGula9N/8ZI5RD8QTxNQtK/Gozpr+qUqRRA==}
@@ -6643,6 +6649,8 @@ snapshots:
       hermes-estree: 0.25.1
 
   html-url-attributes@3.0.1: {}
+
+  ical.js@2.2.1: {}
 
   iceberg-js@0.8.1: {}
 

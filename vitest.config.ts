@@ -1,6 +1,8 @@
 import { defineConfig } from "vitest/config";
 
 export default defineConfig({
+  // Edge Function code imports npm: specifiers (Deno); map them to node_modules for tests.
+  resolve: { alias: { "npm:ical.js@2.2.1": "ical.js" } },
   test: {
     projects: [
       {

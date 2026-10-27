@@ -1,6 +1,7 @@
 import { CHAKRAS, CHAKRA_LABEL } from "@zsopo/core";
 import { Price, StatusBadge } from "@zsopo/ui";
 import { ActionForm, Field, inputCls } from "@/components/action-form";
+import { CalendarFeeds } from "@/features/stay/components/calendar-feeds";
 import { blockRoom, deactivateRate, publishPolicy, releaseBlock, saveEnergy, saveRate, setSellable } from "@/features/stay/actions";
 import { getStaffContext } from "@/lib/auth/context";
 import { requirePermission } from "@/lib/auth/require-permission";
@@ -142,6 +143,8 @@ export default async function LocationAdmin() {
           })}
         </ul>
       </section>
+
+      <CalendarFeeds locationId={locationId} rooms={(rooms ?? []).map((r) => ({ id: r.id, code: r.code, name: r.name }))} />
 
       <section className="mt-10" aria-labelledby="khoa-lich">
         <h2 id="khoa-lich" className="text-lg font-semibold">Khóa lịch (bảo trì, chủ dùng)</h2>
