@@ -101,6 +101,31 @@ begin
   end;
 end $$;
 
+-- Money parked in needs_review (customer_credit) becomes deposit once the booking is reconfirmed. Caller holds the order lock.
+-- Never applies more than the order still owes, nor more than the order's customer_credit still holds (a refund may have paid it out).
+create function commerce.apply_review_payments(p_order uuid) returns bigint language plpgsql security definer set search_path = '' as $$
+declare o commerce.orders; p commerce.payments; v bigint; v_total bigint := 0;
+begin
+  for p in select pm.* from commerce.payments pm where pm.state = 'needs_review'
+    and exists (select 1 from commerce.ledger_events ev where ev.payment_id = pm.id and ev.order_id = p_order) order by pm.created_at, pm.id
+  loop
+    select * into o from commerce.orders where id = p_order;
+    v := least(p.amount, o.total - o.paid_amount, (select coalesce(-sum(e.amount), 0) from commerce.ledger_entries e join commerce.ledger_events ev on ev.id = e.event_id
+      where ev.order_id = p_order and e.account = 'customer_credit'));
+    if v > 0 then
+      insert into commerce.payment_allocations(entity_id, payment_id, order_id, amount) values (o.entity_id, p.id, o.id, v);
+      update commerce.orders set paid_amount = paid_amount + v,
+        payment_status = case when paid_amount + v >= total then 'paid' else 'partial' end
+      where id = o.id;
+      perform commerce.post_ledger(o.entity_id, o.location_id, 'payment.applied', 'payment.applied:' || p.id, o.id, p.id,
+        jsonb_build_array(jsonb_build_object('account', 'customer_credit', 'amount', v), jsonb_build_object('account', 'deposit_liability', 'amount', -v)));
+      update commerce.payments set state = 'allocated', review_reason = null where id = p.id;
+      v_total := v_total + v;
+    end if;
+  end loop;
+  return v_total;
+end $$;
+
 create function commerce.record_payment_atomic(p_order uuid, p_provider text, p_provider_ref text, p_amount bigint, p_received_at timestamptz,
   p_evidence_note text default null, p_evidence_id uuid default null, p_shift uuid default null, p_idempotency uuid default null)
 returns jsonb language plpgsql security definer set search_path = '' as $$
@@ -203,6 +228,8 @@ begin
     end if;
 
     if b.id is not null and b.state in ('held','expired','needs_review') then
+      -- Earlier money parked in review counts towards the deposit now that the room is held again.
+      if commerce.apply_review_payments(o.id) > 0 then select * into o from commerce.orders where id = o.id; end if;
       if o.paid_amount >= o.deposit_due then
         update stay.bookings set state = 'confirmed', held_until = null where id = b.id;
         update stay.room_allocations set kind = 'booking' where source_id = b.id and active;
@@ -213,6 +240,7 @@ begin
       else
         -- Underpaid deposit: keep the room while staff reconcile; no automatic credit.
         update stay.bookings set state = 'needs_review' where id = b.id;
+        update commerce.orders set status = 'needs_review' where id = o.id and status in ('pending','expired');
         perform core.enqueue(o.entity_id, 'payment.review', 'payment.review:' || p.id, o.id, jsonb_build_object('orderCode', o.code, 'reason', 'Thiếu cọc', 'amount', p_amount));
         v_state := 'needs_review';
       end if;
@@ -257,6 +285,7 @@ begin
   update stay.room_allocations set kind = 'booking' where source_id = b.id and active;
   update commerce.orders set status = 'confirmed', policy_snapshot = policy_snapshot || jsonb_build_object('exception', jsonb_build_object('reason', p_reason, 'due', p_due, 'by', auth.uid(), 'at', now()))
   where id = b.order_id returning * into o;
+  perform commerce.apply_review_payments(o.id); -- money held in review now counts as paid (the order row is locked by the update above)
   perform core.enqueue(b.entity_id, 'booking.confirmed', 'booking.confirmed:' || b.id, b.id, jsonb_build_object('orderCode', o.code));
   perform stay.schedule_journey(b.id);
   perform core.audit(b.entity_id, 'booking.exception', 'booking', b.id::text, jsonb_build_object('due', p_due), p_reason);
@@ -362,3 +391,4 @@ revoke execute on function commerce.exchange_guest_token, commerce.report_transf
   commerce.get_guest_receipt, commerce.claim_order from public;
 grant execute on function commerce.exchange_guest_token, commerce.report_transfer, commerce.get_guest_receipt to anon, authenticated;
 grant execute on function commerce.record_payment_atomic, stay.confirm_with_exception, commerce.request_refund, commerce.approve_refund, commerce.claim_order to authenticated;
+revoke execute on function commerce.apply_review_payments from public, anon, authenticated;

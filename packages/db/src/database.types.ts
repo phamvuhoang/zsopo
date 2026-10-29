@@ -211,7 +211,10 @@ isOneToOne: false
             [_ in never]: never
           }
           Functions: {
-            "approve_refund":
+            "apply_review_payments":
+{ Args: { "p_order": string }; Returns: number
+                           },
+"approve_refund":
 { Args: { "p_evidence_note": string,"p_method"?: string,"p_provider_ref": string,"p_refund": string }; Returns: undefined
                            },
 "can_record_payment":
