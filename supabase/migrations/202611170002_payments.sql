@@ -104,19 +104,24 @@ end $$;
 -- Money parked in needs_review (customer_credit) becomes deposit once the booking is reconfirmed. Caller holds the order lock.
 -- Never applies more than the order still owes, nor more than the order's customer_credit still holds (a refund may have paid it out).
 create function commerce.apply_review_payments(p_order uuid) returns bigint language plpgsql security definer set search_path = '' as $$
-declare o commerce.orders; p commerce.payments; v bigint; v_total bigint := 0;
+declare o commerce.orders; p commerce.payments; v bigint; v_credit bigint; v_rest bigint; v_total bigint := 0;
 begin
   for p in select pm.* from commerce.payments pm where pm.state = 'needs_review'
     and exists (select 1 from commerce.ledger_events ev where ev.payment_id = pm.id and ev.order_id = p_order) order by pm.created_at, pm.id
   loop
     select * into o from commerce.orders where id = p_order;
-    v := least(p.amount, o.total - o.paid_amount, (select coalesce(-sum(e.amount), 0) from commerce.ledger_entries e join commerce.ledger_events ev on ev.id = e.event_id
-      where ev.order_id = p_order and e.account = 'customer_credit'));
+    select coalesce(-sum(e.amount), 0) into v_credit from commerce.ledger_entries e join commerce.ledger_events ev on ev.id = e.event_id
+      where ev.order_id = p_order and e.account = 'customer_credit';
+    v := least(p.amount, o.total - o.paid_amount, v_credit);
+    v_rest := least(p.amount, v_credit) - v; -- still owed to the guest: the order is already fully paid
     if v > 0 then
       insert into commerce.payment_allocations(entity_id, payment_id, order_id, amount) values (o.entity_id, p.id, o.id, v);
       update commerce.orders set paid_amount = paid_amount + v,
-        payment_status = case when paid_amount + v >= total then 'paid' else 'partial' end
+        payment_status = case when paid_amount + v >= total then (case when v_rest > 0 then 'overpaid' else 'paid' end) else 'partial' end
       where id = o.id;
+      if v_rest > 0 then
+        perform core.enqueue(o.entity_id, 'payment.overpaid', 'payment.overpaid:' || p.id, o.id, jsonb_build_object('orderCode', o.code, 'overpaid', v_rest));
+      end if;
       perform commerce.post_ledger(o.entity_id, o.location_id, 'payment.applied', 'payment.applied:' || p.id, o.id, p.id,
         jsonb_build_array(jsonb_build_object('account', 'customer_credit', 'amount', v), jsonb_build_object('account', 'deposit_liability', 'amount', -v)));
       update commerce.payments set state = 'allocated', review_reason = null where id = p.id;

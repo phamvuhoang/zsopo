@@ -26,9 +26,9 @@ describe("review4 #3 MFA chuyển khoản", () => {
     const r1 = await bank(await clientFor(USERS.frontDesk));
     expect(!r1.ok && r1.error.code).toBe("FORBIDDEN");
     expect((await bank(aal2ClientFor(USERS.frontDesk))).ok).toBe(true);
-    const cash = await recordPayment(await clientFor(USERS.frontDesk), { orderId: h.orderId, provider: "cash", providerRef: randomUUID(), amount: "50000",
+    const byCash = await recordPayment(await clientFor(USERS.frontDesk), { orderId: h.orderId, provider: "cash", providerRef: randomUUID(), amount: "50000",
       receivedAt: new Date().toISOString(), idempotencyKey: randomUUID() });
-    expect(cash.ok).toBe(true);
+    expect(byCash.ok).toBe(true);
   });
 });
 
@@ -61,6 +61,20 @@ describe("review4 #1 #4 tiền tới muộn", () => {
     expect(p2.ok && p2.data.bookingState).toBe("confirmed");
     expect((await sql(`select paid_amount::text v, status from commerce.orders where id = $1`, [h.orderId]))[0]).toEqual({ v: "300000", status: "confirmed" });
     expect((await sql(`select count(*)::int n from commerce.payments p join commerce.ledger_events v on v.payment_id = p.id where v.order_id = $1 and p.state = 'needs_review'`, [h.orderId]))[0]!.n).toBe(0);
+  });
+
+  it("#1 phần dư sau khi áp một phần được báo là thanh toán thừa", async () => {
+    const h = await heldBooking();
+    await expire(h);
+    const [blk] = await block(h.bookingId);
+    expect((await cash(h.orderId, "300000")).ok).toBe(true);
+    await sql(`update stay.room_allocations set active = false where id = $1`, [blk!.id]);
+    const p2 = await cash(h.orderId, "900000");
+    expect(p2.ok && p2.data.bookingState).toBe("confirmed");
+    expect((await sql(`select paid_amount::text v, payment_status, status from commerce.orders where id = $1`, [h.orderId]))[0]).toEqual({ v: "1000000", payment_status: "overpaid", status: "confirmed" });
+    expect((await sql(`select payload->>'overpaid' v from core.outbox where kind = 'payment.overpaid' and aggregate_id = $1`, [h.orderId])).map((r) => r.v)).toEqual(["200000"]);
+    expect((await sql(`select coalesce(-sum(e.amount),0)::text v from commerce.ledger_entries e join commerce.ledger_events v on v.id = e.event_id
+      where v.order_id = $1 and e.account = 'customer_credit'`, [h.orderId]))[0]!.v).toBe("200000");
   });
 
   it("#1 tiền đối soát đã hoàn cho khách thì không áp lại vào đơn", async () => {
