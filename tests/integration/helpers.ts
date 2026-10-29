@@ -4,6 +4,8 @@ import pg from "pg";
 
 export const API_URL = process.env.SUPABASE_URL ?? "http://127.0.0.1:56421";
 export const PUBLISHABLE_KEY = process.env.SUPABASE_PUBLISHABLE_KEY ?? "sb_publishable_ACJWlzQHlZjBrEguHvfOxg_3BJgxAaH";
+// Service role key for calling Edge Functions from tests: never hard-coded, read from `supabase status -o env` (SECRET_KEY) or CI env.
+export const SERVICE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY ?? process.env.SUPABASE_SECRET_KEY ?? (() => { throw new Error("Set SUPABASE_SERVICE_ROLE_KEY from `pnpm exec supabase status -o env` (SECRET_KEY)"); })();
 const DB_URL = process.env.SUPABASE_DB_URL ?? "postgresql://postgres:postgres@127.0.0.1:56422/postgres";
 const PASSWORD = "zsopo-local-1";
 

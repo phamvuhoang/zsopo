@@ -2,11 +2,10 @@ import { randomUUID } from "node:crypto";
 import { afterAll, describe, expect, it } from "vitest";
 import { recordPayment } from "../../packages/api/src/payments";
 import { createStayHold, quoteStay } from "../../packages/api/src/stay";
-import { API_URL, E1, L1, USERS, anonClient, clientFor, db, eventually, seedRoom, sql } from "./helpers";
+import { API_URL, E1, L1, USERS, anonClient, clientFor, db, eventually, seedRoom, sql, SERVICE_KEY } from "./helpers";
 
 afterAll(() => db.end());
 const MAILPIT = process.env.MAILPIT_URL ?? "http://127.0.0.1:56424";
-const SERVICE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY ?? "REDACTED_LOCAL_SERVICE_KEY";
 
 describe("notify worker gửi email xác nhận", () => {
   it("xác nhận cọc -> email trong Mailpit chứa mã đơn và link riêng, Zalo ghi trạng thái tắt", async () => {

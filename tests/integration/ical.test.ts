@@ -3,7 +3,7 @@ import { readFileSync } from "node:fs";
 import { afterAll, describe, expect, it } from "vitest";
 import { parseIcs } from "../../supabase/functions/_shared/ical";
 import { createStayHold, quoteStay } from "../../packages/api/src/stay";
-import { API_URL, E1, L1, anonClient, db, seedRoom, sql } from "./helpers";
+import { API_URL, E1, L1, anonClient, db, seedRoom, sql, SERVICE_KEY } from "./helpers";
 
 afterAll(() => db.end());
 const fx = (name: string) => readFileSync(`tests/fixtures/ical/${name}.ics`, "utf8");
@@ -139,7 +139,7 @@ describe("chống SSRF khi tải feed", () => {
     const room = (await seedRoom()).id;
     const [f] = await sql<{ id: string }>(
       `insert into stay.calendar_feeds(entity_id, location_id, room_id, provider, import_url) values ($1, $2, $3, 'other', 'https://localhost/evil.ics') returning id`, [E1, L1, room]);
-    const key = process.env.SUPABASE_SERVICE_ROLE_KEY ?? "REDACTED_LOCAL_SERVICE_KEY";
+    const key = SERVICE_KEY;
     const res = await fetch(`${API_URL}/functions/v1/ical-sync`, { method: "POST", headers: { Authorization: `Bearer ${key}`, apikey: key, "Content-Type": "application/json" }, body: JSON.stringify({ feedId: f!.id, force: true }) });
     expect(res.status).toBe(200);
     const [row] = await sql<{ last_error: string; consecutive_failures: number }>(`select last_error, consecutive_failures from stay.calendar_feeds where id = $1`, [f!.id]);

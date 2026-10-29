@@ -11,6 +11,7 @@
 ```bash
 pnpm install --frozen-lockfile
 cp .env.example apps/web/.env.local     # điền NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY từ `pnpm exec supabase status`
+export SUPABASE_SERVICE_ROLE_KEY=$(pnpm exec supabase status -o env | sed -n 's/^SECRET_KEY="\(.*\)"$/\1/p')   # chỉ cho test:integration gọi Edge; không commit, không đặt vào .env.local
 pnpm exec supabase start                # ports 564xx, không đụng project Supabase local khác
 pnpm db:reset                           # migrations + seed giả (13 phòng, 9 bán)
 pnpm dev                                # http://localhost:3000

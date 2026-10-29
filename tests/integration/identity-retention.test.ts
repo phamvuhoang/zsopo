@@ -1,9 +1,8 @@
 import { randomBytes, randomUUID } from "node:crypto";
 import { afterAll, describe, expect, it } from "vitest";
-import { API_URL, E1, L1, PUBLISHABLE_KEY, USERS, clientFor, db, seedRoom, sql } from "./helpers";
+import { API_URL, E1, L1, PUBLISHABLE_KEY, USERS, clientFor, db, seedRoom, sql, SERVICE_KEY } from "./helpers";
 
 afterAll(() => db.end());
-const SERVICE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY ?? "REDACTED_LOCAL_SERVICE_KEY";
 const FN = `${API_URL}/functions/v1/identity-docs`;
 // Minimal JPEG: SOI marker + random payload + EOI.
 const jpeg = () => Buffer.concat([Buffer.from([0xff, 0xd8, 0xff, 0xe0]), randomBytes(2048), Buffer.from([0xff, 0xd9])]);
