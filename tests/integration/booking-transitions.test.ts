@@ -2,7 +2,7 @@ import { randomUUID } from "node:crypto";
 import { afterAll, describe, expect, it } from "vitest";
 import { recordPayment } from "../../packages/api/src/payments";
 import { createManualBooking, transitionBooking } from "../../packages/api/src/ops";
-import { E1, L1, USERS, clientFor, db, seedRoom, sql } from "./helpers";
+import { E1, L1, USERS, aal2ClientFor, clientFor, db, seedRoom, sql } from "./helpers";
 
 afterAll(() => db.end());
 
@@ -106,7 +106,7 @@ describe("LT05 / BM01 bàn giao ca", () => {
     expect(openError).toBeNull();
     const c = await confirmedToday();
     await recordPayment(fd, { orderId: c.orderId, provider: "cash", providerRef: `cash-${randomUUID()}`, amount: "500000", receivedAt: new Date().toISOString(), shiftId: shift as string, idempotencyKey: randomUUID() });
-    await recordPayment(fd, { orderId: c.orderId, provider: "bank_transfer", providerRef: `bank-${randomUUID()}`, amount: "200000", receivedAt: new Date().toISOString(), evidenceNote: "Sao kê", shiftId: shift as string, idempotencyKey: randomUUID() });
+    await recordPayment(aal2ClientFor(USERS.frontDesk), { orderId: c.orderId, provider: "bank_transfer", providerRef: `bank-${randomUUID()}`, amount: "200000", receivedAt: new Date().toISOString(), evidenceNote: "Sao kê", shiftId: shift as string, idempotencyKey: randomUUID() });
     await fd.schema("stay").rpc("add_cash_movement", { p_shift: shift, p_kind: "expense", p_amount: 100000, p_note: "Mua nước" });
     await fd.schema("stay").rpc("add_cash_movement", { p_shift: shift, p_kind: "remit", p_amount: 200000, p_note: "Nộp quỹ" });
     const [s0] = await sql<{ version: number }>(`select version from stay.shifts where id = $1`, [shift]);

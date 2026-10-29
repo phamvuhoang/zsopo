@@ -1,5 +1,6 @@
 import { expect, test, type Page } from "@playwright/test";
 import pg from "pg";
+import { staffLogin, totp } from "./staff-login";
 
 const DB_URL = process.env.SUPABASE_DB_URL ?? "postgresql://postgres:postgres@127.0.0.1:56422/postgres";
 const MAILPIT = process.env.MAILPIT_URL ?? "http://127.0.0.1:56424";
@@ -46,6 +47,16 @@ test("quản lý điểm chưa MFA bị chuyển sang xác thực hai lớp khi 
   await login(page, "quan-ly@example.test", undefined, "/admin/nhan-su");
   await expect(page).toHaveURL(/\/auth\/mfa/);
   await expect(page.getByRole("heading", { level: 1 })).toHaveText("Xác thực hai lớp");
+});
+
+test("totp đúng vector RFC 6238", () => {
+  expect(totp("GEZDGNBVGY3TQOJQGEZDGNBVGY3TQOJQ", 59_000)).toBe("287082");
+});
+
+test("lễ tân qua MFA mở được trang xác nhận chuyển khoản", async ({ page }) => {
+  await staffLogin(page, "le-tan@example.test", { mfa: true, next: "/admin/thanh-toan" });
+  await expect(page).toHaveURL(/\/admin\/thanh-toan$/);
+  await expect(page.getByRole("heading", { level: 1 })).toHaveText("Thanh toán và đối soát");
 });
 
 test("Google chưa cấu hình hiển thị trạng thái tắt, không có nút thành công giả", async ({ page }) => {

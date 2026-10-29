@@ -4,7 +4,7 @@ import { afterAll, describe, expect, it } from "vitest";
 import { createManualBooking, transitionBooking } from "../../packages/api/src/ops";
 import { recordPayment } from "../../packages/api/src/payments";
 import { createShopOrder, transitionFulfillment } from "../../packages/api/src/shop";
-import { E1, L1, USERS, anonClient, clientFor, db, seedRoom, seedSku, sql } from "./helpers";
+import { E1, L1, USERS, aal2ClientFor, anonClient, clientFor, db, seedRoom, seedSku, sql } from "./helpers";
 
 afterAll(() => db.end());
 const today = () => new Date(Date.now() + 7 * 3600_000).toISOString().slice(0, 10);
@@ -64,7 +64,7 @@ describe("review2: tồn kho shop", () => {
     const { variantId } = await seedSku({ onHand: 1 });
     const r = await placeShop(variantId, "bank");
     if (!r.ok) throw new Error(r.error.message);
-    const p = await recordPayment(await clientFor(USERS.finance), { orderId: r.data.orderId, provider: "bank_transfer", providerRef: randomUUID(), amount: "1000", receivedAt: new Date().toISOString(), evidenceNote: "Sao kê", idempotencyKey: randomUUID() });
+    const p = await recordPayment(aal2ClientFor(USERS.finance), { orderId: r.data.orderId, provider: "bank_transfer", providerRef: randomUUID(), amount: "1000", receivedAt: new Date().toISOString(), evidenceNote: "Sao kê", idempotencyKey: randomUUID() });
     expect(p.ok).toBe(true);
     await sql(`update commerce.orders set due_at = now() - interval '1 minute' where id = $1`, [r.data.orderId]);
     await sql(`select shop.expire_unpaid_orders()`);
@@ -156,8 +156,7 @@ describe("review3", () => {
     const { variantId } = await seedSku({ onHand: 1 });
     const r = await placeShop(variantId, "bank");
     if (!r.ok) throw new Error(r.error.message);
-    const fin = await clientFor(USERS.finance);
-    const bank = (amount: string) => recordPayment(fin, { orderId: r.data.orderId, provider: "bank_transfer", providerRef: randomUUID(), amount, receivedAt: new Date().toISOString(), evidenceNote: "Sao kê", idempotencyKey: randomUUID() });
+    const bank = (amount: string) => recordPayment(aal2ClientFor(USERS.finance), { orderId: r.data.orderId, provider: "bank_transfer", providerRef: randomUUID(), amount, receivedAt: new Date().toISOString(), evidenceNote: "Sao kê", idempotencyKey: randomUUID() });
     await bank("1000");
     await sql(`update commerce.orders set due_at = now() - interval '1 minute' where id = $1`, [r.data.orderId]);
     await sql(`select shop.expire_unpaid_orders()`);

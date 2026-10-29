@@ -2,26 +2,12 @@
 import { randomUUID } from "node:crypto";
 import { afterAll, describe, expect, it } from "vitest";
 import { recordPayment } from "../../packages/api/src/payments";
-import { createStayHold, quoteStay } from "../../packages/api/src/stay";
-import { API_URL, E1, L1, L2, PUBLISHABLE_KEY, USERS, anonClient, clientFor, db, seedRoom, sql } from "./helpers";
+import { quoteStay } from "../../packages/api/src/stay";
+import { API_URL, E1, L1, L2, PUBLISHABLE_KEY, USERS, aal2ClientFor, anonClient, asAal2, clientFor, db, heldBooking, seedRoom, sql } from "./helpers";
 
 afterAll(() => db.end());
-const asAal2 = (user: string, call: string, params: unknown[]) =>
-  sql(`select set_config('request.jwt.claims', json_build_object('sub', $1::text, 'role', 'authenticated', 'aal', 'aal2')::text, true), ${call}`, [user, ...params]);
 const iso = (n: number) => new Date(Date.UTC(2031, 0, 1) + n * 86_400_000).toISOString().slice(0, 10);
 let day = Math.floor(Math.random() * 3000);
-
-async function heldBooking(services: { serviceId: string; qty: number; scheduledAt: string }[] = []) {
-  const room = (await seedRoom()).id;
-  await sql(`insert into stay.rate_plans(entity_id, location_id, room_id, kind, price) values ($1, $2, $3, 'base', 1000000)`, [E1, L1, room]);
-  const d = { arrival: iso((day += 3)), departure: iso(day + 1) };
-  const client = anonClient();
-  const q = await quoteStay(client, { roomId: room, ...d, adults: 2, childrenAges: [], services });
-  if (!q.ok) throw new Error(q.error.message);
-  const h = await createStayHold(client, { quoteId: q.data.id, guest: { name: "Khách Review", phone: "0900000099" }, policyVersion: q.data.policyVersion, idempotencyKey: randomUUID(), consents: { terms: true, marketing: false } });
-  if (!h.ok) throw new Error(h.error.message);
-  return { room, ...h.data };
-}
 const pay = async (orderId: string, amount: string, ref = randomUUID(), extra: Record<string, string> = {}) =>
   recordPayment(await clientFor(USERS.frontDesk), { orderId, provider: "cash", providerRef: ref, amount, receivedAt: new Date().toISOString(), idempotencyKey: randomUUID(), ...extra });
 
@@ -38,7 +24,7 @@ describe("review: tiền và hoàn tiền", () => {
   it("#2 nghĩa vụ cọc trên dashboard giảm sau khi hoàn", async () => {
     const [loc] = await sql<{ id: string }>(`insert into core.locations(entity_id, slug, name, status) values ($1, 'rv-' || substr(md5(random()::text),1,8), 'Điểm review', 'test') returning id`, [E1]);
     const [o] = await sql<{ id: string }>(`insert into commerce.orders(entity_id, location_id, kind, status, total, deposit_due) values ($1, $2, 'manual', 'confirmed', 600000, 0) returning id`, [E1, loc!.id]);
-    await recordPayment(await clientFor(USERS.finance), { orderId: o!.id, provider: "bank_transfer", providerRef: randomUUID(), amount: "600000", receivedAt: new Date().toISOString(), evidenceNote: "Sao kê", idempotencyKey: randomUUID() });
+    await recordPayment(aal2ClientFor(USERS.finance), { orderId: o!.id, provider: "bank_transfer", providerRef: randomUUID(), amount: "600000", receivedAt: new Date().toISOString(), evidenceNote: "Sao kê", idempotencyKey: randomUUID() });
     const [r] = await sql<{ id: string }>(`insert into commerce.refund_requests(entity_id, order_id, amount, reason, requested_by) values ($1, $2, 600000, 'Hủy', $3) returning id`, [E1, o!.id, USERS.frontDesk.id]);
     await asAal2(USERS.finance.id, `commerce.approve_refund($2, 'HOAN-1', 'Sao kê hoàn', 'bank')`, [r!.id]);
     const today = new Date(Date.now() + 7 * 3600_000).toISOString().slice(0, 10);
@@ -79,7 +65,7 @@ describe("review: tiền và hoàn tiền", () => {
 describe("review: dịch vụ, sự cố, buồng phòng", () => {
   it("#4 hủy dịch vụ đặt trước hoàn đúng phần đã giảm", async () => {
     const [s] = await sql<{ id: string }>(`insert into stay.services(entity_id, location_id, group_key, slug, name, unit, price, lead_time_min, prebook_discount_bp, revenue_source) values ($1, $2, 'food', 'rv-' || substr(md5(random()::text),1,8), 'Dịch vụ review', 'phần', 100000, 0, 1000, 'own_service') returning id`, [E1, L1]);
-    const h = await heldBooking([{ serviceId: s!.id, qty: 2, scheduledAt: `${iso(day + 30)}T01:00:00Z` }]);
+    const h = await heldBooking(() => [{ serviceId: s!.id, qty: 2, scheduledAt: `${iso(day + 30)}T01:00:00Z` }]);
     const [before] = await sql<{ total: string }>(`select total from commerce.orders where id = $1`, [h.orderId]);
     await sql(`update stay.bookings set state = 'confirmed' where id = $1`, [h.bookingId]);
     const [req] = await sql<{ id: string; version: number }>(`select id, version from stay.service_requests where booking_id = $1`, [h.bookingId]);

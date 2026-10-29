@@ -1,11 +1,15 @@
 // Integration test helpers: real Postgres (local Supabase), real JWTs, no mocked locks/RLS.
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
+import { createHmac, randomUUID } from "node:crypto";
 import pg from "pg";
+import { createStayHold, quoteStay } from "../../packages/api/src/stay";
 
 export const API_URL = process.env.SUPABASE_URL ?? "http://127.0.0.1:56421";
 export const PUBLISHABLE_KEY = process.env.SUPABASE_PUBLISHABLE_KEY ?? "sb_publishable_ACJWlzQHlZjBrEguHvfOxg_3BJgxAaH";
 // Service role key for calling Edge Functions from tests: never hard-coded, read from `supabase status -o env` (SECRET_KEY) or CI env.
 export const SERVICE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY ?? process.env.SUPABASE_SECRET_KEY ?? (() => { throw new Error("Set SUPABASE_SERVICE_ROLE_KEY from `pnpm exec supabase status -o env` (SECRET_KEY)"); })();
+// Local JWT secret for minting aal2 tokens: read from `supabase status -o env` (JWT_SECRET) or CI env, never hard-coded.
+const jwtSecret = () => process.env.SUPABASE_JWT_SECRET ?? (() => { throw new Error("Set SUPABASE_JWT_SECRET from `pnpm exec supabase status -o env` (JWT_SECRET)"); })();
 const DB_URL = process.env.SUPABASE_DB_URL ?? "postgresql://postgres:postgres@127.0.0.1:56422/postgres";
 const PASSWORD = "zsopo-local-1";
 
@@ -46,6 +50,37 @@ export async function clientFor(user: { email: string }): Promise<SupabaseClient
   const { error } = await c.auth.signInWithPassword({ email: user.email, password: PASSWORD });
   if (error) throw new Error(`sign-in ${user.email}: ${error.message}`);
   return c;
+}
+
+/** A client whose JWT is a correctly signed aal2 token (what a user gets after TOTP), without running the TOTP flow. */
+export function aal2ClientFor(user: { id: string; email: string }): SupabaseClient {
+  const b64 = (o: object) => Buffer.from(JSON.stringify(o)).toString("base64url");
+  const head = `${b64({ alg: "HS256", typ: "JWT" })}.${b64({ sub: user.id, email: user.email, role: "authenticated", aud: "authenticated", aal: "aal2", exp: Math.floor(Date.now() / 1000) + 3600 })}`;
+  const token = `${head}.${createHmac("sha256", jwtSecret()).update(head).digest("base64url")}`;
+  return createClient(API_URL, PUBLISHABLE_KEY, { ...noPersist, global: { headers: { Authorization: `Bearer ${token}` } } });
+}
+
+/** Runs one SQL call as `user` with an aal2 claim (for functions that need MFA; superuser connection, claims set locally). */
+export const asAal2 = (user: string, call: string, params: unknown[]) =>
+  sql(`select set_config('request.jwt.claims', json_build_object('sub', $1::text, 'role', 'authenticated', 'aal', 'aal2')::text, true), ${call}`, [user, ...params]);
+
+const isoDay = (n: number) => new Date(Date.UTC(2031, 0, 1) + n * 86_400_000).toISOString().slice(0, 10);
+let stayDay = Math.floor(Math.random() * 3000);
+
+/** A held one-night stay on a fresh room (price default 1.000.000, so deposit_due is 300.000); optional services depend on the stay dates. */
+export async function heldBooking(
+  services: (stay: { arrival: string; departure: string }) => { serviceId: string; qty: number; scheduledAt: string }[] = () => [],
+  opts: { price?: number } = {},
+) {
+  const room = (await seedRoom()).id;
+  await sql(`insert into stay.rate_plans(entity_id, location_id, room_id, kind, price) values ($1, $2, $3, 'base', $4)`, [E1, L1, room, opts.price ?? 1000000]);
+  const stay = { arrival: isoDay((stayDay += 3)), departure: isoDay(stayDay + 1) };
+  const client = anonClient();
+  const q = await quoteStay(client, { roomId: room, ...stay, adults: 2, childrenAges: [], services: services(stay) });
+  if (!q.ok) throw new Error(q.error.message);
+  const h = await createStayHold(client, { quoteId: q.data.id, guest: { name: "Khách Review", phone: "0900000099" }, policyVersion: q.data.policyVersion, idempotencyKey: randomUUID(), consents: { terms: true, marketing: false } });
+  if (!h.ok) throw new Error(h.error.message);
+  return { room, ...stay, ...h.data };
 }
 
 /** seedTenant: tenants come from seed.sql; returns their ids for readability in tests. */

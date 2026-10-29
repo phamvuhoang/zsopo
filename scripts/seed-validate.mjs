@@ -27,6 +27,7 @@ if (production) {
   if (/rate_limit.scale/.test(seed)) problems.push("rate limit scaling in seed");
   if (/eyJ[\w-]+\.eyJ[\w-]+\./.test(seed)) problems.push("JWT in seed (local demo key)");
   if (/local-rate-limit-forward-secret/.test(seed)) problems.push("local rate-limit forward secret in seed");
+  if (/auth\.mfa_factors/.test(seed)) problems.push("fixed TOTP factor in seed (local e2e only)");
 }
 
 if (problems.length) {

@@ -13,7 +13,7 @@ const fmt = (t: string | null) => (t ? new Date(t).toLocaleString("vi-VN", { tim
 
 export default async function PaymentsAdmin() {
   const ctx = await getStaffContext("/admin/thanh-toan");
-  await requirePermission("payment.record", ctx.location.entity_id, ctx.location.id, "/admin/thanh-toan");
+  await requirePermission("payment.confirm", ctx.location.entity_id, ctx.location.id, "/admin/thanh-toan");
   const db = await createClient();
   const [{ data: open }, { data: claims }, { data: review }, { data: refunds }] = await Promise.all([
     db.schema("commerce").from("orders").select("id, code, kind, status, payment_status, total, deposit_due, paid_amount, due_at, contact_snapshot, created_at")

@@ -2,7 +2,7 @@ import { randomUUID } from "node:crypto";
 import { afterAll, describe, expect, it } from "vitest";
 import { recordPayment } from "../../packages/api/src/payments";
 import { createStayHold, quoteStay } from "../../packages/api/src/stay";
-import { API_URL, E1, L1, USERS, anonClient, clientFor, db, eventually, seedRoom, sql, SERVICE_KEY } from "./helpers";
+import { API_URL, E1, L1, USERS, aal2ClientFor, anonClient, clientFor, db, eventually, seedRoom, sql, SERVICE_KEY } from "./helpers";
 
 afterAll(() => db.end());
 const MAILPIT = process.env.MAILPIT_URL ?? "http://127.0.0.1:56424";
@@ -17,7 +17,7 @@ describe("notify worker gửi email xác nhận", () => {
     if (!q.ok) throw new Error(q.error.message);
     const h = await createStayHold(client, { quoteId: q.data.id, guest: { name: "Khách Email", phone: "0900000004", email }, policyVersion: q.data.policyVersion, idempotencyKey: randomUUID(), consents: { terms: true, marketing: false } });
     if (!h.ok) throw new Error(h.error.message);
-    const p = await recordPayment(await clientFor(USERS.frontDesk), { orderId: h.data.orderId, provider: "bank_transfer", providerRef: randomUUID(), amount: "270000", receivedAt: new Date().toISOString(), evidenceNote: "Sao kê", idempotencyKey: randomUUID() });
+    const p = await recordPayment(aal2ClientFor(USERS.frontDesk), { orderId: h.data.orderId, provider: "bank_transfer", providerRef: randomUUID(), amount: "270000", receivedAt: new Date().toISOString(), evidenceNote: "Sao kê", idempotencyKey: randomUUID() });
     expect(p.ok && p.data.bookingState).toBe("confirmed");
 
     const started = Date.now();

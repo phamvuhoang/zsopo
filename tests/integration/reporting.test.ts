@@ -1,7 +1,7 @@
 import { randomUUID } from "node:crypto";
 import { afterAll, describe, expect, it } from "vitest";
 import { recordPayment } from "../../packages/api/src/payments";
-import { E1, USERS, clientFor, db, seedRoom, sql } from "./helpers";
+import { E1, USERS, aal2ClientFor, clientFor, db, seedRoom, sql } from "./helpers";
 
 afterAll(() => db.end());
 const today = () => new Date(Date.now() + 7 * 3600_000).toISOString().slice(0, 10);
@@ -34,7 +34,7 @@ describe("dashboard 5 nguồn", () => {
     const future = await stay(r2, plus(today(), 1), 2, "confirmed", "zalo"); // future: deposit only
     await sql(`select stay.block_room($1, $2::date, $3::date, 'maintenance', 'Sơn', null)`, [r2, plus(today(), -3), plus(today(), -1)]); // 2 closed nights
     const fin = await clientFor(USERS.finance);
-    await recordPayment(fin, { orderId: future.orderId, provider: "bank_transfer", providerRef: randomUUID(), amount: "600000", receivedAt: new Date().toISOString(), evidenceNote: "Sao kê", idempotencyKey: randomUUID() });
+    await recordPayment(aal2ClientFor(USERS.finance), { orderId: future.orderId, provider: "bank_transfer", providerRef: randomUUID(), amount: "600000", receivedAt: new Date().toISOString(), evidenceNote: "Sao kê", idempotencyKey: randomUUID() });
     await recordPayment(fin, { orderId: served.orderId, provider: "cash", providerRef: randomUUID(), amount: "3000000", receivedAt: new Date().toISOString(), idempotencyKey: randomUUID() });
     // A completed in-stay service (own_service) and a manual beverage sale (outside web).
     await sql(`insert into commerce.order_items(entity_id, order_id, item_type, title, qty, unit_price, amount, revenue_source, status, completed_at) values ($1, $2, 'service', 'Trà', 1, 60000, 60000, 'own_service', 'completed', now())`, [E1, served.orderId]);

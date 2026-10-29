@@ -2,7 +2,7 @@ import { randomUUID } from "node:crypto";
 import { afterAll, describe, expect, it } from "vitest";
 import { getGuestReceipt, recordPayment, reportTransfer } from "../../packages/api/src/payments";
 import { createStayHold, quoteStay } from "../../packages/api/src/stay";
-import { E1, L1, USERS, anonClient, clientFor, db, seedRoom, sql } from "./helpers";
+import { E1, L1, USERS, aal2ClientFor, anonClient, clientFor, db, seedRoom, sql } from "./helpers";
 
 afterAll(() => db.end());
 
@@ -27,7 +27,7 @@ async function newHold(roomId?: string, nights = 2) {
 }
 
 const pay = async (orderId: string, amount: string, ref = randomUUID(), key = randomUUID(), user = USERS.frontDesk) =>
-  recordPayment(await clientFor(user), { orderId, provider: "bank_transfer", providerRef: ref, amount, receivedAt: new Date().toISOString(), evidenceNote: "Sao kê VCB dòng 12", idempotencyKey: key });
+  recordPayment(aal2ClientFor(user), { orderId, provider: "bank_transfer", providerRef: ref, amount, receivedAt: new Date().toISOString(), evidenceNote: "Sao kê VCB dòng 12", idempotencyKey: key });
 
 const counts = async (orderId: string) => {
   const [r] = await sql<{ payments: number; events: number; confirmations: number }>(

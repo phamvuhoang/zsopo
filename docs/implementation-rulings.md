@@ -176,3 +176,9 @@ Quyết định mới:
 - Task 17: complete (commits a11bfe7..43875ae, tests: sh -c 'pnpm test:unit && pnpm test:db && pnpm test:integration && pnpm test:e2e dashboard crm && pnpm build' →   Time:    354ms >>> FULL TURBO)
 - Task 18: complete (commits 43875ae..65fa835, tests: sh -c 'pnpm test:unit && pnpm test:e2e seo accessibility public-shell && pnpm build' →   Time:    410ms >>> FULL TURBO)
 - Task 19: complete (commits 65fa835..de6b4dc, tests: bash /private/tmp/claude-502/-Users-hoangpham-source-zsopo-prod/2e5c31d0-f290-49ac-83c6-33dfbdf6aae5/scratchpad/full.sh →   3 passed (6.2s))
+
+## Review 4 (30/10/2026)
+
+- #3 ghi nhận chuyển khoản không cần MFA (`payment.confirm` có trong ma trận nhưng không ai kiểm): `record_payment_atomic` đòi `payment.confirm` (aal2) khi `bank_transfer`/`vietqr_manual`, ma trận thêm `payment.confirm` cho `front_desk` và `location_manager`, trang `/admin/thanh-toan` gate bằng `payment.confirm` (người chưa MFA được chuyển sang `/auth/mfa`). Nút "Xác nhận" ở `/auth/mfa` bị khóa tới khi tải xong factor để không im lặng bỏ qua cú bấm sớm. Test `review4 #3`; e2e `auth`, `booking` đăng nhập TOTP bằng factor seed (`tests/e2e/staff-login.ts`).
+  - Ruling: chuyển khoản (bank_transfer, vietqr_manual) cần payment.confirm (aal2) cho front_desk, location_manager, ops_finance; tiền mặt/OTA/COD giữ payment.record (aal1) — cost if wrong: lễ tân phải bật MFA để xác nhận chuyển khoản.
+  - Ruling: e2e chạy một worker vì GoTrue xóa các phiên aal1 khác của cùng người dùng khi người đó xác minh MFA, nên đăng nhập MFA song song làm hỏng phiên của spec khác — cost if wrong: e2e đầy đủ chậm hơn (khoảng 75 giây thay vì 40 giây); khi cần song song, tách người dùng riêng cho các luồng MFA.

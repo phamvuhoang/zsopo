@@ -60,7 +60,7 @@ export function MfaForm({ next }: { next: string }) {
           {error}
         </p>
       )}
-      <button className="min-h-11 rounded-md bg-[var(--accent)] px-4 font-semibold text-[var(--on-accent)]">Xác nhận</button>
+      <button disabled={!factorId} className="min-h-11 rounded-md bg-[var(--accent)] px-4 font-semibold text-[var(--on-accent)] disabled:opacity-60">Xác nhận</button>
     </form>
   );
 }

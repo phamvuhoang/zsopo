@@ -347,14 +347,14 @@ create policy outbox_read on core.outbox for select to authenticated using (core
 
 -- ---------------------------------------------------------------- permission matrix
 insert into core.role_permissions(role, action, requires_aal2) values
-  ('front_desk','booking.read',false),('front_desk','booking.write',false),('front_desk','payment.record',false),
+  ('front_desk','booking.read',false),('front_desk','booking.write',false),('front_desk','payment.record',false),('front_desk','payment.confirm',true),
   ('front_desk','orders.read',false),('front_desk','service.manage',false),('front_desk','ticket.manage',false),
   ('front_desk','shift.manage',false),('front_desk','room.read',false),('front_desk','housekeeping.read',false),
   ('front_desk','identity.capture',false),('front_desk','identity.read',false),('front_desk','lostfound.manage',false),
   ('housekeeping','room.read',false),('housekeeping','housekeeping.work',false),('housekeeping','housekeeping.read',false),
   ('housekeeping','ticket.manage',false),('housekeeping','lostfound.manage',false),('housekeeping','supply.manage',false),
   ('location_manager','booking.read',false),('location_manager','booking.write',false),('location_manager','booking.exception',false),
-  ('location_manager','payment.record',false),('location_manager','orders.read',false),('location_manager','service.manage',false),
+  ('location_manager','payment.record',false),('location_manager','payment.confirm',true),('location_manager','orders.read',false),('location_manager','service.manage',false),
   ('location_manager','ticket.manage',false),('location_manager','shift.manage',false),('location_manager','shift.amend',false),
   ('location_manager','room.read',false),('location_manager','room.manage',false),('location_manager','rate.manage',false),
   ('location_manager','calendar.manage',false),('location_manager','housekeeping.read',false),('location_manager','housekeeping.work',false),

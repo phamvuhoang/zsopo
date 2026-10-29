@@ -119,6 +119,10 @@ begin
   select * into o from commerce.orders where id = p_order for update;
   if not found then perform core.fail('NOT_FOUND', 'Không tìm thấy đơn'); end if;
   if not commerce.can_record_payment(o) then perform core.fail('FORBIDDEN'); end if;
+  -- Bank transfers move real money into the bank account: confirming one needs MFA (aal2); cash/OTA/COD stay at payment.record.
+  if p_provider in ('bank_transfer','vietqr_manual') and not core.has_permission('payment.confirm', o.entity_id, o.location_id) then
+    perform core.fail('FORBIDDEN', 'Xác nhận chuyển khoản cần xác thực hai lớp (MFA)');
+  end if;
   -- Cash goes into the recorder's own open shift at this location (BM01 drawer integrity).
   if p_shift is not null and not exists (select 1 from stay.shifts s where s.id = p_shift and s.status = 'open' and s.location_id = o.location_id
       and (s.opened_by = auth.uid() or core.has_permission('shift.amend', s.entity_id, s.location_id))) then

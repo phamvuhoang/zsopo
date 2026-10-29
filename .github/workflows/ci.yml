@@ -29,9 +29,11 @@ jobs:
           url=$(sed -n 's/^API_URL="\(.*\)"$/\1/p' /tmp/supabase.env)
           key=$(sed -n 's/^PUBLISHABLE_KEY="\(.*\)"$/\1/p' /tmp/supabase.env)
           secret=$(sed -n 's/^SECRET_KEY="\(.*\)"$/\1/p' /tmp/supabase.env)
-          test -n "$url" && test -n "$key" && test -n "$secret"
+          jwt=$(sed -n 's/^JWT_SECRET="\(.*\)"$/\1/p' /tmp/supabase.env)
+          test -n "$url" && test -n "$key" && test -n "$secret" && test -n "$jwt"
           echo "::add-mask::$secret"
-          { echo "NEXT_PUBLIC_SUPABASE_URL=$url"; echo "SUPABASE_URL=$url"; echo "NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=$key"; echo "SUPABASE_PUBLISHABLE_KEY=$key"; echo "SUPABASE_SERVICE_ROLE_KEY=$secret"; } >> "$GITHUB_ENV"
+          echo "::add-mask::$jwt"
+          { echo "NEXT_PUBLIC_SUPABASE_URL=$url"; echo "SUPABASE_URL=$url"; echo "NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=$key"; echo "SUPABASE_PUBLISHABLE_KEY=$key"; echo "SUPABASE_SERVICE_ROLE_KEY=$secret"; echo "SUPABASE_JWT_SECRET=$jwt"; } >> "$GITHUB_ENV"
       - run: pnpm test:db
       - run: pnpm check:rls
       - run: pnpm check:types

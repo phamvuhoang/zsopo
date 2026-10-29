@@ -2,7 +2,7 @@ import { randomUUID } from "node:crypto";
 import { afterAll, describe, expect, it } from "vitest";
 import { recordPayment } from "../../packages/api/src/payments";
 import { createShopOrder, priceCart, transitionFulfillment } from "../../packages/api/src/shop";
-import { USERS, anonClient, clientFor, db, seedSku, sql } from "./helpers";
+import { USERS, aal2ClientFor, anonClient, clientFor, db, seedSku, sql } from "./helpers";
 
 afterAll(() => db.end());
 const address = { name: "Khách Shop", phone: "0900000012", line1: "12 Đường Hoa", regionCode: "default" };
@@ -71,7 +71,7 @@ describe("checkout shop", () => {
     expect((await fulfillment(r.data.orderId)).status).toBe("expired");
     let [inv] = await sql<{ on_hand: number; reserved: number }>(`select on_hand, reserved from shop.inventory where variant_id = $1`, [variantId]);
     expect(inv).toEqual({ on_hand: 1, reserved: 0 });
-    const p = await recordPayment(await clientFor(USERS.finance), { orderId: r.data.orderId, provider: "bank_transfer", providerRef: `late-${randomUUID()}`, amount: r.data.total, receivedAt: new Date().toISOString(), evidenceNote: "Sao kê", idempotencyKey: randomUUID() });
+    const p = await recordPayment(aal2ClientFor(USERS.finance), { orderId: r.data.orderId, provider: "bank_transfer", providerRef: `late-${randomUUID()}`, amount: r.data.total, receivedAt: new Date().toISOString(), evidenceNote: "Sao kê", idempotencyKey: randomUUID() });
     expect(p.ok && p.data.state).toBe("needs_review");
     [inv] = await sql<{ on_hand: number; reserved: number }>(`select on_hand, reserved from shop.inventory where variant_id = $1`, [variantId]);
     expect(inv).toEqual({ on_hand: 1, reserved: 0 });

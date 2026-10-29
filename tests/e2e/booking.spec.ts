@@ -1,5 +1,6 @@
 import { expect, test, type Page } from "@playwright/test";
 import pg from "pg";
+import { staffLogin } from "./staff-login";
 
 const DB_URL = process.env.SUPABASE_DB_URL ?? "postgresql://postgres:postgres@127.0.0.1:56422/postgres";
 const iso = (d: Date) => d.toISOString().slice(0, 10);
@@ -29,15 +30,12 @@ async function book(page: Page, room = "thach-anh-hong", phone = `0900${String(M
 async function staffPays(page: Page, code: string, amount: string) {
   const staff = await page.context().browser()!.newContext();
   const p = await staff.newPage();
-  await p.goto("/dang-nhap?next=/admin/thanh-toan");
-  await p.getByLabel("Email").fill("le-tan@example.test");
-  await p.getByLabel("Mật khẩu", { exact: true }).fill("zsopo-local-1");
-  await p.getByRole("button", { name: "Đăng nhập" }).click();
+  await staffLogin(p, "le-tan@example.test", { mfa: true, next: "/admin/thanh-toan" });
   await p.getByLabel("Mã đơn").fill(code);
   await p.getByLabel("Số tiền (đ)").fill(amount);
   await p.getByLabel("Mã giao dịch / số biên nhận").fill(`VCB-${Date.now()}`);
   await p.getByLabel("Chứng cứ đối soát").fill("Sao kê VCB dòng 12");
-  await p.getByRole("button", { name: "Ghi nhận" }).click();
+  await p.getByRole("button", { name: "Ghi nhận", exact: true }).click();
   await expect(p.getByRole("status").filter({ hasText: "Đã ghi nhận" })).toBeVisible();
   await staff.close();
 }

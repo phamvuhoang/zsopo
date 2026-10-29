@@ -28,6 +28,10 @@ insert into auth.identities(id, provider_id, user_id, identity_data, provider, l
   (gen_random_uuid(),'a0000000-0000-4000-8000-000000000007','a0000000-0000-4000-8000-000000000007',jsonb_build_object('sub','a0000000-0000-4000-8000-000000000007','email','le-tan-2@example.test','email_verified',true),'email',now(),now(),now()),
   (gen_random_uuid(),'a0000000-0000-4000-8000-000000000008','a0000000-0000-4000-8000-000000000008',jsonb_build_object('sub','a0000000-0000-4000-8000-000000000008','email','le-tan-b@example.test','email_verified',true),'email',now(),now(),now()),
   (gen_random_uuid(),'a0000000-0000-4000-8000-000000000009','a0000000-0000-4000-8000-000000000009',jsonb_build_object('sub','a0000000-0000-4000-8000-000000000009','email','buong-phong-2@example.test','email_verified',true),'email',now(),now(),now());
+-- LOCAL ONLY: TOTP cố định cho e2e (secret = E2E_TOTP_SECRET trong tests/e2e/staff-login.ts). Production không seed; scripts/seed-validate.mjs --production từ chối auth.mfa_factors.
+insert into auth.mfa_factors(id, user_id, friendly_name, factor_type, status, secret, created_at, updated_at)
+select gen_random_uuid(), u, 'e2e', 'totp', 'verified', 'JBSWY3DPEHPK3PXPJBSWY3DPEHPK3PXP', now(), now()
+from unnest(array['a0000000-0000-4000-8000-000000000001','a0000000-0000-4000-8000-000000000005']::uuid[]) u;
 insert into core.profiles(user_id, display_name) values
   ('a0000000-0000-4000-8000-000000000001','Lễ tân Đà Lạt'),
   ('a0000000-0000-4000-8000-000000000002','Buồng phòng Đà Lạt'),
