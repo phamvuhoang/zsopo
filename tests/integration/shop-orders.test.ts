@@ -23,6 +23,24 @@ describe("checkout shop", () => {
     expect(inv!.reserved).toBe(2);
   });
 
+  it("email xác nhận đơn shop có renderer: có email thì gửi, hủy hoặc thiếu email thì bỏ qua", async () => {
+    const { variantId } = await seedSku({ onHand: 5 });
+    const render = async (orderId: string) => {
+      const [job] = await sql<{ id: string }>(`select id from core.outbox where kind = 'shop.order_placed' and aggregate_id = $1`, [orderId]);
+      return (await sql<{ v: { skip?: string; to?: string; template?: string; vars?: { receiptPath: string; methodNote: string } } }>(`select core.render_outbox($1) v`, [job!.id]))[0]!.v;
+    };
+    const withEmail = await createShopOrder(anonClient(), { lines: [{ variantId, qty: 1 }], shippingAddress: address, method: "bank", email: "khach@example.test", idempotencyKey: randomUUID(), terms: true });
+    if (!withEmail.ok) throw new Error(withEmail.error.message);
+    const r = await render(withEmail.data.orderId);
+    expect(r).toMatchObject({ to: "khach@example.test", template: "shop.order_placed", vars: { receiptPath: `/don-hang/${withEmail.data.orderCode}` } });
+    expect(r.vars!.methodNote).toMatch(/^Chuyển khoản trước/);
+    const noEmail = await place(variantId);
+    if (!noEmail.ok) throw new Error(noEmail.error.message);
+    expect((await render(noEmail.data.orderId)).skip).toBe("no email on order");
+    await sql(`update commerce.orders set fulfillment_status = 'cancelled' where id = $1`, [withEmail.data.orderId]);
+    expect((await render(withEmail.data.orderId)).skip).toBe("order cancelled");
+  });
+
   it("gửi trùng cùng khóa chỉ tạo một đơn", async () => {
     const { variantId } = await seedSku({ onHand: 5 });
     const key = randomUUID();

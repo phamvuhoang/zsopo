@@ -1,0 +1,10 @@
+begin;
+select plan(2);
+create temp table v as select id from shop.product_variants limit 1;
+grant select on v to authenticated;
+select tests_as('a0000000-0000-4000-8000-000000000003');
+select shop.set_cart(jsonb_build_array(jsonb_build_object('variantId', (select id from v), 'qty', 2)));
+select is((shop.merge_cart(jsonb_build_array(jsonb_build_object('variantId', (select id from v), 'qty', 3))) -> 'lines' -> 0 ->> 'qty')::int, 3, 'merge keeps the larger quantity per variant');
+select is((shop.merge_cart(jsonb_build_array(jsonb_build_object('variantId', (select id from v), 'qty', 3))) -> 'lines' -> 0 ->> 'qty')::int, 3, 'repeating the same merge does not add again');
+select * from finish();
+rollback;

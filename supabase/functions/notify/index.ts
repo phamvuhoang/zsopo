@@ -66,8 +66,8 @@ Deno.serve(async (req) => {
       }
       const raw = m.vars ?? {};
       const code = String(raw.orderCode ?? "");
-      const vars: Record<string, string> = Object.fromEntries(Object.entries(raw).map(([k, v]) => [k, k === "paid" || k === "due" ? vnd(v) : String(v ?? "")]));
-      vars.link = raw.guestToken ? `${SITE_URL}/api/guest?t=${encodeURIComponent(String(raw.guestToken))}&next=/dat-phong/${code}` : "";
+      const vars: Record<string, string> = Object.fromEntries(Object.entries(raw).map(([k, v]) => [k, k === "paid" || k === "due" || k === "total" ? vnd(v) : String(v ?? "")]));
+      vars.link = raw.guestToken ? `${SITE_URL}/api/guest?t=${encodeURIComponent(String(raw.guestToken))}&next=${raw.receiptPath ?? `/dat-phong/${code}`}` : "";
       vars.handbookUrl = `${SITE_URL}/handbook/da-lat`;
       if (raw.unsubscribeToken) vars.unsubscribeUrl = `${SITE_URL}/huy-nhan-thu?t=${encodeURIComponent(String(raw.unsubscribeToken))}`;
       if (raw.productUrl) vars.productUrl = `${SITE_URL}${raw.productUrl}`;
