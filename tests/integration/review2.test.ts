@@ -30,7 +30,7 @@ describe("review2: allocation", () => {
     // Even if a booking is confirmed without its allocation, check-in refuses it.
     await sql(`update stay.bookings set state = 'confirmed' where id = $1`, [b.data.bookingId]);
     const [v] = await sql<{ version: number }>(`select version from stay.bookings where id = $1`, [b.data.bookingId]);
-    const ci = await transitionBooking(fd, { bookingId: b.data.bookingId, expectedVersion: v!.version, action: "check_in", idempotencyKey: randomUUID(), identityVerified: true });
+    const ci = await transitionBooking(fd, { bookingId: b.data.bookingId, expectedVersion: v!.version, action: "check_in", idempotencyKey: randomUUID(), identityVerified: true, guestAcknowledged: true });
     expect(!ci.ok && ci.error.code).toBe("INVALID_TRANSITION");
   });
 });

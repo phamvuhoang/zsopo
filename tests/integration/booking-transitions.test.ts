@@ -48,23 +48,37 @@ describe("LT02 nhận phòng", () => {
   it("không nhận phòng bẩn/chưa nghiệm thu; nhận khi sẵn sàng, cấp token dịch vụ, phòng có khách", async () => {
     const c = await confirmedToday();
     await sql(`update stay.rooms set cleanliness = 'awaiting_inspection' where id = $1`, [c.room]);
-    const dirty = await transitionBooking(c.fd, { bookingId: c.bookingId, expectedVersion: c.version, action: "check_in", idempotencyKey: randomUUID(), identityVerified: true });
+    const dirty = await transitionBooking(c.fd, { bookingId: c.bookingId, expectedVersion: c.version, action: "check_in", idempotencyKey: randomUUID(), identityVerified: true, guestAcknowledged: true });
     expect(!dirty.ok && dirty.error.code).toBe("INVALID_TRANSITION");
     await sql(`update stay.rooms set cleanliness = 'ready' where id = $1`, [c.room]);
-    const noId = await transitionBooking(c.fd, { bookingId: c.bookingId, expectedVersion: c.version, action: "check_in", idempotencyKey: randomUUID(), identityVerified: false });
+    const noId = await transitionBooking(c.fd, { bookingId: c.bookingId, expectedVersion: c.version, action: "check_in", idempotencyKey: randomUUID(), identityVerified: false, guestAcknowledged: true });
     expect(!noId.ok && noId.error.code).toBe("VALIDATION");
-    const ok = await transitionBooking(c.fd, { bookingId: c.bookingId, expectedVersion: c.version, action: "check_in", idempotencyKey: randomUUID(), identityVerified: true });
+    const ok = await transitionBooking(c.fd, { bookingId: c.bookingId, expectedVersion: c.version, action: "check_in", idempotencyKey: randomUUID(), identityVerified: true, guestAcknowledged: true });
     expect(ok.ok && ok.data.state).toBe("checked_in");
     expect(ok.ok && ok.data.stayToken?.length).toBeGreaterThan(30);
     const [room] = await sql<{ occupancy: string }>(`select occupancy from stay.rooms where id = $1`, [c.room]);
     expect(room!.occupancy).toBe("occupied");
+  });
+
+  it("LT02: nhận phòng cần khách ký nhận; audit lưu ký nhận, giấy tờ, khóa và giờ giao", async () => {
+    const c = await confirmedToday();
+    await sql(`update stay.rooms set cleanliness = 'ready' where id = $1`, [c.room]);
+    const unsigned = await transitionBooking(c.fd, { bookingId: c.bookingId, expectedVersion: c.version, action: "check_in", idempotencyKey: randomUUID(), identityVerified: true });
+    expect(!unsigned.ok && unsigned.error.code).toBe("VALIDATION");
+    const ok = await transitionBooking(c.fd, { bookingId: c.bookingId, expectedVersion: c.version, action: "check_in", idempotencyKey: randomUUID(), identityVerified: true, guestAcknowledged: true, keyHandover: "Chìa P01" });
+    expect(ok.ok && ok.data.state).toBe("checked_in");
+    const [audit] = await sql<{ diff: Record<string, unknown> }>(`select diff from core.audit_logs where action = 'booking.check_in' and subject_id = $1`, [c.bookingId]);
+    expect(audit!.diff.guestAcknowledged).toBe(true);
+    expect(audit!.diff.identityVerified).toBe(true);
+    expect(audit!.diff.key).toBe("Chìa P01");
+    expect(audit!.diff.handedAt).not.toBeNull();
   });
 });
 
 describe("LT04 trả phòng", () => {
   async function checkedIn() {
     const c = await confirmedToday();
-    const r = await transitionBooking(c.fd, { bookingId: c.bookingId, expectedVersion: c.version, action: "check_in", idempotencyKey: randomUUID(), identityVerified: true });
+    const r = await transitionBooking(c.fd, { bookingId: c.bookingId, expectedVersion: c.version, action: "check_in", idempotencyKey: randomUUID(), identityVerified: true, guestAcknowledged: true });
     if (!r.ok) throw new Error(r.error.message);
     return { ...c, version: r.data.version };
   }

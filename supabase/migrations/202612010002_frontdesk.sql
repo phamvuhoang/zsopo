@@ -110,11 +110,13 @@ begin
       perform core.fail('INVALID_TRANSITION', 'Phòng chưa sẵn sàng (chưa nghiệm thu, đang bảo trì hoặc còn khách)');
     end if;
     if not coalesce((p_opts ->> 'identityVerified')::boolean, false) then perform core.fail('VALIDATION', 'Cần đối chiếu giấy tờ tùy thân trước khi giao phòng'); end if;
+    if not coalesce((p_opts ->> 'guestAcknowledged')::boolean, false) then perform core.fail('VALIDATION', 'Cần khách ký nhận bàn giao phòng'); end if;
     update stay.bookings set state = 'checked_in' where id = b.id returning * into b;
     update stay.rooms set occupancy = 'occupied' where id = r.id;
     v_token := stay.issue_stay_token(b.id);
     perform core.enqueue(b.entity_id, 'booking.checked_in', 'booking.checked_in:' || b.id, b.id, '{}'::jsonb);
-    perform core.audit(b.entity_id, 'booking.check_in', 'booking', b.id::text, jsonb_build_object('key', p_opts ->> 'keyHandover'));
+    perform core.audit(b.entity_id, 'booking.check_in', 'booking', b.id::text,
+      jsonb_build_object('key', p_opts ->> 'keyHandover', 'identityVerified', true, 'guestAcknowledged', true, 'handedAt', now()));
 
   elsif p_action = 'check_out' then
     if b.state <> 'checked_in' then perform core.fail('INVALID_TRANSITION'); end if;

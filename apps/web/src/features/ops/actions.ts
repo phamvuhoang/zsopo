@@ -69,7 +69,7 @@ export async function bookingTransition(_: ActionState, f: FormData): Promise<Ac
   const late = str(f, "lateUntil");
   const r = await transitionBooking(supabase, {
     bookingId: str(f, "bookingId")!, expectedVersion: int(f, "version") ?? 0, action, reason: str(f, "reason") ?? undefined,
-    idempotencyKey: str(f, "idempotencyKey") ?? randomUUID(), identityVerified: f.get("identityVerified") === "on",
+    idempotencyKey: str(f, "idempotencyKey") ?? randomUUID(), identityVerified: f.get("identityVerified") === "on", guestAcknowledged: f.get("guestAcknowledged") === "on",
     keyHandover: str(f, "key") ?? undefined, lateCheckoutUntil: late ? new Date(`${late}:00+07:00`).toISOString() : undefined,
   });
   refresh();

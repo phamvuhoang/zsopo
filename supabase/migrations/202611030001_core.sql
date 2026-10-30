@@ -243,7 +243,7 @@ create index on core.audit_logs (entity_id, created_at desc);
 create function core.redact(p jsonb) returns jsonb language sql immutable set search_path = '' as $$
   select coalesce(jsonb_object_agg(k,
     case
-      when k ~* '(phone|email|password|token|secret|document|cccd|cipher|key|address|note)' then to_jsonb('[redacted]'::text)
+      when k <> 'key' and k ~* '(phone|email|password|token|secret|document|cccd|cipher|key|address|note)' then to_jsonb('[redacted]'::text)
       when jsonb_typeof(v) = 'object' then core.redact(v)
       else v
     end), '{}'::jsonb)

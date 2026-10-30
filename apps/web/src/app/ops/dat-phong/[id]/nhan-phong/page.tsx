@@ -38,7 +38,7 @@ export default async function CheckIn({ params }: PageProps<"/ops/dat-phong/[id]
             <label className="flex min-h-11 items-center gap-2"><input type="checkbox" required /> Đối chiếu đặt phòng và số người ở thực tế</label>
             <label className="flex min-h-11 items-center gap-2"><input type="checkbox" name="identityVerified" /> Đã đối chiếu giấy tờ tùy thân (đăng ký tạm trú)</label>
             <label className="flex min-h-11 items-center gap-2"><input type="checkbox" required /> Đã hướng dẫn nội quy, Wifi, lối thoát hiểm</label>
-            <label className="flex min-h-11 items-center gap-2"><input type="checkbox" required /> Khách xác nhận nhận phòng và chìa khóa</label>
+            <label className="flex min-h-11 items-center gap-2"><input type="checkbox" name="guestAcknowledged" required /> Khách đã ký nhận bàn giao phòng (phiếu đăng ký, khóa hoặc mã)</label>
           </fieldset>
           <Field label="Chìa khóa / mã cửa đã giao"><input name="key" className={inputCls} /></Field>
         </TransitionForm>

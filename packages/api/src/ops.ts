@@ -16,11 +16,11 @@ export const createManualBooking = (client: Db, i: ManualBookingInput): Promise<
 
 export type TransitionInput = {
   bookingId: string; expectedVersion: number; action: "check_in" | "check_out" | "cancel" | "no_show";
-  reason?: string; idempotencyKey: string; identityVerified?: boolean; keyHandover?: string; lateCheckoutUntil?: string;
+  reason?: string; idempotencyKey: string; identityVerified?: boolean; guestAcknowledged?: boolean; keyHandover?: string; lateCheckoutUntil?: string;
 };
 
 export const transitionBooking = (client: Db, i: TransitionInput): Promise<DomainResult<{ state: string; version: number; stayToken?: string }>> =>
   call(client, "stay", "transition_booking", {
     p_booking: i.bookingId, p_expected_version: i.expectedVersion, p_action: i.action, p_reason: i.reason ?? null, p_idempotency: i.idempotencyKey,
-    p_opts: { identityVerified: i.identityVerified ?? false, keyHandover: i.keyHandover ?? null, lateCheckoutUntil: i.lateCheckoutUntil ?? null },
+    p_opts: { identityVerified: i.identityVerified ?? false, guestAcknowledged: i.guestAcknowledged ?? false, keyHandover: i.keyHandover ?? null, lateCheckoutUntil: i.lateCheckoutUntil ?? null },
   });
