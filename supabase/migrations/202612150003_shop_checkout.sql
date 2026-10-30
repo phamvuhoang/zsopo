@@ -187,12 +187,12 @@ begin
 
   -- Returned goods stop being revenue and the order shrinks by their price (shipping stays). A completed line keeps its row, so the period it
   -- was recognised in does not change, and gets a negative product line dated now. A line not yet completed is cancelled with a non-revenue
-  -- reversal, born cancelled so the guest receipt (which hides cancelled lines) shows neither the old line nor a lone negative one.
+  -- reversal, as stay.reverse_service_item does.
   if p_to = 'returned' then
     with rev as (
       insert into commerce.order_items(entity_id, order_id, item_type, item_id, title, qty, unit_price, amount, revenue_source, status, completed_at, reversal_of, snapshot, created_by)
       select entity_id, order_id, 'adjustment', item_id, 'Trả hàng: ' || title, -qty, unit_price, -amount,
-        case when status = 'completed' then 'product' end, case when status = 'completed' then 'completed' else 'cancelled' end,
+        case when status = 'completed' then 'product' end, case when status = 'completed' then 'completed' else 'active' end,
         case when status = 'completed' then now() end, id, jsonb_build_object('reason', 'order returned'), auth.uid()
       from commerce.order_items where order_id = o.id and item_type = 'product' and status in ('active','completed')
       returning amount)

@@ -257,9 +257,11 @@ describe("review4 #10 trả hàng đảo doanh thu", () => {
     for (const to of ["confirmed", "packing", "ready_to_ship", "shipped", "returned"]) await move(r.data.orderId, to);
     const items = await sql<{ item_type: string; status: string; revenue_source: string | null; amount: string }>(
       `select item_type, status, revenue_source, amount::text from commerce.order_items where order_id = $1 and item_type in ('product','adjustment') order by amount desc`, [r.data.orderId]);
-    expect(items).toEqual([{ item_type: "product", status: "cancelled", revenue_source: "product", amount: "200000" }, { item_type: "adjustment", status: "cancelled", revenue_source: null, amount: "-200000" }]);
+    expect(items).toEqual([{ item_type: "product", status: "cancelled", revenue_source: "product", amount: "200000" }, { item_type: "adjustment", status: "active", revenue_source: null, amount: "-200000" }]);
     const [after] = await sql<{ total: string; shipping_fee: string; payment_status: string }>(`select total::text, shipping_fee::text, payment_status from commerce.orders where id = $1`, [r.data.orderId]);
     expect(after).toMatchObject({ total: after!.shipping_fee, payment_status: "unpaid" });
+    // mọi dòng (kể cả đã hủy) cộng khớp tổng: dòng gốc + dòng đảo triệt tiêu, còn lại phí ship
+    expect((await sql(`select sum(amount)::text v from commerce.order_items where order_id = $1`, [r.data.orderId]))[0]!.v).toBe(after!.total);
     expect((await sql(`select coalesce(sum(amount),0)::text v from commerce.order_items where order_id = $1 and revenue_source = 'product' and status = 'completed'`, [r.data.orderId]))[0]!.v).toBe("0");
   });
 });
