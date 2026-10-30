@@ -1802,6 +1802,20 @@ isOneToOne: false
                   Relationships: [
                     
                   ]
+                },"common_area_schedules": {
+                  Row: {
+                    "active": boolean,"area": string,"day": number | null,"frequency": string | null,"location_id": string,"updated_at": string,"updated_by": string | null
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "active"?: boolean,"area": string,"day"?: number | null,"frequency"?: string | null,"location_id": string,"updated_at"?: string,"updated_by"?: string | null
+                  }
+                  Update: {
+                    "active"?: boolean,"area"?: string,"day"?: number | null,"frequency"?: string | null,"location_id"?: string,"updated_at"?: string,"updated_by"?: string | null
+                  }
+                  Relationships: [
+                    
+                  ]
                 },"housekeeping_tasks": {
                   Row: {
                     "area_code": string | null,"assigned_to": string | null,"booking_id": string | null,"created_at": string,"due_at": string | null,"entity_id": string,"id": string,"inspected_at": string | null,"inspected_by": string | null,"inspection_notes": string | null,"kind": string,"location_id": string,"needs_manager_review": boolean,"notes": string | null,"priority": number,"refused_reason": string | null,"reschedule_at": string | null,"room_id": string | null,"state": string,"submitted_at": string | null,"submitted_by": string | null,"template_version": number | null,"updated_at": string,"version": number,"task_template": {
@@ -2230,6 +2244,9 @@ isOneToOne: false
 "create_common_task":
 { Args: { "p_area": string,"p_due": string,"p_location": string }; Returns: string
                            },
+"create_due_common_tasks":
+{ Args: { "p_date"?: string }; Returns: number
+                           },
 "create_manual_booking":
 { Args: { "p_adults": number,"p_arrival": string,"p_children": (number)[],"p_collected_by": string,"p_departure": string,"p_guest": Json,"p_idempotency": string,"p_notes": string,"p_room": string,"p_source": string }; Returns: Json
                            },
@@ -2346,6 +2363,9 @@ isOneToOne: false
                            },
 "schedule_journey":
 { Args: { "p_booking": string }; Returns: undefined
+                           },
+"set_common_schedule":
+{ Args: { "p_area": string,"p_day": number,"p_frequency": string,"p_location": string }; Returns: undefined
                            },
 "set_room_sellable":
 { Args: { "p_reason": string,"p_room": string,"p_sellable": boolean }; Returns: undefined

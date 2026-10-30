@@ -47,3 +47,25 @@ test("BP01 -> BM02 -> BM03: buồng phòng làm checklist, quản lý nghiệm t
   expect(after[0].cleanliness).toBe("ready");
   await db.end();
 });
+
+test("BP04: quản lý đặt lịch khu chung hằng tuần và thấy trong danh sách; buồng phòng chỉ xem", async ({ browser }) => {
+  const mgr = await staff(browser, "quan-ly@example.test", "/ops/lich-don");
+  await mgr.page.getByLabel("Khu vực").last().selectOption("Sảnh");
+  await mgr.page.getByLabel("Tần suất").selectOption("weekly");
+  await mgr.page.getByLabel("Thứ (hằng tuần)").selectOption({ label: "Thứ 3" });
+  await mgr.page.getByRole("button", { name: "Lưu lịch" }).click();
+  await expect(mgr.page.getByRole("status").filter({ hasText: "Đã lưu lịch khu chung" })).toBeVisible();
+  await mgr.page.reload();
+  await expect(mgr.page.getByText("Sảnh: Hằng tuần, Thứ 3")).toBeVisible();
+  await mgr.ctx.close();
+
+  const hk = await staff(browser, "buong-phong@example.test", "/ops/lich-don");
+  await expect(hk.page.getByText("Sảnh: Hằng tuần, Thứ 3")).toBeVisible();
+  await expect(hk.page.getByRole("button", { name: "Lưu lịch" })).toHaveCount(0);
+  await hk.ctx.close();
+
+  const db = new pg.Client({ connectionString: DB_URL });
+  await db.connect();
+  await db.query(`delete from stay.common_area_schedules where location_id = 'c0000000-0000-4000-8000-000000000001'`);
+  await db.end();
+});

@@ -382,3 +382,33 @@ describe("review4 R7 media upload policy", () => {
     expect(await up(anonClient(), E1)).not.toBeNull();
   });
 });
+
+describe("review4 G2 lịch dọn khu chung", () => {
+  it("G2 lịch khu chung: hằng ngày mỗi ngày một việc, hằng tuần đúng thứ, chạy lại không trùng, chỉ quản lý được đặt lịch", async () => {
+    const [loc] = await sql<{ id: string }>(`insert into core.locations(entity_id, slug, name, status) values ($1, 'kc-' || substr(md5(random()::text),1,8), 'Điểm khu chung', 'test') returning id`, [E1]);
+    await sql(`insert into stay.common_area_schedules(location_id, area, frequency, day) values ($1, 'Sảnh', 'daily', null), ($1, 'Sân vườn', 'weekly', 1)`, [loc!.id]);
+    const count = async (d: string) => (await sql<{ n: number }>(`select count(*)::int n from stay.housekeeping_tasks
+      where location_id = $1 and kind = 'common' and (due_at at time zone 'Asia/Ho_Chi_Minh')::date = $2::date`, [loc!.id, d]))[0]!.n;
+    await sql(`select stay.create_due_common_tasks('2031-01-06')`); // thứ Hai
+    await sql(`select stay.create_due_common_tasks('2031-01-06')`);
+    expect(await count("2031-01-06")).toBe(2);
+    await sql(`select stay.create_due_common_tasks('2031-01-07')`); // thứ Ba
+    expect(await count("2031-01-07")).toBe(1);
+    const fd = await (await clientFor(USERS.frontDesk)).schema("stay").rpc("set_common_schedule", { p_location: L1, p_area: "Sảnh", p_frequency: "daily", p_day: null });
+    expect(fd.error?.message).toBe("FORBIDDEN");
+  });
+  it("G2 quản lý đặt lịch hằng tháng rồi tắt; ngày sai bị từ chối; hàm tạo việc không gọi được từ client", async () => {
+    const mgr = (await clientFor(USERS.manager)).schema("stay");
+    const set = (area: string, frequency: string | null, day: number | null) => mgr.rpc("set_common_schedule", { p_location: L1, p_area: area, p_frequency: frequency, p_day: day });
+    const area = `Khu thử ${randomUUID().slice(0, 6)}`;
+    expect((await set(area, "monthly", 15)).error).toBeNull();
+    expect((await set(area, "monthly", 29)).error?.message).toBe("VALIDATION");
+    expect((await set(area, "weekly", null)).error?.message).toBe("VALIDATION");
+    const row = () => sql<{ frequency: string; day: number; active: boolean }>(`select frequency, day, active from stay.common_area_schedules where location_id = $1 and area = $2`, [L1, area]);
+    expect((await row())[0]).toMatchObject({ frequency: "monthly", day: 15, active: true });
+    expect((await set(area, null, null)).error).toBeNull();
+    expect((await row())[0]).toMatchObject({ frequency: "monthly", day: 15, active: false });
+    const q = await mgr.rpc("create_due_common_tasks", { p_date: "2031-02-15" });
+    expect(q.error).not.toBeNull();
+  });
+});

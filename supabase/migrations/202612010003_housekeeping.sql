@@ -177,6 +177,61 @@ begin
   return v_id;
 end $$;
 
+-- BP04 schedule: daily, weekly (ISO weekday 1-7) or monthly (day 1-28, so every month has it). Written only by the RPC below.
+create table stay.common_area_schedules (
+  location_id uuid not null references core.locations(id),
+  area text not null,
+  frequency text check (frequency in ('daily','weekly','monthly')),
+  day smallint,
+  active boolean not null default true,
+  updated_by uuid,
+  updated_at timestamptz not null default now(),
+  primary key (location_id, area),
+  check ((frequency = 'daily' and day is null) or (frequency = 'weekly' and day between 1 and 7) or (frequency = 'monthly' and day between 1 and 28))
+);
+
+-- p_frequency null switches the schedule off (the last frequency and day are kept for the list).
+create function stay.set_common_schedule(p_location uuid, p_area text, p_frequency text, p_day smallint) returns void language plpgsql security definer set search_path = '' as $$
+declare l core.locations;
+begin
+  select * into l from core.locations where id = p_location;
+  if not found or not core.has_permission('sop.manage', l.entity_id, l.id) then perform core.fail('FORBIDDEN'); end if;
+  if coalesce(trim(p_area), '') = '' then perform core.fail('VALIDATION', 'Cần chọn khu vực'); end if;
+  if p_frequency is null then
+    update stay.common_area_schedules set active = false, updated_by = auth.uid(), updated_at = now() where location_id = l.id and area = trim(p_area);
+    return;
+  end if;
+  if p_frequency not in ('daily','weekly','monthly')
+     or (p_frequency = 'weekly' and coalesce(p_day, 0) not between 1 and 7)
+     or (p_frequency = 'monthly' and coalesce(p_day, 0) not between 1 and 28) then
+    perform core.fail('VALIDATION', 'Tần suất hoặc ngày không hợp lệ (tuần: thứ 1-7, tháng: ngày 1-28)');
+  end if;
+  insert into stay.common_area_schedules(location_id, area, frequency, day, active, updated_by)
+  values (l.id, trim(p_area), p_frequency, case when p_frequency = 'daily' then null else p_day end, true, auth.uid())
+  on conflict (location_id, area) do update
+    set frequency = excluded.frequency, day = excluded.day, active = true, updated_by = excluded.updated_by, updated_at = now();
+  perform core.audit(l.entity_id, 'common_schedule.set', 'location', l.id::text, jsonb_build_object('area', trim(p_area), 'frequency', p_frequency, 'day', p_day), null);
+end $$;
+
+-- Cron (00:05 Vietnam): one task per due schedule per Vietnam day; a re-run creates nothing new.
+create function stay.create_due_common_tasks(p_date date default (now() at time zone 'Asia/Ho_Chi_Minh')::date) returns int language plpgsql security definer set search_path = '' as $$
+declare v_n int;
+begin
+  insert into stay.housekeeping_tasks(entity_id, location_id, area_code, kind, due_at)
+  select l.entity_id, s.location_id, s.area, 'common', (p_date + time '10:00') at time zone 'Asia/Ho_Chi_Minh'
+  from stay.common_area_schedules s join core.locations l on l.id = s.location_id
+  where s.active
+    and (s.frequency = 'daily'
+      or (s.frequency = 'weekly' and extract(isodow from p_date) = s.day)
+      or (s.frequency = 'monthly' and extract(day from p_date) = s.day))
+    and not exists (select 1 from stay.housekeeping_tasks t
+      where t.location_id = s.location_id and t.kind = 'common' and t.area_code = s.area
+        and (t.due_at at time zone 'Asia/Ho_Chi_Minh')::date = p_date);
+  get diagnostics v_n = row_count;
+  return v_n;
+end $$;
+select cron.schedule('common-area-tasks', '5 17 * * *', 'select stay.create_due_common_tasks()');
+
 -- ---------------------------------------------------------------- BP03 linen & supplies
 create table stay.supply_items (
   id uuid primary key default gen_random_uuid(),
@@ -295,18 +350,21 @@ alter table stay.inspections enable row level security;
 alter table stay.supply_items enable row level security;
 alter table stay.supply_movements enable row level security;
 alter table stay.lost_found_items enable row level security;
-grant select on stay.checklist_templates, stay.checklist_results, stay.inspections, stay.supply_items, stay.supply_movements, stay.lost_found_items to authenticated;
+alter table stay.common_area_schedules enable row level security;
+grant select on stay.checklist_templates, stay.checklist_results, stay.inspections, stay.supply_items, stay.supply_movements, stay.lost_found_items, stay.common_area_schedules to authenticated;
 grant insert, update on stay.supply_items to authenticated;
-grant all on stay.checklist_templates, stay.checklist_results, stay.inspections, stay.supply_items, stay.supply_movements, stay.lost_found_items to service_role;
+grant all on stay.checklist_templates, stay.checklist_results, stay.inspections, stay.supply_items, stay.supply_movements, stay.lost_found_items, stay.common_area_schedules to service_role;
 create policy templates_read on stay.checklist_templates for select to authenticated using (core.is_staff_of(entity_id));
 create policy results_read on stay.checklist_results for select to authenticated using (exists (select 1 from stay.housekeeping_tasks t where t.id = task_id));
 create policy inspections_read on stay.inspections for select to authenticated using (exists (select 1 from stay.housekeeping_tasks t where t.id = task_id));
 create policy supply_items_read on stay.supply_items for select to authenticated using (core.has_permission('supply.manage', entity_id, location_id));
 create policy supply_items_write on stay.supply_items for insert to authenticated with check (core.has_permission('sop.manage', entity_id, location_id));
 create policy supply_movements_read on stay.supply_movements for select to authenticated using (exists (select 1 from stay.supply_items i where i.id = item_id));
+create policy common_schedules_read on stay.common_area_schedules for select to authenticated using (exists (select 1 from core.locations l where l.id = location_id and core.has_permission('housekeeping.read', l.entity_id, l.id)));
 create policy lost_read on stay.lost_found_items for select to authenticated using (core.has_permission('lostfound.manage', entity_id, location_id));
 
 revoke execute on function stay.task_template, stay.latest_results, stay.apply_checklist_op, stay.submit_for_inspection, stay.approve_inspection, stay.clear_safety_block,
-  stay.refuse_service, stay.create_common_task, stay.record_supply_movement, stay.confirm_supply_movement, stay.supply_balances, stay.record_lost_item, stay.transition_lost_item from public;
-grant execute on function stay.apply_checklist_op, stay.submit_for_inspection, stay.approve_inspection, stay.clear_safety_block, stay.refuse_service, stay.create_common_task,
+  stay.refuse_service, stay.create_common_task, stay.set_common_schedule, stay.record_supply_movement, stay.confirm_supply_movement, stay.supply_balances, stay.record_lost_item, stay.transition_lost_item from public;
+revoke execute on function stay.create_due_common_tasks from public, anon, authenticated;
+grant execute on function stay.apply_checklist_op, stay.submit_for_inspection, stay.approve_inspection, stay.clear_safety_block, stay.refuse_service, stay.create_common_task, stay.set_common_schedule,
   stay.record_supply_movement, stay.confirm_supply_movement, stay.supply_balances, stay.record_lost_item, stay.transition_lost_item, stay.latest_results to authenticated;

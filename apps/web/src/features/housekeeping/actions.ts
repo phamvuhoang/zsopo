@@ -34,6 +34,11 @@ export async function refuseService(_: ActionState, f: FormData): Promise<Action
 export async function createCommonTask(_: ActionState, f: FormData): Promise<ActionState> {
   return done(await rpcAction("stay", "create_common_task", { p_location: str(f, "locationId"), p_area: str(f, "area"), p_due: new Date().toISOString() }, "Đã tạo việc khu chung."));
 }
+export async function setCommonScheduleAction(_: ActionState, f: FormData): Promise<ActionState> {
+  const frequency = str(f, "frequency");
+  const day = frequency === "weekly" ? int(f, "weekday") : frequency === "monthly" ? int(f, "monthday") : null;
+  return done(await rpcAction("stay", "set_common_schedule", { p_location: str(f, "locationId"), p_area: str(f, "area"), p_frequency: frequency === "off" ? null : frequency, p_day: day }, "Đã lưu lịch khu chung."));
+}
 export async function supplyMovement(_: ActionState, f: FormData): Promise<ActionState> {
   return done(await rpcAction("stay", "record_supply_movement", { p_item: str(f, "itemId"), p_kind: str(f, "kind"), p_qty: int(f, "qty"), p_room: null, p_counterpart: str(f, "counterpart"), p_note: str(f, "note") ?? "" }, "Đã ghi, chờ bên nhận xác nhận."));
 }
