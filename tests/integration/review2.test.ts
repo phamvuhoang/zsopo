@@ -3,8 +3,8 @@ import { randomUUID } from "node:crypto";
 import { afterAll, describe, expect, it } from "vitest";
 import { createManualBooking, transitionBooking } from "../../packages/api/src/ops";
 import { recordPayment } from "../../packages/api/src/payments";
-import { createShopOrder, transitionFulfillment } from "../../packages/api/src/shop";
-import { E1, L1, USERS, aal2ClientFor, anonClient, clientFor, db, seedRoom, seedSku, sql } from "./helpers";
+import { createShopOrder } from "../../packages/api/src/shop";
+import { E1, L1, USERS, aal2ClientFor, address, anonClient, clientFor, db, move, onHand, placeShop, seedRoom, seedSku, sql } from "./helpers";
 
 afterAll(() => db.end());
 const today = () => new Date(Date.now() + 7 * 3600_000).toISOString().slice(0, 10);
@@ -34,16 +34,6 @@ describe("review2: allocation", () => {
     expect(!ci.ok && ci.error.code).toBe("INVALID_TRANSITION");
   });
 });
-
-const address = { name: "Khách Shop", phone: "0900000202", line1: "12 Đường Hoa", regionCode: "default" };
-const placeShop = (variantId: string, method: "cod" | "bank" = "cod") =>
-  createShopOrder(anonClient(), { lines: [{ variantId, qty: 1 }], shippingAddress: address, method, idempotencyKey: randomUUID(), terms: true });
-const onHand = async (variantId: string) => (await sql<{ on_hand: number; reserved: number }>(`select on_hand, reserved from shop.inventory where variant_id = $1`, [variantId]))[0]!;
-async function move(orderId: string, to: string) {
-  const [o] = await sql<{ version: number }>(`select version from commerce.orders where id = $1`, [orderId]);
-  const r = await transitionFulfillment(await clientFor(USERS.finance), { orderId, to, expectedVersion: o!.version, tracking: "GHN1", note: "ok" });
-  if (!r.ok) throw new Error(`${to}: ${r.error.message}`);
-}
 
 describe("review2: tồn kho shop", () => {
   it("#3 nhập lại hàng trả không vượt số đã giao", async () => {

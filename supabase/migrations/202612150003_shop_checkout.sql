@@ -179,11 +179,15 @@ begin
       perform core.fail('INVALID_TRANSITION', format('Sản phẩm cần nghi lễ đủ %s giờ trước khi giao', v_hours));
     end if;
   end if;
+  -- An unpaid bank-transfer order is not held or shipped: it stays pending (so the expiry cron releases its stock) until the money is in.
+  if p_to in ('ready_to_ship','shipped') and o.payment_method = 'bank' and o.payment_status not in ('paid','overpaid') then
+    perform core.fail('INVALID_TRANSITION', 'Đơn chuyển khoản chưa nhận đủ tiền');
+  end if;
   if p_to = 'shipped' and coalesce(trim(p_tracking), '') = '' then perform core.fail('VALIDATION', 'Cần mã vận đơn hoặc ghi chú giao tay'); end if;
 
   update commerce.orders set fulfillment_status = p_to,
     ritual_started_at = case when p_to = 'ritual_hold' then now() else ritual_started_at end,
-    status = case when p_to = 'cancelled' then 'cancelled' when p_to = 'completed' and payment_status in ('paid','overpaid') then 'completed' when p_to = 'confirmed' and status = 'pending' then 'confirmed' else status end
+    status = case when p_to = 'cancelled' then 'cancelled' when p_to = 'completed' and payment_status in ('paid','overpaid') then 'completed' when p_to = 'confirmed' and status = 'pending' and (payment_method = 'cod' or payment_status in ('paid','overpaid')) then 'confirmed' else status end
   where id = o.id returning * into o;
 
   if p_to = 'cancelled' then

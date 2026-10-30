@@ -2,6 +2,7 @@
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 import { createHmac, randomUUID } from "node:crypto";
 import pg from "pg";
+import { createShopOrder, transitionFulfillment } from "../../packages/api/src/shop";
 import { createStayHold, quoteStay } from "../../packages/api/src/stay";
 
 export const API_URL = process.env.SUPABASE_URL ?? "http://127.0.0.1:56421";
@@ -118,6 +119,17 @@ export async function seedSku(opts: { price?: bigint; onHand?: number } = {}) {
     [E1, variant!.id, opts.onHand ?? 1],
   );
   return { productId: product!.id, variantId: variant!.id };
+}
+
+/** Shop order helpers: place as an anonymous guest, move fulfillment as finance, read inventory. */
+export const address = { name: "Khách Shop", phone: "0900000202", line1: "12 Đường Hoa", regionCode: "default" };
+export const placeShop = (variantId: string, method: "cod" | "bank" = "cod") =>
+  createShopOrder(anonClient(), { lines: [{ variantId, qty: 1 }], shippingAddress: address, method, idempotencyKey: randomUUID(), terms: true });
+export const onHand = async (variantId: string) => (await sql<{ on_hand: number; reserved: number }>(`select on_hand, reserved from shop.inventory where variant_id = $1`, [variantId]))[0]!;
+export async function move(orderId: string, to: string) {
+  const [o] = await sql<{ version: number }>(`select version from commerce.orders where id = $1`, [orderId]);
+  const r = await transitionFulfillment(await clientFor(USERS.finance), { orderId, to, expectedVersion: o!.version, tracking: "GHN1", note: "ok" });
+  if (!r.ok) throw new Error(`${to}: ${r.error.message}`);
 }
 
 /** Retry an assertion block until it passes or times out (Vitest has no toPass). */

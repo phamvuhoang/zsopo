@@ -4,7 +4,8 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import { afterAll, describe, expect, it } from "vitest";
 import { transitionBooking } from "../../packages/api/src/ops";
 import { recordPayment } from "../../packages/api/src/payments";
-import { E1, USERS, aal2ClientFor, anonClient, asAal2, clientFor, db, heldBooking, sql } from "./helpers";
+import { transitionFulfillment } from "../../packages/api/src/shop";
+import { E1, USERS, aal2ClientFor, anonClient, asAal2, clientFor, db, heldBooking, move, onHand, placeShop, seedSku, sql } from "./helpers";
 
 afterAll(() => db.end());
 
@@ -198,5 +199,29 @@ describe("review4 #2 lưu nháp trang", () => {
     expect((await editor.from("page_drafts").select("body_md").eq("page_id", pg.id)).data).toEqual([{ body_md: "Chỉ biên tập thấy" }]);
     expect((await anonClient().schema("content").from("page_drafts").select("body_md").eq("page_id", pg.id)).data ?? []).toHaveLength(0);
     expect((await editor.from("page_drafts").update({ body_md: "x" }).eq("page_id", pg.id)).error).not.toBeNull();
+  });
+});
+
+describe("review4 #5 đơn chuyển khoản chưa trả", () => {
+  it("được xác nhận khi chưa trả vẫn hết hạn và nhả hàng", async () => {
+    const { variantId } = await seedSku({ onHand: 2 });
+    const r = await placeShop(variantId, "bank");
+    if (!r.ok) throw new Error(r.error.message);
+    await move(r.data.orderId, "confirmed");
+    expect((await sql(`select status from commerce.orders where id = $1`, [r.data.orderId]))[0]!.status).toBe("pending");
+    await sql(`update commerce.orders set due_at = now() - interval '1 minute' where id = $1`, [r.data.orderId]);
+    await sql(`select shop.expire_unpaid_orders()`);
+    expect((await sql(`select status from commerce.orders where id = $1`, [r.data.orderId]))[0]!.status).toBe("expired");
+    expect((await onHand(variantId)).reserved).toBe(0);
+  });
+
+  it("không cho chuyển sang sẵn sàng giao khi chưa nhận đủ tiền", async () => {
+    const { variantId } = await seedSku({ onHand: 2 });
+    const r = await placeShop(variantId, "bank");
+    if (!r.ok) throw new Error(r.error.message);
+    for (const to of ["confirmed", "packing"]) await move(r.data.orderId, to);
+    const [o] = await sql<{ version: number }>(`select version from commerce.orders where id = $1`, [r.data.orderId]);
+    const res = await transitionFulfillment(await clientFor(USERS.finance), { orderId: r.data.orderId, to: "ready_to_ship", expectedVersion: o!.version });
+    expect(!res.ok && res.error.code).toBe("INVALID_TRANSITION");
   });
 });
