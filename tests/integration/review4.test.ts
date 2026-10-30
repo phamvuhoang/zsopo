@@ -370,3 +370,15 @@ describe("review4 G1 ảnh checklist (kho evidence)", () => {
     expect(await sql(`select 1 from core.media where id = $1`, [id])).toHaveLength(1);
   });
 });
+
+describe("review4 R7 media upload policy", () => {
+  const png = Buffer.from("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==", "base64");
+  const up = async (c: SupabaseClient, entity: string) =>
+    (await c.storage.from("media").upload(`${entity}/${randomUUID()}.png`, png, { contentType: "image/png" })).error;
+  it("biên tập viên tải được ảnh vào thư mục pháp nhân của mình; người khác và pháp nhân khác bị từ chối", async () => {
+    expect(await up(await clientFor(USERS.editor), E1)).toBeNull();
+    expect(await up(await clientFor(USERS.editor), E2)).not.toBeNull();
+    expect(await up(await clientFor(USERS.frontDesk), E1)).not.toBeNull();
+    expect(await up(anonClient(), E1)).not.toBeNull();
+  });
+});

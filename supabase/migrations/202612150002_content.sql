@@ -376,7 +376,7 @@ insert into storage.buckets(id, name, public, file_size_limit, allowed_mime_type
 values ('media', 'media', true, 10485760, array['image/jpeg','image/png','image/webp','image/avif'])
 on conflict (id) do nothing;
 create policy media_upload on storage.objects for insert to authenticated
-  with check (bucket_id = 'media' and exists (select 1 from core.entities e where e.id::text = (storage.foldername(name))[1] and core.has_permission('content.write', e.id, null)));
+  with check (bucket_id = 'media' and exists (select 1 from core.entities e where e.id::text = (storage.foldername(storage.objects.name))[1] and core.has_permission('content.write', e.id, null)));
 
 -- ---------------------------------------------------------------- RLS & grants
 alter table content.categories enable row level security;
