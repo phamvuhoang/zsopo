@@ -5,6 +5,9 @@ import pg from "pg";
 test.skip(!process.env.CI, "offline PWA test needs the production server (CI=1)");
 
 const DB_URL = process.env.SUPABASE_DB_URL ?? "postgresql://postgres:postgres@127.0.0.1:56422/postgres";
+// A valid 1x1 JPEG: the evidence bucket only takes image/jpeg, png and webp.
+const JPEG_1PX_BASE64 =
+  "/9j/4AAQSkZJRgABAQAASABIAAD/4QBMRXhpZgAATU0AKgAAAAgAAYdpAAQAAAABAAAAGgAAAAAAA6ABAAMAAAABAAEAAKACAAQAAAABAAAAAaADAAQAAAABAAAAAQAAAAD/7QA4UGhvdG9zaG9wIDMuMAA4QklNBAQAAAAAAAA4QklNBCUAAAAAABDUHYzZjwCyBOmACZjs+EJ+/8AAEQgAAQABAwEiAAIRAQMRAf/EAB8AAAEFAQEBAQEBAAAAAAAAAAABAgMEBQYHCAkKC//EALUQAAIBAwMCBAMFBQQEAAABfQECAwAEEQUSITFBBhNRYQcicRQygZGhCCNCscEVUtHwJDNicoIJChYXGBkaJSYnKCkqNDU2Nzg5OkNERUZHSElKU1RVVldYWVpjZGVmZ2hpanN0dXZ3eHl6g4SFhoeIiYqSk5SVlpeYmZqio6Slpqeoqaqys7S1tre4ubrCw8TFxsfIycrS09TV1tfY2drh4uPk5ebn6Onq8fLz9PX29/j5+v/EAB8BAAMBAQEBAQEBAQEAAAAAAAABAgMEBQYHCAkKC//EALURAAIBAgQEAwQHBQQEAAECdwABAgMRBAUhMQYSQVEHYXETIjKBCBRCkaGxwQkjM1LwFWJy0QoWJDThJfEXGBkaJicoKSo1Njc4OTpDREVGR0hJSlNUVVZXWFlaY2RlZmdoaWpzdHV2d3h5eoKDhIWGh4iJipKTlJWWl5iZmqKjpKWmp6ipqrKztLW2t7i5usLDxMXGx8jJytLT1NXW19jZ2uLj5OXm5+jp6vLz9PX29/j5+v/bAEMAAgICAgICAwICAwUDAwMFBgUFBQUGCAYGBgYGCAoICAgICAgKCgoKCgoKCgwMDAwMDA4ODg4ODw8PDw8PDw8PD//bAEMBAgICBAQEBwQEBxALCQsQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEP/dAAQAAf/aAAwDAQACEQMRAD8A/fyiiigD/9k=";
 
 async function taskInFreshRoom() {
   const db = new pg.Client({ connectionString: DB_URL });
@@ -148,5 +151,17 @@ test("đăng xuất: còn bản nháp chưa đồng bộ thì hỏi trước; m�
   await page.getByRole("button", { name: "Bỏ dữ liệu và đăng xuất" }).click();
   await page.waitForURL("**/dang-nhap");
   await expect.poll(() => page.evaluate(async () => ({ dbs: (await indexedDB.databases()).filter((d) => d.name?.startsWith("zsopo-ops")).length, caches: (await caches.keys()).filter((k) => k.startsWith("ops-pages")).length }))).toEqual({ dbs: 0, caches: 0 });
+  await db.end();
+});
+
+test("BP01: chụp ảnh cho một mục, đồng bộ xong có đúng một ảnh trên server", async ({ page }) => {
+  const { db, taskId } = await taskInFreshRoom();
+  await login(page, `/ops/buong-phong/${taskId}`);
+  await controlled(page);
+  await page.getByLabel(/^Ảnh: Kiểm tra đồ khách để quên/).setInputFiles({ name: "do-quen.jpg", mimeType: "image/jpeg", buffer: Buffer.from(JPEG_1PX_BASE64, "base64") });
+  await page.getByRole("button", { name: "Đạt", exact: true }).nth(2).click();
+  await expect(page.getByRole("status").filter({ hasText: "Đã lưu" })).toHaveCount(1);
+  const { rows } = await db.query(`select cardinality(media_ids)::int n from stay.checklist_results where task_id = $1 and item_code = 'G2-1'`, [taskId]);
+  expect(rows).toEqual([{ n: 1 }]);
   await db.end();
 });

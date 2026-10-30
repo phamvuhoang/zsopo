@@ -3,7 +3,7 @@
 import type { ChecklistOp } from "@zsopo/core";
 import { useEffect, useState } from "react";
 import { ActionForm } from "@/components/action-form";
-import { SYNC_EVENT, enqueue, opsForTask } from "@/lib/pwa/queue";
+import { SYNC_EVENT, enqueue, opsForTask, saveMediaDraft } from "@/lib/pwa/queue";
 import { syncNow } from "@/lib/pwa/sync";
 import { applyChecklistOp, submitInspection } from "./actions";
 import { ChecklistForm, type ChecklistItem } from "./checklist-form";
@@ -37,9 +37,11 @@ export function OfflineChecklist(props: { userId: string; locationId: string; en
     return () => window.removeEventListener(SYNC_EVENT, onSync);
   }, [props.userId, props.taskId]);
 
-  const send = async (op: ChecklistOp) => {
+  const send = async (op: ChecklistOp, files: File[] = []) => {
     try {
-      await enqueue(props.userId, op);
+      const drafts: string[] = [];
+      for (const f of files) drafts.push(await saveMediaDraft(props.userId, props.taskId, f));
+      await enqueue(props.userId, op, drafts); // syncNow uploads the drafts and fills op.mediaIds
     } catch (e) {
       return { error: e instanceof Error ? e.message : "Không lưu được" };
     }

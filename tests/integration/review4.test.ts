@@ -6,7 +6,7 @@ import { transitionBooking } from "../../packages/api/src/ops";
 import { getGuestReceipt, recordPayment } from "../../packages/api/src/payments";
 import { transitionFulfillment } from "../../packages/api/src/shop";
 import { quoteStay } from "../../packages/api/src/stay";
-import { E1, E2, L1, USERS, aal2ClientFor, anonClient, asAal2, clientFor, db, heldBooking, move, onHand, placeShop, seedRoom, seedSku, sql } from "./helpers";
+import { E1, E2, L1, L2, USERS, aal2ClientFor, anonClient, asAal2, clientFor, db, heldBooking, move, onHand, placeShop, seedRoom, seedSku, sql } from "./helpers";
 
 afterAll(() => db.end());
 
@@ -338,5 +338,20 @@ describe("review4 #14 biên nhận khách cộng đúng tổng", () => {
     expect(sumLines(rc.data)).toBe(Number(rc.data.total));
     expect(rc.data.lines.filter((l) => l.cancelled).map((l) => l.amount)).toEqual(["200000"]);
     expect(rc.data.lines.some((l) => l.title.startsWith("Trả hàng") && !l.cancelled && l.amount === "-200000")).toBe(true);
+  });
+});
+
+describe("review4 G1 ảnh checklist (kho evidence)", () => {
+  const jpeg = new Blob([new Uint8Array([0xff, 0xd8, 0xff, 0xd9])], { type: "image/jpeg" });
+  it("G1 buồng phòng tải ảnh lên đúng cơ sở của mình và đọc lại được; cơ sở khác và khách ẩn danh thì bị từ chối", async () => {
+    const hk = await clientFor(USERS.housekeeping);
+    const own = `${L1}/${randomUUID()}/${randomUUID()}.jpg`;
+    const up = await hk.storage.from("evidence").upload(own, jpeg, { contentType: "image/jpeg", upsert: true });
+    expect(up.error).toBeNull();
+    expect((await hk.storage.from("evidence").download(own)).error).toBeNull();
+    const other = await hk.storage.from("evidence").upload(`${L2}/${randomUUID()}/${randomUUID()}.jpg`, jpeg, { contentType: "image/jpeg" });
+    expect(other.error).not.toBeNull();
+    const anon = await anonClient().storage.from("evidence").upload(`${L1}/${randomUUID()}/${randomUUID()}.jpg`, jpeg, { contentType: "image/jpeg" });
+    expect(anon.error).not.toBeNull();
   });
 });
