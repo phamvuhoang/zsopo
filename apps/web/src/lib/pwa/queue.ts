@@ -22,7 +22,7 @@ export async function saveMediaDraft(userId: string, taskId: string, file: File)
   const used = (await db.mediaDrafts.toArray()).reduce((a, m) => a + m.size, 0);
   if (used + file.size > MEDIA_MAX_BYTES) throw new Error("Ảnh chờ đồng bộ đã đầy (20MB). Hãy đồng bộ trước khi chụp thêm.");
   const id = crypto.randomUUID();
-  await db.mediaDrafts.put({ id, taskId, blob: file, mime: file.type || "image/jpeg", size: file.size, createdAt: Date.now() });
+  await db.mediaDrafts.put({ id, taskId, blob: file, mime: file.type, size: file.size, createdAt: Date.now() });
   return id;
 }
 

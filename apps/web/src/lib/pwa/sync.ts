@@ -5,6 +5,9 @@ import { SYNC_EVENT } from "./queue";
 
 type Apply = (op: ChecklistOp) => Promise<SyncResult | { error: string }>;
 
+/** An HTTP 4xx fails the same way on every retry, so it rejects the op instead of blocking the queue. Network (no status), 5xx, auth, timeout and rate limit are retried. */
+const refused = (status?: number) => !!status && status >= 400 && status < 500 && ![401, 408, 429].includes(status);
+
 /**
  * Upload offline photos (private evidence bucket, staff-scoped path) and register media rows.
  * Drafts stay on the device until the op is final, so a retry after a failed apply uploads again
@@ -19,11 +22,17 @@ async function uploadDrafts(userId: string, locationId: string, entityId: string
     if (!d) return { error: "Ảnh chờ gửi không còn trên thiết bị (quá 7 ngày hoặc đã bị xóa)" }; // never apply the answer without its photo
     const path = `${locationId}/${d.taskId}/${id}.jpg`;
     const up = await supabase.storage.from("evidence").upload(path, d.blob, { contentType: d.mime, upsert: true });
-    if (up.error) throw new Error(up.error.message);
-    const { data, error } = await supabase.schema("core").from("media")
+    if (up.error) {
+      if (refused(up.error.status)) return { error: `Kho ảnh không nhận ảnh chờ gửi: ${up.error.message}` };
+      throw new Error(up.error.message);
+    }
+    const { data, error, status } = await supabase.schema("core").from("media")
       .insert({ id, entity_id: entityId, location_id: locationId, bucket: "evidence", path, classification: "evidence", alt: "Ảnh checklist buồng phòng", mime: d.mime, bytes: d.size, owner_id: userId })
       .select("id").maybeSingle();
-    if (error && !/duplicate/.test(error.message)) throw new Error(error.message);
+    if (error && !/duplicate/.test(error.message)) {
+      if (refused(status)) return { error: `Không ghi được ảnh chờ gửi: ${error.message}` };
+      throw new Error(error.message);
+    }
     out.push(data?.id ?? id);
   }
   return out;

@@ -8,9 +8,9 @@ export const MEDIA_MAX_BYTES = 20 * 1024 * 1024;
 /** Per photo; mirrors the `evidence` bucket (file_size_limit, allowed_mime_types in 202612010005_offline_ops.sql). */
 export const PHOTO_MAX_BYTES = 10 * 1024 * 1024;
 export const PHOTO_TYPES = ["image/jpeg", "image/png", "image/webp"];
-/** A photo the bucket would refuse makes the whole queue retry forever, so refuse it before it is queued. */
+/** Refuse what the bucket would refuse before it is queued. An empty type is refused too: storage sends it as application/octet-stream. */
 export const photoError = (f: File): string | null =>
-  f.size > PHOTO_MAX_BYTES || !PHOTO_TYPES.includes(f.type || "image/jpeg") ? `Ảnh "${f.name}" không dùng được: chỉ nhận JPEG, PNG hoặc WebP, tối đa 10MB` : null;
+  f.size > PHOTO_MAX_BYTES || !PHOTO_TYPES.includes(f.type) ? `Ảnh "${f.name}" không dùng được: chỉ nhận JPEG, PNG hoặc WebP, tối đa 10MB` : null;
 /** Mirrors OFFLINE_PAGES in public/ops-sw.js. */
 export const OFFLINE_PAGES = [/^\/ops\/?$/, /^\/ops\/buong-phong(\/[0-9a-f-]{36})?\/?$/, /^\/ops\/huong-dan\/?$/];
 

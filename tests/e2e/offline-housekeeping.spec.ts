@@ -176,6 +176,15 @@ test("BP01: ảnh sai loại hoặc quá 10MB bị chặn ngay khi chọn, khôn
   await expect(err).toHaveCount(1);
   await photo.setInputFiles({ name: "to.jpg", mimeType: "image/jpeg", buffer: Buffer.alloc(10 * 1024 * 1024 + 1) });
   await expect(err).toHaveCount(1);
+  // No MIME type at all (HEIC on desktop Chrome, some Android pickers): storage would send it as application/octet-stream and the bucket refuses it.
+  // Built in the page because setInputFiles fills an empty mimeType from the file name.
+  await photo.evaluate((el: HTMLInputElement, b64) => {
+    const dt = new DataTransfer();
+    dt.items.add(new File([Uint8Array.from(atob(b64), (c) => c.charCodeAt(0))], "khong-loai.jpg"));
+    el.files = dt.files;
+    el.dispatchEvent(new Event("change", { bubbles: true }));
+  }, JPEG_1PX_BASE64);
+  await expect(err.filter({ hasText: '"khong-loai.jpg"' })).toHaveCount(1);
   // The rejected files are not kept: the answer goes through with no photo, and nothing waits on the device.
   await page.getByRole("button", { name: "Đạt", exact: true }).nth(2).click();
   await expect(page.getByRole("status").filter({ hasText: "Đã lưu" })).toHaveCount(1);
@@ -229,5 +238,36 @@ test("BP01: ảnh chờ gửi đã mất khỏi thiết bị thì việc bị t�
   await page.getByRole("button", { name: "Đồng bộ ngay" }).click();
   await expect(page.getByText(/Ảnh chờ gửi không còn trên thiết bị/)).toBeVisible();
   expect((await db.query(`select 1 from stay.checklist_results where task_id = $1`, [taskId])).rows).toHaveLength(0);
+  await db.end();
+});
+
+test("BP01: kho ảnh từ chối ảnh chờ gửi thì việc đó bị từ chối kèm lý do, việc xếp sau vẫn đồng bộ", async ({ page, context }) => {
+  const { db, taskId } = await taskInFreshRoom();
+  await login(page, `/ops/buong-phong/${taskId}`);
+  await controlled(page);
+  await context.setOffline(true);
+  const pass = page.getByRole("button", { name: "Đạt", exact: true });
+  await page.getByLabel(/^Ảnh: Kiểm tra đồ khách để quên/).setInputFiles({ name: "do-quen.jpg", mimeType: "image/jpeg", buffer: Buffer.from(JPEG_1PX_BASE64, "base64") });
+  await pass.nth(2).click(); // G2-1 with the photo, queued first
+  await pass.first().click(); // G1-1, queued after it
+  await expect(page.getByText(/Chờ đồng bộ \(2\)/)).toBeVisible();
+  await page.evaluate(async () => { // a draft saved with no MIME type (before the pick-time check): the bucket answers 400 "mime type application/octet-stream is not supported"
+    const name = (await indexedDB.databases()).find((d) => d.name?.startsWith("zsopo-ops"))!.name!;
+    const idb: IDBDatabase = await new Promise((ok) => { const q = indexedDB.open(name); q.onsuccess = () => ok(q.result); });
+    await new Promise((ok) => {
+      const t = idb.transaction("mediaDrafts", "readwrite");
+      t.objectStore("mediaDrafts").openCursor().onsuccess = (e) => {
+        const c = (e.target as IDBRequest<IDBCursorWithValue | null>).result;
+        if (c) { c.update({ ...c.value, blob: new Blob([c.value.blob]) }); c.continue(); }
+      };
+      t.oncomplete = () => ok(null);
+    });
+    idb.close();
+  });
+  await context.setOffline(false);
+  await page.getByRole("button", { name: "Đồng bộ ngay" }).click();
+  await expect(page.getByText(/Máy chủ từ chối \(Kho ảnh không nhận ảnh chờ gửi/)).toBeVisible();
+  await expect(page.getByText("Đã đồng bộ", { exact: true })).toBeVisible();
+  expect((await db.query(`select item_code from stay.checklist_results where task_id = $1`, [taskId])).rows).toEqual([{ item_code: "G1-1" }]);
   await db.end();
 });
