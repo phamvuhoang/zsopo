@@ -184,8 +184,9 @@ begin
           coalesce(array(select jsonb_array_elements_text(p -> 'stones')), '{}'), coalesce(array(select jsonb_array_elements_text(p -> 'chakras')), '{}'),
           nullif(p ->> 'videoUrl', ''), case when coalesce(p ->> 'purpose', '') <> '' and coalesce(p ->> 'origin', '') <> '' and coalesce(p ->> 'usage', '') <> '' then 'published' else 'draft' end)
   returning id into v_card;
-  insert into shop.products(entity_id, category_id, slug, name, summary, origin, usage, energy_card_id)
-  values (v_entity, (p ->> 'categoryId')::uuid, p ->> 'slug', p ->> 'name', coalesce(p ->> 'purpose', ''), coalesce(p ->> 'origin', ''), coalesce(p ->> 'usage', ''), v_card)
+  insert into shop.products(entity_id, category_id, slug, name, summary, origin, usage, energy_card_id, requires_ritual)
+  values (v_entity, (p ->> 'categoryId')::uuid, p ->> 'slug', p ->> 'name', coalesce(p ->> 'purpose', ''), coalesce(p ->> 'origin', ''), coalesce(p ->> 'usage', ''), v_card,
+          coalesce((p ->> 'requiresRitual')::boolean, false))
   returning id into v_product;
   insert into shop.product_variants(entity_id, product_id, sku, name, price) values (v_entity, v_product, upper(p ->> 'sku'), coalesce(nullif(p ->> 'variantName', ''), 'Tiêu chuẩn'), (p ->> 'price')::bigint)
   returning id into v_variant;

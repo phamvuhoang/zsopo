@@ -118,14 +118,14 @@ begin
 
   -- Server-side pricing.
   for l in select * from jsonb_array_elements(p_lines) loop
-    select pv.id, pv.price, pv.entity_id, pr.name || ' - ' || pv.name as name, pr.ritual_slug into v
+    select pv.id, pv.price, pv.entity_id, pr.name || ' - ' || pv.name as name, pr.requires_ritual into v
     from shop.product_variants pv join shop.products pr on pr.id = pv.product_id and pr.status = 'published'
     where pv.id = (l ->> 'variantId')::uuid and pv.active;
     if not found then perform core.fail('SOLD_OUT', 'Một sản phẩm không còn bán'); end if;
     if coalesce((l ->> 'qty')::int, 0) not between 1 and 50 then perform core.fail('VALIDATION', 'Số lượng không hợp lệ'); end if;
     v_entity := v.entity_id;
     v_sub := v_sub + v.price * (l ->> 'qty')::int;
-    v_ritual := v_ritual or v.ritual_slug is not null;
+    v_ritual := v_ritual or v.requires_ritual;
   end loop;
   rule := shop.rule_for(v_entity, p_address ->> 'regionCode');
   v_ship := case when rule.free_threshold is not null and v_sub >= rule.free_threshold then 0 else coalesce(rule.fee, 0) end;

@@ -36,6 +36,7 @@ export default async function ProductsAdmin() {
           <Field label="Cách dùng / nghi lễ"><textarea name="usage" className={inputCls} /></Field>
           <Field label="Đá (dấu phẩy)"><input name="stones" className={inputCls} /></Field>
           <Field label="Video nghi lễ (YouTube)"><input name="videoUrl" type="url" className={inputCls} /></Field>
+          <label className="flex min-h-11 items-center gap-2 text-sm md:col-span-2"><input type="checkbox" name="requiresRitual" />Cần nghi lễ 24 giờ trước khi giao</label>
           <fieldset className="md:col-span-2"><legend className="text-xs">Luân xa</legend><div className="flex flex-wrap gap-3">{CHAKRAS.map((c) => <label key={c} className="flex min-h-11 items-center gap-1 text-sm"><input type="checkbox" name="chakras" value={c} />{CHAKRA_LABEL[c]}</label>)}</div></fieldset>
         </ActionForm>
       </section>

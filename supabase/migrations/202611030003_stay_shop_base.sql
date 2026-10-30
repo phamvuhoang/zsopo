@@ -65,6 +65,8 @@ create table shop.products (
   photo_ids uuid[] not null default '{}',
   energy_card_id uuid,
   ritual_slug text,
+  -- ritual_slug only powers the /la QR guide page; this flag alone gates the 24h hold at checkout.
+  requires_ritual boolean not null default false,
   status text not null default 'draft' check (status in ('draft','published','archived')),
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now(),

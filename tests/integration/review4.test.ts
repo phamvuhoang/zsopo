@@ -450,3 +450,20 @@ describe("review4 G3 COD quá hạn xác nhận", () => {
     expect([await flagged(fresh.data.orderId), await flagged(confirmed.data.orderId), await flagged(bank.data.orderId)]).toEqual([0, 0, 0]);
   });
 });
+
+describe("review4 S1 cờ nghi lễ 24h theo sản phẩm", () => {
+  it("S1 sản phẩm có trang nghi lễ QR nhưng không cần nghi lễ 24h thì đơn không bị giữ", async () => {
+    const { productId, variantId } = await seedSku({ onHand: 2 });
+    await sql(`update shop.products set ritual_slug = 'nghi-le-thu', requires_ritual = false where id = $1`, [productId]);
+    const r = await placeShop(variantId, "cod");
+    if (!r.ok) throw new Error(r.error.message);
+    expect((await sql(`select ritual_required from commerce.orders where id = $1`, [r.data.orderId]))[0]!.ritual_required).toBe(false);
+  });
+  it("S1 sản phẩm đánh dấu cần nghi lễ thì đơn bị giữ 24h", async () => {
+    const { productId, variantId } = await seedSku({ onHand: 2 });
+    await sql(`update shop.products set requires_ritual = true where id = $1`, [productId]);
+    const r = await placeShop(variantId, "cod");
+    if (!r.ok) throw new Error(r.error.message);
+    expect((await sql(`select ritual_required from commerce.orders where id = $1`, [r.data.orderId]))[0]!.ritual_required).toBe(true);
+  });
+});

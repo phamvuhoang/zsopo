@@ -145,7 +145,7 @@ from stay.rooms where location_id = 'c0000000-0000-4000-8000-000000000001';
 insert into stay.rate_plans(entity_id, location_id, room_id, kind, dow, price, label)
 select rp.entity_id, rp.location_id, rp.room_id, 'weekday', d, rp.price + 200000, 'Cuối tuần'
 from stay.rate_plans rp cross join unnest(array[5,6]) d where rp.kind = 'base';
--- Holiday sample: 24-26/12 (+500.000 đ).
+-- Giáng sinh: đêm 24 và 25/12 (+500.000 đ); daterange nửa mở nên đêm 26 không tính.
 insert into stay.rate_plans(entity_id, location_id, room_id, kind, date_range, price, label)
 select entity_id, location_id, room_id, 'date', daterange('2026-12-24','2026-12-26'), price + 500000, 'Giáng sinh'
 from stay.rate_plans where kind = 'base';
@@ -274,6 +274,9 @@ insert into shop.products(id, entity_id, category_id, slug, name, summary, origi
 ('f0000000-0000-4000-8000-000000000022','e0000000-0000-4000-8000-000000000001',(select id from shop.categories where slug='in-an-va-thoi-trang'),'tui-canvas-mandala','Túi canvas mandala','','In lụa thủ công','','d1000000-0000-4000-8000-000000000022','nghi-le-tui-canvas-mandala','published'),
 ('f0000000-0000-4000-8000-000000000023','e0000000-0000-4000-8000-000000000001',(select id from shop.categories where slug='in-an-va-thoi-trang'),'bo-la-bai-nang-luong-44-la','Bộ lá bài năng lượng 44 lá','Rút một lá mỗi sáng, mỗi lá có QR bài thiền.','Thiết kế ZSOPO','Quét QR mặt sau lá bài.','d1000000-0000-4000-8000-000000000023','nghi-le-bo-la-bai-nang-luong-44-la','published'),
 ('f0000000-0000-4000-8000-000000000024','e0000000-0000-4000-8000-000000000001',(select id from shop.categories where slug='da-va-vat-pham'),'vong-tay-da-mat-trang','Vòng tay đá mặt trăng','Mềm mại với chu kỳ cảm xúc.','Ấn Độ','Đeo tay trái vào kỳ trăng non.','d1000000-0000-4000-8000-000000000024','nghi-le-vong-tay-da-mat-trang','published');
+-- Fixture: sản phẩm cần nghi lễ 24h trước khi giao (chọn tạm: đá và combo tâm linh), chờ chủ cơ sở duyệt.
+update shop.products set requires_ritual = true
+where category_id in (select id from shop.categories where slug in ('da-va-vat-pham','combo-tam-linh'));
 insert into shop.product_variants(id, entity_id, product_id, sku, name, price) values
 ('f1000000-0000-4000-8000-000001000001','e0000000-0000-4000-8000-000000000001','f0000000-0000-4000-8000-000000000001','ZS-001-1','Size S (14-15cm)',380000),
 ('f1000000-0000-4000-8000-000001000002','e0000000-0000-4000-8000-000000000001','f0000000-0000-4000-8000-000000000001','ZS-001-2','Size M (16-17cm)',380000),

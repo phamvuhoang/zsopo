@@ -1469,14 +1469,14 @@ isOneToOne: false
                   ]
                 },"products": {
                   Row: {
-                    "category_id": string,"created_at": string,"description": string,"energy_card_id": string | null,"entity_id": string,"id": string,"name": string,"origin": string,"photo_ids": (string)[],"ritual_slug": string | null,"slug": string,"status": string,"summary": string,"updated_at": string,"usage": string,"version": number
+                    "category_id": string,"created_at": string,"description": string,"energy_card_id": string | null,"entity_id": string,"id": string,"name": string,"origin": string,"photo_ids": (string)[],"requires_ritual": boolean,"ritual_slug": string | null,"slug": string,"status": string,"summary": string,"updated_at": string,"usage": string,"version": number
                   }
                   ComputedFields: never
                   Insert: {
-                    "category_id": string,"created_at"?: string,"description"?: string,"energy_card_id"?: string | null,"entity_id": string,"id"?: string,"name": string,"origin"?: string,"photo_ids"?: (string)[],"ritual_slug"?: string | null,"slug": string,"status"?: string,"summary"?: string,"updated_at"?: string,"usage"?: string,"version"?: number
+                    "category_id": string,"created_at"?: string,"description"?: string,"energy_card_id"?: string | null,"entity_id": string,"id"?: string,"name": string,"origin"?: string,"photo_ids"?: (string)[],"requires_ritual"?: boolean,"ritual_slug"?: string | null,"slug": string,"status"?: string,"summary"?: string,"updated_at"?: string,"usage"?: string,"version"?: number
                   }
                   Update: {
-                    "category_id"?: string,"created_at"?: string,"description"?: string,"energy_card_id"?: string | null,"entity_id"?: string,"id"?: string,"name"?: string,"origin"?: string,"photo_ids"?: (string)[],"ritual_slug"?: string | null,"slug"?: string,"status"?: string,"summary"?: string,"updated_at"?: string,"usage"?: string,"version"?: number
+                    "category_id"?: string,"created_at"?: string,"description"?: string,"energy_card_id"?: string | null,"entity_id"?: string,"id"?: string,"name"?: string,"origin"?: string,"photo_ids"?: (string)[],"requires_ritual"?: boolean,"ritual_slug"?: string | null,"slug"?: string,"status"?: string,"summary"?: string,"updated_at"?: string,"usage"?: string,"version"?: number
                   }
                   Relationships: [
                     {

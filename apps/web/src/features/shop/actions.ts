@@ -18,7 +18,7 @@ export async function createProduct(_: ActionState, f: FormData): Promise<Action
   const list = (k: string) => (str(f, k) ?? "").split(",").map((s) => s.trim()).filter(Boolean);
   const r = await rpcAction("shop", "create_product", { p: {
     entityId: str(f, "entityId"), categoryId: str(f, "categoryId"), name, slug, sku: str(f, "sku"), variantName: str(f, "variantName"), price: int(f, "price"),
-    purpose: str(f, "purpose"), origin: str(f, "origin"), usage: str(f, "usage"), frequency: str(f, "frequency"), stones: list("stones"), chakras: f.getAll("chakras").map(String), videoUrl: str(f, "videoUrl"),
+    purpose: str(f, "purpose"), origin: str(f, "origin"), usage: str(f, "usage"), frequency: str(f, "frequency"), stones: list("stones"), chakras: f.getAll("chakras").map(String), videoUrl: str(f, "videoUrl"), requiresRitual: f.get("requiresRitual") === "on",
   } }, "Đã tạo sản phẩm nháp. Kiểm tra bảng năng lượng rồi mở bán.");
   revalidatePath("/admin/san-pham");
   return r;

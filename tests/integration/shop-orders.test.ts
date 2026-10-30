@@ -79,7 +79,7 @@ describe("checkout shop", () => {
 
   it("nghi lễ 24h: chưa đủ 24h không chuyển sang sẵn sàng gửi", async () => {
     const { variantId, productId } = await seedSku({ onHand: 2 });
-    await sql(`update shop.products set ritual_slug = 'nghi-le-thu' where id = $1`, [productId]);
+    await sql(`update shop.products set requires_ritual = true where id = $1`, [productId]);
     const r = await place(variantId);
     if (!r.ok) throw new Error(r.error.message);
     for (const to of ["confirmed", "packing", "ritual_hold"]) expect((await move(r.data.orderId, to)).ok).toBe(true);
