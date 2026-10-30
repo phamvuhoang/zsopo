@@ -55,17 +55,19 @@ test("BP04: quản lý đặt lịch khu chung hằng tuần và thấy trong da
   await mgr.page.getByLabel("Thứ (hằng tuần)").selectOption({ label: "Thứ 3" });
   await mgr.page.getByRole("button", { name: "Lưu lịch" }).click();
   await expect(mgr.page.getByRole("status").filter({ hasText: "Đã lưu lịch khu chung" })).toBeVisible();
-  await mgr.page.reload();
+  // No reload: saving must refresh the list on its own.
   await expect(mgr.page.getByText("Sảnh: Hằng tuần, Thứ 3")).toBeVisible();
   await mgr.ctx.close();
 
-  const hk = await staff(browser, "buong-phong@example.test", "/ops/lich-don");
-  await expect(hk.page.getByText("Sảnh: Hằng tuần, Thứ 3")).toBeVisible();
-  await expect(hk.page.getByRole("button", { name: "Lưu lịch" })).toHaveCount(0);
-  await hk.ctx.close();
-
   const db = new pg.Client({ connectionString: DB_URL });
   await db.connect();
-  await db.query(`delete from stay.common_area_schedules where location_id = 'c0000000-0000-4000-8000-000000000001'`);
-  await db.end();
+  try {
+    const hk = await staff(browser, "buong-phong@example.test", "/ops/lich-don");
+    await expect(hk.page.getByText("Sảnh: Hằng tuần, Thứ 3")).toBeVisible();
+    await expect(hk.page.getByRole("button", { name: "Lưu lịch" })).toHaveCount(0);
+    await hk.ctx.close();
+  } finally {
+    await db.query(`delete from stay.common_area_schedules where location_id = 'c0000000-0000-4000-8000-000000000001' and area = 'Sảnh'`);
+    await db.end();
+  }
 });

@@ -386,7 +386,7 @@ describe("review4 R7 media upload policy", () => {
 describe("review4 G2 lịch dọn khu chung", () => {
   it("G2 lịch khu chung: hằng ngày mỗi ngày một việc, hằng tuần đúng thứ, chạy lại không trùng, chỉ quản lý được đặt lịch", async () => {
     const [loc] = await sql<{ id: string }>(`insert into core.locations(entity_id, slug, name, status) values ($1, 'kc-' || substr(md5(random()::text),1,8), 'Điểm khu chung', 'test') returning id`, [E1]);
-    await sql(`insert into stay.common_area_schedules(location_id, area, frequency, day) values ($1, 'Sảnh', 'daily', null), ($1, 'Sân vườn', 'weekly', 1)`, [loc!.id]);
+    await sql(`insert into stay.common_area_schedules(location_id, area, frequency, day) values ($1, 'Sảnh', 'daily', null), ($1, 'Sân vườn', 'weekly', 1), ($1, 'Hồ bơi', 'weekly', 7), ($1, 'Bếp', 'monthly', 15)`, [loc!.id]);
     const count = async (d: string) => (await sql<{ n: number }>(`select count(*)::int n from stay.housekeeping_tasks
       where location_id = $1 and kind = 'common' and (due_at at time zone 'Asia/Ho_Chi_Minh')::date = $2::date`, [loc!.id, d]))[0]!.n;
     await sql(`select stay.create_due_common_tasks('2031-01-06')`); // thứ Hai
@@ -394,6 +394,12 @@ describe("review4 G2 lịch dọn khu chung", () => {
     expect(await count("2031-01-06")).toBe(2);
     await sql(`select stay.create_due_common_tasks('2031-01-07')`); // thứ Ba
     expect(await count("2031-01-07")).toBe(1);
+    const areas = async (d: string) => (await sql<{ a: string }>(`select area_code a from stay.housekeeping_tasks where location_id = $1 and kind = 'common'
+      and (due_at at time zone 'Asia/Ho_Chi_Minh')::date = $2::date order by 1`, [loc!.id, d])).map((r) => r.a);
+    await sql(`select stay.create_due_common_tasks('2031-01-12')`); // Chủ nhật: isodow 7
+    expect(await areas("2031-01-12")).toEqual(["Hồ bơi", "Sảnh"]);
+    await sql(`select stay.create_due_common_tasks('2031-01-15')`); // ngày 15 hằng tháng
+    expect(await areas("2031-01-15")).toEqual(["Bếp", "Sảnh"]);
     const fd = await (await clientFor(USERS.frontDesk)).schema("stay").rpc("set_common_schedule", { p_location: L1, p_area: "Sảnh", p_frequency: "daily", p_day: null });
     expect(fd.error?.message).toBe("FORBIDDEN");
   });
