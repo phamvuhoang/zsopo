@@ -154,6 +154,7 @@ declare cur content.posts;
 begin
   select * into cur from content.posts where id = p_post;
   if cur.published_at is not null and s ->> 'slug' <> cur.slug then
+    delete from content.redirects where from_path = '/blog/' || (s ->> 'slug');
     insert into content.redirects(from_path, to_path) values ('/blog/' || cur.slug, '/blog/' || (s ->> 'slug'))
     on conflict (from_path) do update set to_path = excluded.to_path;
     update content.redirects set to_path = '/blog/' || (s ->> 'slug') where to_path = '/blog/' || cur.slug;

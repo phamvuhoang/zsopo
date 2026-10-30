@@ -56,6 +56,17 @@ describe("CMS workflow, revision, lịch đăng", () => {
     expect(await sql(`select 1 from content.redirects where from_path = $1 and to_path = $2`, [`/blog/${old!.slug}`, `/blog/${old!.slug}-moi`])).toHaveLength(1);
   });
 
+  it("đổi slug A -> B -> C -> A: không redirect vòng, /blog/A không bị redirect", async () => {
+    const { ed, id } = await draft("Bài đổi slug vòng");
+    const pub = async () => ed.schema("content").rpc("publish_content", { p_post: id, p_expected_version: await version(id), p_scheduled_at: null });
+    const rename = async (slug: string) => ed.schema("content").rpc("save_post", { p: { id, entityId: E1, slug, title: "Bài đổi slug vòng", bodyMd: "x", expectedVersion: await version(id) } });
+    await pub();
+    const [a] = await sql<{ slug: string }>(`select slug from content.posts where id = $1`, [id]);
+    for (const s of [`${a!.slug}-b`, `${a!.slug}-c`, a!.slug]) { await rename(s); expect((await pub()).error).toBeNull(); }
+    expect(await sql(`select 1 from content.redirects where from_path = $1`, [`/blog/${a!.slug}`])).toHaveLength(0);
+    expect(await sql(`select 1 from content.redirects where from_path = $1 and to_path = $2`, [`/blog/${a!.slug}-b`, `/blog/${a!.slug}`])).toHaveLength(1);
+  });
+
   it("biên tập viên không xem đơn hàng/khách hàng", async () => {
     const ed = await clientFor(USERS.editor);
     expect((await ed.schema("commerce").from("orders").select("id").limit(1)).data).toEqual([]);
