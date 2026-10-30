@@ -1,0 +1,40 @@
+{
+ "_provenance": "fake tenants for local/staging and RLS tests",
+ "entities": [
+  {
+   "id": "e0000000-0000-4000-8000-000000000001",
+   "code": "ZS-SPACE",
+   "name": "ZSOPO Space (pháp nhân vận hành, giả lập)",
+   "kind": "operating"
+  },
+  {
+   "id": "e0000000-0000-4000-8000-000000000002",
+   "code": "TEST-B",
+   "name": "Pháp nhân thử nghiệm B",
+   "kind": "operating"
+  }
+ ],
+ "locations": [
+  {
+   "id": "c0000000-0000-4000-8000-000000000001",
+   "entityId": "e0000000-0000-4000-8000-000000000001",
+   "slug": "da-lat",
+   "name": "Zen Homestay Đà Lạt",
+   "status": "active"
+  },
+  {
+   "id": "c0000000-0000-4000-8000-000000000002",
+   "entityId": "e0000000-0000-4000-8000-000000000001",
+   "slug": "diem-thu-nghiem-2",
+   "name": "Điểm thử nghiệm 2 (RLS)",
+   "status": "test"
+  },
+  {
+   "id": "c0000000-0000-4000-8000-000000000003",
+   "entityId": "e0000000-0000-4000-8000-000000000002",
+   "slug": "diem-thu-nghiem-b",
+   "name": "Điểm thử nghiệm B (RLS)",
+   "status": "test"
+  }
+ ]
+}

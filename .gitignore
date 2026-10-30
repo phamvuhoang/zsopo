@@ -1,2 +1,15 @@
 node_modules/
 .superpowers/
+.next/
+.turbo/
+out/
+coverage/
+test-results/
+playwright-report/
+*.tsbuildinfo
+.env
+.env.*
+!.env.example
+supabase/.temp/
+supabase/.branches/
+.DS_Store

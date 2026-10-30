@@ -1,0 +1,38 @@
+{
+  "name": "zsopo",
+  "private": true,
+  "packageManager": "pnpm@12.15.0",
+  "engines": {
+    "node": ">=24.11.0"
+  },
+  "scripts": {
+    "dev": "pnpm --filter web dev",
+    "build": "turbo run build",
+    "lint": "turbo run lint",
+    "typecheck": "turbo run typecheck",
+    "test:unit": "vitest run --project unit",
+    "test:integration": "vitest run --project integration",
+    "test:db": "supabase test db",
+    "test:e2e": "playwright test",
+    "check:rls": "node scripts/check-rls.mjs",
+    "check:types": "node scripts/check-types.mjs",
+    "check:seed": "node scripts/seed-validate.mjs",
+    "check:client-secrets": "node scripts/check-client-secrets.mjs",
+    "db:reset": "supabase db reset",
+    "db:types": "supabase gen types typescript --local --schema public,core,commerce,stay,shop,content,crm,ops_config > packages/db/src/database.types.ts"
+  },
+  "devDependencies": {
+    "@axe-core/playwright": "4.14.0",
+    "@playwright/test": "1.64.1",
+    "@supabase/supabase-js": "2.118.0",
+    "@types/node": "24.19.2",
+    "@types/pg": "8.23.1",
+    "ical.js": "2.2.1",
+    "pg": "8.23.1",
+    "supabase": "2.122.0",
+    "turbo": "2.11.10",
+    "typescript": "6.0.3",
+    "vitest": "5.0.5"
+  },
+  "type": "module"
+}

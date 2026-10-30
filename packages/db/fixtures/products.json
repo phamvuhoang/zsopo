@@ -1,0 +1,708 @@
+{
+ "_provenance": "prepare/design/data/zs-shop-data.js: QA seed only; rating/sold/give/lot removed; not approved SKUs",
+ "categories": [
+  {
+   "slug": "da-va-vat-pham",
+   "name": "Đá và vật phẩm",
+   "sort": 0
+  },
+  {
+   "slug": "dung-cu-thien",
+   "name": "Dụng cụ thiền",
+   "sort": 1
+  },
+  {
+   "slug": "trang-suc",
+   "name": "Trang sức",
+   "sort": 2
+  },
+  {
+   "slug": "duoc-lieu-cong-thuc-rieng",
+   "name": "Dược liệu công thức riêng",
+   "sort": 3
+  },
+  {
+   "slug": "nong-san-kho-chay",
+   "name": "Nông sản khô chay",
+   "sort": 4
+  },
+  {
+   "slug": "gia-vi-rung",
+   "name": "Gia vị rừng",
+   "sort": 5
+  },
+  {
+   "slug": "muoi",
+   "name": "Muối",
+   "sort": 6
+  },
+  {
+   "slug": "combo-tam-linh",
+   "name": "Combo tâm linh",
+   "sort": 7
+  },
+  {
+   "slug": "in-an-va-thoi-trang",
+   "name": "In ấn và thời trang",
+   "sort": 8
+  }
+ ],
+ "products": [
+  {
+   "id": "f0000000-0000-4000-8000-000000000001",
+   "category": "da-va-vat-pham",
+   "slug": "vong-tay-thach-anh-hong-8-ly",
+   "name": "Vòng tay thạch anh hồng 8 ly",
+   "price": 380000,
+   "chakra": "heart",
+   "goal": "Bình an",
+   "stock": 24,
+   "stone": "Thạch anh hồng Madagascar",
+   "frequency": "528Hz",
+   "symbol": "Hoa sen",
+   "purpose": "Nuôi dưỡng yêu thương bản thân, mềm lại khi căng thẳng.",
+   "usage": "Đeo tay trái. Mỗi sáng đặt tay lên tim, thở chậm 3 nhịp.",
+   "ritual": "Làm sạch dưới trăng tròn mỗi tháng",
+   "origin": "Madagascar, chế tác tại Đà Lạt",
+   "variants": [
+    {
+     "sku": "ZS-001-1",
+     "name": "Size S (14-15cm)",
+     "oos": false
+    },
+    {
+     "sku": "ZS-001-2",
+     "name": "Size M (16-17cm)",
+     "oos": false
+    },
+    {
+     "sku": "ZS-001-3",
+     "name": "Size L (18cm)",
+     "oos": true
+    }
+   ]
+  },
+  {
+   "id": "f0000000-0000-4000-8000-000000000002",
+   "category": "da-va-vat-pham",
+   "slug": "cum-thach-anh-tim-uruguay",
+   "name": "Cụm thạch anh tím Uruguay",
+   "price": 1250000,
+   "chakra": "third_eye",
+   "goal": "Bảo vệ",
+   "stock": 6,
+   "stone": "Thạch anh tím Uruguay",
+   "frequency": "852Hz",
+   "symbol": "Mắt bindu",
+   "purpose": "Hỗ trợ trực giác, giữ không gian ngủ yên tĩnh.",
+   "usage": "Đặt ở đầu giường hoặc góc thiền, cách gối 50cm.",
+   "ritual": "Xông khói thảo mộc trước khi đặt",
+   "origin": "Uruguay",
+   "variants": [
+    {
+     "sku": "ZS-002-1",
+     "name": "300-400g",
+     "oos": false
+    },
+    {
+     "sku": "ZS-002-2",
+     "name": "500-700g",
+     "oos": false
+    }
+   ]
+  },
+  {
+   "id": "f0000000-0000-4000-8000-000000000003",
+   "category": "da-va-vat-pham",
+   "slug": "da-mat-ho-tho",
+   "name": "Đá mắt hổ thô",
+   "price": 220000,
+   "chakra": "root",
+   "goal": "Bảo vệ",
+   "stock": 40,
+   "stone": "Mắt hổ vàng Nam Phi",
+   "frequency": "396Hz",
+   "symbol": "Vòng enso",
+   "purpose": "Giúp cảm thấy vững chãi.",
+   "usage": "Mang trong túi áo hoặc đặt ở bàn làm việc.",
+   "ritual": "Phơi nắng sớm 15 phút",
+   "origin": "Nam Phi",
+   "variants": [
+    {
+     "sku": "ZS-003-1",
+     "name": "1 viên",
+     "oos": false
+    }
+   ]
+  },
+  {
+   "id": "f0000000-0000-4000-8000-000000000004",
+   "category": "da-va-vat-pham",
+   "slug": "kim-tu-thap-thach-anh-trang",
+   "name": "Kim tự tháp thạch anh trắng",
+   "price": 650000,
+   "chakra": "crown",
+   "goal": "Thịnh vượng",
+   "stock": 11,
+   "stone": "Thạch anh trắng Lâm Đồng",
+   "frequency": "963Hz",
+   "symbol": "Kim tự tháp",
+   "purpose": "Làm trong không gian và tâm trí.",
+   "usage": "Đặt giữa bàn, đỉnh hướng lên.",
+   "ritual": "Gõ chuông xoay 3 lần cạnh tháp",
+   "origin": "Lâm Đồng",
+   "variants": [
+    {
+     "sku": "ZS-004-1",
+     "name": "5cm",
+     "oos": false
+    },
+    {
+     "sku": "ZS-004-2",
+     "name": "8cm",
+     "oos": false
+    }
+   ]
+  },
+  {
+   "id": "f0000000-0000-4000-8000-000000000005",
+   "category": "dung-cu-thien",
+   "slug": "chuong-xoay-nepal-7-kim-loai-14cm",
+   "name": "Chuông xoay Nepal 7 kim loại 14cm",
+   "price": 1850000,
+   "chakra": "throat",
+   "goal": "Bình an",
+   "stock": 8,
+   "stone": "",
+   "frequency": "741Hz",
+   "symbol": "Om",
+   "purpose": "Dẫn thiền, làm sạch không gian bằng âm thanh.",
+   "usage": "Xoay dùi gỗ quanh miệng chuông, chậm và đều.",
+   "ritual": "Mỗi sáng 3 vòng trước khi ngồi thiền",
+   "origin": "Patan, Nepal",
+   "variants": [
+    {
+     "sku": "ZS-005-1",
+     "name": "12cm",
+     "oos": false
+    },
+    {
+     "sku": "ZS-005-2",
+     "name": "14cm",
+     "oos": false
+    },
+    {
+     "sku": "ZS-005-3",
+     "name": "18cm",
+     "oos": false
+    }
+   ]
+  },
+  {
+   "id": "f0000000-0000-4000-8000-000000000006",
+   "category": "dung-cu-thien",
+   "slug": "bo-doan-vo-kieu-mach",
+   "name": "Bồ đoàn vỏ kiều mạch",
+   "price": 590000,
+   "chakra": "root",
+   "goal": "Bình an",
+   "stock": 15,
+   "stone": "",
+   "frequency": "",
+   "symbol": "",
+   "purpose": "Ngồi thẳng lưng lâu mà không mỏi.",
+   "usage": "Ngồi trên 1/3 trước bồ đoàn, hai gối chạm sàn.",
+   "ritual": "",
+   "origin": "May tại Đà Lạt",
+   "variants": [
+    {
+     "sku": "ZS-006-1",
+     "name": "Màu đất",
+     "oos": false
+    },
+    {
+     "sku": "ZS-006-2",
+     "name": "Màu rêu",
+     "oos": true
+    },
+    {
+     "sku": "ZS-006-3",
+     "name": "Màu tím than",
+     "oos": false
+    }
+   ]
+  },
+  {
+   "id": "f0000000-0000-4000-8000-000000000007",
+   "category": "dung-cu-thien",
+   "slug": "nhang-thao-moc-tram",
+   "name": "Nhang thảo mộc trầm",
+   "price": 120000,
+   "chakra": "crown",
+   "goal": "Bình an",
+   "stock": 60,
+   "stone": "",
+   "frequency": "",
+   "symbol": "Hoa sen",
+   "purpose": "Mùi trầm nhẹ cho buổi thiền.",
+   "usage": "Đốt 1 nén, để cách xa rèm.",
+   "ritual": "Thắp trước khi đặt ý định",
+   "origin": "Làm tay tại Lạc Dương",
+   "variants": [
+    {
+     "sku": "ZS-007-1",
+     "name": "Hộp 30 nén",
+     "oos": false
+    }
+   ]
+  },
+  {
+   "id": "f0000000-0000-4000-8000-000000000008",
+   "category": "trang-suc",
+   "slug": "mat-day-chuyen-hoa-sen-bac",
+   "name": "Mặt dây chuyền hoa sen bạc",
+   "price": 890000,
+   "chakra": "crown",
+   "goal": "Bảo vệ",
+   "stock": 9,
+   "stone": "",
+   "frequency": "",
+   "symbol": "Hoa sen",
+   "purpose": "Nhắc nhở sự thanh tịnh mỗi ngày.",
+   "usage": "Đeo sát tim.",
+   "ritual": "",
+   "origin": "Bạc 925, chế tác tại Hà Nội",
+   "variants": [
+    {
+     "sku": "ZS-008-1",
+     "name": "Dây 45cm",
+     "oos": false
+    },
+    {
+     "sku": "ZS-008-2",
+     "name": "Dây 50cm",
+     "oos": false
+    }
+   ]
+  },
+  {
+   "id": "f0000000-0000-4000-8000-000000000009",
+   "category": "trang-suc",
+   "slug": "vong-mala-108-hat-go-dan-huong",
+   "name": "Vòng mala 108 hạt gỗ đàn hương",
+   "price": 750000,
+   "chakra": "heart",
+   "goal": "Bình an",
+   "stock": 18,
+   "stone": "",
+   "frequency": "",
+   "symbol": "",
+   "purpose": "Đếm hơi thở, trì chú.",
+   "usage": "Lần hạt bằng ngón cái và ngón giữa.",
+   "ritual": "",
+   "origin": "Gỗ đàn hương Ấn Độ",
+   "variants": [
+    {
+     "sku": "ZS-009-1",
+     "name": "108 hạt 6 ly",
+     "oos": false
+    }
+   ]
+  },
+  {
+   "id": "f0000000-0000-4000-8000-000000000010",
+   "category": "duoc-lieu-cong-thuc-rieng",
+   "slug": "goi-ngam-chan-thao-duoc-7-ngay",
+   "name": "Gói ngâm chân thảo dược 7 ngày",
+   "price": 210000,
+   "chakra": "root",
+   "goal": "Bình an",
+   "stock": 0,
+   "stone": "",
+   "frequency": "432Hz",
+   "symbol": "",
+   "purpose": "Thả lỏng cơ thể trước giờ ngủ.",
+   "usage": "Ngâm 1 gói với 3 lít nước ấm 40°C trong 15 phút.",
+   "ritual": "Ngâm cùng nhạc 432Hz",
+   "origin": "Công thức Zen Homestay",
+   "variants": [
+    {
+     "sku": "ZS-010-1",
+     "name": "7 gói",
+     "oos": true
+    }
+   ]
+  },
+  {
+   "id": "f0000000-0000-4000-8000-000000000011",
+   "category": "duoc-lieu-cong-thuc-rieng",
+   "slug": "tinh-dau-oai-huong-da-lat-10ml",
+   "name": "Tinh dầu oải hương Đà Lạt 10ml",
+   "price": 180000,
+   "chakra": "third_eye",
+   "goal": "Bình an",
+   "stock": 30,
+   "stone": "",
+   "frequency": "",
+   "symbol": "",
+   "purpose": "Giúp dễ ngủ, dịu tâm trí.",
+   "usage": "3 giọt vào đèn xông hoặc gối.",
+   "ritual": "",
+   "origin": "Trang trại oải hương Đà Lạt",
+   "variants": [
+    {
+     "sku": "ZS-011-1",
+     "name": "10ml",
+     "oos": false
+    },
+    {
+     "sku": "ZS-011-2",
+     "name": "30ml",
+     "oos": false
+    }
+   ]
+  },
+  {
+   "id": "f0000000-0000-4000-8000-000000000012",
+   "category": "nong-san-kho-chay",
+   "slug": "combo-thien-dinh-tra-hoa-cuc-hanh-nhan-mat-ong-rung-bot-nghe",
+   "name": "Combo Thiền Định: trà hoa cúc, hạnh nhân, mật ong rừng, bột nghệ",
+   "price": 450000,
+   "chakra": "crown",
+   "goal": "Bình an",
+   "stock": 20,
+   "stone": "",
+   "frequency": "963Hz",
+   "symbol": "Hoa sự sống",
+   "purpose": "Tĩnh tâm, hỗ trợ ngồi thiền sâu buổi tối.",
+   "usage": "Pha 1 thìa trà hoa cúc với 200ml nước 90°C, thêm mật ong. Ăn kèm 7 hạt hạnh nhân.",
+   "ritual": "Nghi thức pha trà 7 phút",
+   "origin": "Nông sản Lâm Đồng",
+   "variants": [
+    {
+     "sku": "ZS-012-1",
+     "name": "Hộp tiêu chuẩn",
+     "oos": false
+    },
+    {
+     "sku": "ZS-012-2",
+     "name": "Hộp quà",
+     "oos": false
+    }
+   ]
+  },
+  {
+   "id": "f0000000-0000-4000-8000-000000000013",
+   "category": "nong-san-kho-chay",
+   "slug": "tra-hoa-cuc-da-lat",
+   "name": "Trà hoa cúc Đà Lạt",
+   "price": 150000,
+   "chakra": "crown",
+   "goal": "Bình an",
+   "stock": 45,
+   "stone": "",
+   "frequency": "",
+   "symbol": "",
+   "purpose": "Thư giãn, dễ ngủ.",
+   "usage": "1 thìa / 200ml nước 90°C, ủ 5 phút.",
+   "ritual": "",
+   "origin": "Trại Mát, Đà Lạt",
+   "variants": [
+    {
+     "sku": "ZS-013-1",
+     "name": "50g",
+     "oos": false
+    },
+    {
+     "sku": "ZS-013-2",
+     "name": "100g",
+     "oos": false
+    }
+   ]
+  },
+  {
+   "id": "f0000000-0000-4000-8000-000000000014",
+   "category": "nong-san-kho-chay",
+   "slug": "hanh-nhan-rang-moc",
+   "name": "Hạnh nhân rang mộc",
+   "price": 160000,
+   "chakra": "solar",
+   "goal": "Sáng tạo",
+   "stock": 32,
+   "stone": "",
+   "frequency": "",
+   "symbol": "",
+   "purpose": "Bữa phụ nhẹ, đủ năng lượng.",
+   "usage": "",
+   "ritual": "",
+   "origin": "Rang tại Đà Lạt",
+   "variants": [
+    {
+     "sku": "ZS-014-1",
+     "name": "250g",
+     "oos": false
+    }
+   ]
+  },
+  {
+   "id": "f0000000-0000-4000-8000-000000000015",
+   "category": "gia-vi-rung",
+   "slug": "mac-khen-tay-bac",
+   "name": "Mắc khén Tây Bắc",
+   "price": 95000,
+   "chakra": "solar",
+   "goal": "Sáng tạo",
+   "stock": 25,
+   "stone": "",
+   "frequency": "",
+   "symbol": "",
+   "purpose": "Gia vị rừng thơm ấm.",
+   "usage": "",
+   "ritual": "",
+   "origin": "Sơn La",
+   "variants": [
+    {
+     "sku": "ZS-015-1",
+     "name": "100g",
+     "oos": false
+    }
+   ]
+  },
+  {
+   "id": "f0000000-0000-4000-8000-000000000016",
+   "category": "gia-vi-rung",
+   "slug": "hat-doi-rung",
+   "name": "Hạt dổi rừng",
+   "price": 120000,
+   "chakra": "sacral",
+   "goal": "Sáng tạo",
+   "stock": 14,
+   "stone": "",
+   "frequency": "",
+   "symbol": "",
+   "purpose": "Gia vị rừng hiếm.",
+   "usage": "",
+   "ritual": "",
+   "origin": "Điện Biên",
+   "variants": [
+    {
+     "sku": "ZS-016-1",
+     "name": "50g",
+     "oos": false
+    }
+   ]
+  },
+  {
+   "id": "f0000000-0000-4000-8000-000000000017",
+   "category": "muoi",
+   "slug": "muoi-hong-rang-thao-moc-lam-dong",
+   "name": "Muối hồng rang thảo mộc Lâm Đồng",
+   "price": 120000,
+   "chakra": "root",
+   "goal": "Bảo vệ",
+   "stock": 50,
+   "stone": "",
+   "frequency": "",
+   "symbol": "",
+   "purpose": "Muối ăn và muối tẩy uế không gian.",
+   "usage": "Rắc một nhúm ở 4 góc phòng mỗi tháng.",
+   "ritual": "Tẩy uế không gian đầu tháng",
+   "origin": "Lâm Đồng",
+   "variants": [
+    {
+     "sku": "ZS-017-1",
+     "name": "200g",
+     "oos": false
+    }
+   ]
+  },
+  {
+   "id": "f0000000-0000-4000-8000-000000000018",
+   "category": "muoi",
+   "slug": "muoi-tam-thach-anh-hong",
+   "name": "Muối tắm thạch anh hồng",
+   "price": 180000,
+   "chakra": "heart",
+   "goal": "Bình an",
+   "stock": 22,
+   "stone": "",
+   "frequency": "",
+   "symbol": "",
+   "purpose": "Thư giãn trong bồn tắm.",
+   "usage": "3 thìa vào bồn nước ấm.",
+   "ritual": "",
+   "origin": "Đà Lạt",
+   "variants": [
+    {
+     "sku": "ZS-018-1",
+     "name": "300g",
+     "oos": false
+    }
+   ]
+  },
+  {
+   "id": "f0000000-0000-4000-8000-000000000019",
+   "category": "combo-tam-linh",
+   "slug": "nghi-thuc-nang-luong-tai-gia",
+   "name": "Nghi thức năng lượng tại gia",
+   "price": 1490000,
+   "chakra": "heart",
+   "goal": "Bình an",
+   "stock": 7,
+   "stone": "Thạch anh hồng, thạch anh trắng",
+   "frequency": "528Hz",
+   "symbol": "Hoa sự sống",
+   "purpose": "Bộ đủ để bắt đầu một góc thiền tại nhà.",
+   "usage": "Quét QR lá bài trong hộp để mở bài hướng dẫn 7 ngày.",
+   "ritual": "Hướng dẫn 7 ngày qua QR",
+   "origin": "Đóng gói tại Zen Homestay",
+   "variants": [
+    {
+     "sku": "ZS-019-1",
+     "name": "Hộp tiêu chuẩn",
+     "oos": false
+    }
+   ]
+  },
+  {
+   "id": "f0000000-0000-4000-8000-000000000020",
+   "category": "combo-tam-linh",
+   "slug": "combo-trang-non",
+   "name": "Combo Trăng non",
+   "price": 690000,
+   "chakra": "sacral",
+   "goal": "Sáng tạo",
+   "stock": 12,
+   "stone": "Đá mặt trăng",
+   "frequency": "417Hz",
+   "symbol": "Trăng khuyết",
+   "purpose": "Gieo ý định đầu tháng âm lịch.",
+   "usage": "Thắp nến, viết 3 ý định, đặt đá lên sổ.",
+   "ritual": "Nghi lễ trăng non",
+   "origin": "Zen Homestay",
+   "variants": [
+    {
+     "sku": "ZS-020-1",
+     "name": "1 bộ",
+     "oos": false
+    }
+   ]
+  },
+  {
+   "id": "f0000000-0000-4000-8000-000000000021",
+   "category": "in-an-va-thoi-trang",
+   "slug": "ao-linen-theu-hoa-su-song",
+   "name": "Áo linen thêu hoa sự sống",
+   "price": 650000,
+   "chakra": "crown",
+   "goal": "Sáng tạo",
+   "stock": 16,
+   "stone": "",
+   "frequency": "",
+   "symbol": "Hoa sự sống",
+   "purpose": "",
+   "usage": "",
+   "ritual": "",
+   "origin": "May tại Đà Lạt",
+   "variants": [
+    {
+     "sku": "ZS-021-1",
+     "name": "S",
+     "oos": false
+    },
+    {
+     "sku": "ZS-021-2",
+     "name": "M",
+     "oos": false
+    },
+    {
+     "sku": "ZS-021-3",
+     "name": "L",
+     "oos": false
+    },
+    {
+     "sku": "ZS-021-4",
+     "name": "XL",
+     "oos": true
+    }
+   ]
+  },
+  {
+   "id": "f0000000-0000-4000-8000-000000000022",
+   "category": "in-an-va-thoi-trang",
+   "slug": "tui-canvas-mandala",
+   "name": "Túi canvas mandala",
+   "price": 220000,
+   "chakra": "heart",
+   "goal": "Sáng tạo",
+   "stock": 35,
+   "stone": "",
+   "frequency": "",
+   "symbol": "Mandala",
+   "purpose": "",
+   "usage": "",
+   "ritual": "",
+   "origin": "In lụa thủ công",
+   "variants": [
+    {
+     "sku": "ZS-022-1",
+     "name": "1 cỡ",
+     "oos": false
+    }
+   ]
+  },
+  {
+   "id": "f0000000-0000-4000-8000-000000000023",
+   "category": "in-an-va-thoi-trang",
+   "slug": "bo-la-bai-nang-luong-44-la",
+   "name": "Bộ lá bài năng lượng 44 lá",
+   "price": 390000,
+   "chakra": "third_eye",
+   "goal": "Thịnh vượng",
+   "stock": 19,
+   "stone": "",
+   "frequency": "",
+   "symbol": "",
+   "purpose": "Rút một lá mỗi sáng, mỗi lá có QR bài thiền.",
+   "usage": "Quét QR mặt sau lá bài.",
+   "ritual": "Rút bài buổi sáng",
+   "origin": "Thiết kế ZSOPO",
+   "variants": [
+    {
+     "sku": "ZS-023-1",
+     "name": "1 bộ",
+     "oos": false
+    }
+   ]
+  },
+  {
+   "id": "f0000000-0000-4000-8000-000000000024",
+   "category": "da-va-vat-pham",
+   "slug": "vong-tay-da-mat-trang",
+   "name": "Vòng tay đá mặt trăng",
+   "price": 420000,
+   "chakra": "sacral",
+   "goal": "Sáng tạo",
+   "stock": 3,
+   "stone": "Đá mặt trăng Ấn Độ",
+   "frequency": "417Hz",
+   "symbol": "Trăng khuyết",
+   "purpose": "Mềm mại với chu kỳ cảm xúc.",
+   "usage": "Đeo tay trái vào kỳ trăng non.",
+   "ritual": "Làm sạch dưới trăng non",
+   "origin": "Ấn Độ",
+   "variants": [
+    {
+     "sku": "ZS-024-1",
+     "name": "S",
+     "oos": false
+    },
+    {
+     "sku": "ZS-024-2",
+     "name": "M",
+     "oos": false
+    }
+   ]
+  }
+ ]
+}

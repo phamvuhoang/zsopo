@@ -1,0 +1,26 @@
+{
+  "checkedAt": "2026-10-27",
+  "node": {
+    "local": "v26.3.0",
+    "baseline": "24.11.1 (LTS, .nvmrc)"
+  },
+  "pnpm": "12.15.0",
+  "selected": {
+    "next": "16.4.3",
+    "react": "19.3.1",
+    "react-dom": "19.3.1",
+    "typescript": "6.0.3",
+    "tailwindcss": "4.3.3",
+    "eslint": "9.39.5",
+    "vitest": "5.0.5",
+    "supabase": "2.122.0",
+    "turbo": "2.11.10",
+    "zod": "4.6.7",
+    "@playwright/test": "1.64.1",
+    "@supabase/supabase-js": "2.118.0"
+  },
+  "rulings": {
+    "typescript": "6.0.3: typescript-eslint 8.72.1 peer requires <6.1.0, TS 7.0.2 rejected",
+    "eslint": "9.39.5: eslint-plugin-react/jsx-a11y (via eslint-config-next) peer eslint <=9"
+  }
+}

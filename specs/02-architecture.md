@@ -68,7 +68,7 @@ supabase/
     maintenance/
 tests/{e2e,integration,performance}/
 scripts/{check-rls.mjs,check-links.mjs,seed-validate.mjs}
-.github/workflows/{ci.yml,deploy.yml}
+.github/workflows/ci.yml
 pnpm-workspace.yaml
 pnpm-lock.yaml
 turbo.json
