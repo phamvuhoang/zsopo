@@ -14,7 +14,7 @@ export async function generateMetadata({ params }: PageProps<"/chinh-sach/[slug]
   return { title: page.title, description: page.excerpt, alternates: { canonical: `/chinh-sach/${page.slug}` } };
 }
 
-// Await params outside Suspense so unknown slugs return a real 404 instead of a streamed 200.
+// Proxy checks unknown slugs before the static shell streams to preserve HTTP 404.
 export const instant = false;
 
 export default async function PolicyPage({ params }: PageProps<"/chinh-sach/[slug]">) {

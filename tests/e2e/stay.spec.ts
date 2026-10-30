@@ -38,3 +38,26 @@ test("phòng chưa mở bán không có lịch đặt", async ({ page }) => {
 test("phòng không tồn tại trả 404", async ({ request }) => {
   expect((await request.get("/stay/da-lat/phong/khong-co")).status()).toBe(404);
 });
+
+test("phòng công khai mới không cần build lại, phòng nháp vẫn trả 404", async ({ page, request }) => {
+  const { default: pg } = await import("pg");
+  const db = new pg.Client({ connectionString: process.env.SUPABASE_DB_URL ?? "postgresql://postgres:postgres@127.0.0.1:56422/postgres" });
+  await db.connect();
+  const slug = `public-route-${Date.now()}`;
+  let roomId: string | undefined;
+  try {
+    const path = `/stay/da-lat/phong/${slug}`;
+    expect((await request.get(path)).status()).toBe(404);
+    const { rows } = await db.query(`insert into stay.rooms(entity_id, location_id, code, slug, name, room_type, capacity_adults, max_guests, status)
+      values ('e0000000-0000-4000-8000-000000000001', 'c0000000-0000-4000-8000-000000000001', $1, $1, 'Mới công khai', 'Đôi', 2, 2, 'published') returning id`, [slug]);
+    roomId = rows[0].id;
+    expect((await page.goto(path))?.status()).toBe(200);
+    await expect(page.getByRole("heading", { level: 1 })).toHaveText("Phòng Mới công khai");
+    await db.query(`update stay.rooms set status = 'draft' where id = $1`, [roomId]);
+    expect((await page.goto(path))?.status()).toBe(404);
+    await expect(page.getByRole("heading", { level: 1 })).toHaveText("Không tìm thấy trang");
+  } finally {
+    if (roomId) await db.query(`delete from stay.rooms where id = $1`, [roomId]);
+    await db.end();
+  }
+});

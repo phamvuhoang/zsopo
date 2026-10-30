@@ -23,6 +23,9 @@ async function uploadDrafts(userId: string, locationId: string, entityId: string
     const path = `${locationId}/${d.taskId}/${id}.jpg`;
     const up = await supabase.storage.from("evidence").upload(path, d.blob, { contentType: d.mime, upsert: true });
     if (up.error) {
+      // Storage wraps an expired JWT in HTTP 400 / statusCode 403. Keep the
+      // draft queued until the session refreshes, just as for an HTTP 401.
+      if (up.error.statusCode === "403" && /jwt|\bexp\b/i.test(up.error.message)) throw new Error(up.error.message);
       if (refused(up.error.status)) return { error: `Kho ảnh không nhận ảnh chờ gửi: ${up.error.message}` };
       throw new Error(up.error.message);
     }

@@ -25,7 +25,7 @@ export async function generateMetadata({ params }: PageProps<"/stay/da-lat/phong
   };
 }
 
-// Await params outside Suspense: unknown rooms must return 404.
+// Proxy checks unknown rooms before the static shell streams to preserve HTTP 404.
 export const instant = false;
 
 export default async function RoomPage({ params }: PageProps<"/stay/da-lat/phong/[slug]">) {

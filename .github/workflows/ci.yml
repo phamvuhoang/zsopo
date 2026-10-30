@@ -51,7 +51,7 @@ jobs:
         env:
           CI: "1"
       - name: No elevated secret in client bundle
-        run: "! grep -rE 'sb_secret_|service_role' apps/web/.next/static"
+        run: pnpm check:client-secrets
       - uses: actions/upload-artifact@v4
         if: failure()
         with:

@@ -80,6 +80,29 @@ describe("review4 #1 #4 tiền tới muộn", () => {
       where v.order_id = $1 and e.account = 'customer_credit'`, [h.orderId]))[0]!.v).toBe("200000");
   });
 
+  it("#1 lần thu mới đủ toàn bộ đơn vẫn báo khoản đối soát còn thừa và cho hoàn", async () => {
+    const h = await heldBooking();
+    await expire(h);
+    const [blk] = await block(h.bookingId);
+    expect((await cash(h.orderId, "300000")).ok).toBe(true);
+    await sql(`update stay.room_allocations set active = false where id = $1`, [blk!.id]);
+    const paid = await cash(h.orderId, "1000000");
+    expect(paid.ok && paid.data.bookingState).toBe("confirmed");
+    expect((await sql(`select paid_amount::text v, payment_status from commerce.orders where id = $1`, [h.orderId]))[0])
+      .toEqual({ v: "1000000", payment_status: "overpaid" });
+    const client = await clientFor(USERS.frontDesk);
+    const { data: orders, error } = await client.schema("commerce").rpc("orders_to_settle", {});
+    expect(error).toBeNull();
+    expect(orders.find((o: { id: string }) => o.id === h.orderId)?.refundable).toBe(1300000);
+    await sql(`select commerce.apply_review_payments($1)`, [h.orderId]);
+    expect((await sql(`select payload->>'overpaid' v from core.outbox where kind = 'payment.overpaid' and aggregate_id = $1`, [h.orderId])).map((r) => r.v)).toEqual(["300000"]);
+    const { data: refund, error: refundError } = await client.schema("commerce").rpc("request_refund", { p_order: h.orderId, p_amount: 300000, p_reason: "Hoàn phần thu thừa" });
+    expect(refundError).toBeNull();
+    await asAal2(USERS.finance.id, `commerce.approve_refund($2, $3, 'Đã hoàn phần thừa', 'bank')`, [refund, randomUUID()]);
+    expect((await sql(`select paid_amount::text v, payment_status from commerce.orders where id = $1`, [h.orderId]))[0])
+      .toEqual({ v: "1000000", payment_status: "paid" });
+  });
+
   it("#1 tiền đối soát đã hoàn cho khách thì không áp lại vào đơn", async () => {
     const h = await heldBooking();
     await expire(h);

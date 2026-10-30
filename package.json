@@ -17,6 +17,7 @@
     "check:rls": "node scripts/check-rls.mjs",
     "check:types": "node scripts/check-types.mjs",
     "check:seed": "node scripts/seed-validate.mjs",
+    "check:client-secrets": "node scripts/check-client-secrets.mjs",
     "db:reset": "supabase db reset",
     "db:types": "supabase gen types typescript --local --schema public,core,commerce,stay,shop,content,crm,ops_config > packages/db/src/database.types.ts"
   },

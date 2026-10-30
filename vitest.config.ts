@@ -8,7 +8,7 @@ export default defineConfig({
       {
         test: {
           name: "unit",
-          include: ["packages/**/src/**/*.test.ts"],
+          include: ["packages/**/src/**/*.test.ts", "scripts/**/*.test.ts"],
           env: { TZ: "Asia/Ho_Chi_Minh" },
         },
       },

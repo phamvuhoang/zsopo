@@ -6,16 +6,24 @@ export const SYNC_EVENT = "zs-ops-sync";
 const notify = () => window.dispatchEvent(new Event(SYNC_EVENT));
 
 /** Persist an operation before any network attempt; survives reload, restart and SW updates. */
-export async function enqueue(userId: string, op: ChecklistOp, mediaDraftIds: string[] = []): Promise<void> {
+export async function enqueue(userId: string, op: ChecklistOp, files: File[] = []): Promise<void> {
+  const db = opsDb(userId);
   try {
-    await opsDb(userId).operations.put({ operationId: op.operationId, taskId: op.taskId, op, mediaDraftIds, status: "queued", attempts: 0, createdAt: Date.now() });
+    // Commit the entire answer together. A quota/write failure rolls back every
+    // photo, and serialising these stores prevents concurrent picks exceeding 20MB.
+    await db.transaction("rw", db.mediaDrafts, db.operations, async () => {
+      const mediaDraftIds: string[] = [];
+      for (const file of files) mediaDraftIds.push(await saveMediaDraft(userId, op.taskId, file));
+      await db.operations.put({ operationId: op.operationId, taskId: op.taskId, op, mediaDraftIds, status: "queued", attempts: 0, createdAt: Date.now() });
+    });
   } catch (e) {
-    throw new Error(e instanceof Error && e.name === "QuotaExceededError" ? "Bộ nhớ thiết bị đầy: thao tác chưa được lưu" : "Không lưu được trên thiết bị");
+    if (e instanceof Error && e.name === "QuotaExceededError") throw new Error("Bộ nhớ thiết bị đầy: thao tác chưa được lưu");
+    throw e instanceof Error ? e : new Error("Không lưu được trên thiết bị");
   }
   notify();
 }
 
-export async function saveMediaDraft(userId: string, taskId: string, file: File): Promise<string> {
+async function saveMediaDraft(userId: string, taskId: string, file: File): Promise<string> {
   const bad = photoError(file);
   if (bad) throw new Error(bad);
   const db = opsDb(userId);

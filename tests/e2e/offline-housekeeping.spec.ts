@@ -271,3 +271,57 @@ test("BP01: kho ảnh từ chối ảnh chờ gửi thì việc đó bị từ c
   expect((await db.query(`select item_code from stay.checklist_results where task_id = $1`, [taskId])).rows).toEqual([{ item_code: "G1-1" }]);
   await db.end();
 });
+
+async function localQueue(page: Page) {
+  return page.evaluate(async () => {
+    const name = (await indexedDB.databases()).find((d) => d.name?.startsWith("zsopo-ops"))!.name!;
+    const idb: IDBDatabase = await new Promise((ok) => { const q = indexedDB.open(name); q.onsuccess = () => ok(q.result); });
+    const read = (store: string): Promise<Record<string, unknown>[]> => new Promise((ok) => {
+      const q = idb.transaction(store).objectStore(store).getAll(); q.onsuccess = () => ok(q.result);
+    });
+    const drafts = await read("mediaDrafts"), ops = await read("operations");
+    idb.close();
+    return { drafts: drafts.length, bytes: drafts.reduce((n, d) => n + Number(d.size), 0), statuses: ops.map((o) => o.status) };
+  });
+}
+
+test("BP01: JWT hết hạn giữ ảnh để thử lại sau khi phiên hợp lệ", async ({ page }) => {
+  const { db, taskId } = await taskInFreshRoom();
+  try {
+    await login(page, `/ops/buong-phong/${taskId}`);
+    await controlled(page);
+    // Actual Storage response for an expired JWT, despite HTTP 400 instead of 401.
+    await page.route("**/storage/v1/object/evidence/**", (route) => route.fulfill({
+      status: 400, contentType: "application/json",
+      body: JSON.stringify({ statusCode: "403", error: "AccessDenied", message: '"exp" claim timestamp check failed' }),
+    }));
+    await page.getByLabel(/^Ảnh: Kiểm tra đồ khách để quên/).setInputFiles({ name: "giu-lai.jpg", mimeType: "image/jpeg", buffer: Buffer.from(JPEG_1PX_BASE64, "base64") });
+    await page.getByRole("button", { name: "Đạt", exact: true }).nth(2).click();
+    await expect(page.getByRole("status").filter({ hasText: /^Chờ đồng bộ$/ })).toBeVisible();
+    await expect.poll(async () => (await localQueue(page)).statuses).toEqual(["queued"]);
+    expect((await localQueue(page)).drafts).toBe(1);
+    await page.unroute("**/storage/v1/object/evidence/**");
+    await page.getByRole("button", { name: "Đồng bộ ngay" }).click();
+    await expect.poll(async () => (await localQueue(page)).statuses).toEqual(["applied"]);
+    expect((await localQueue(page)).drafts).toBe(0);
+    expect((await db.query(`select cardinality(media_ids) n from stay.checklist_results where task_id = $1`, [taskId])).rows).toEqual([{ n: 1 }]);
+  } finally { await db.end(); }
+});
+
+test("BP01: vượt hạn mức nhiều ảnh không để lại ảnh rác chiếm bộ nhớ", async ({ page }) => {
+  const { db, taskId } = await taskInFreshRoom();
+  try {
+    await login(page, `/ops/buong-phong/${taskId}`);
+    await controlled(page);
+    const photo = page.getByLabel(/^Ảnh: Kiểm tra đồ khách để quên/);
+    for (let i = 0; i < 3; i++) await photo.setInputFiles({ name: `anh-${i}.jpg`, mimeType: "image/jpeg", buffer: Buffer.alloc(8 * 1024 * 1024) });
+    await page.getByRole("button", { name: "Đạt", exact: true }).nth(2).click();
+    await expect(page.getByText(/Ảnh chờ đồng bộ đã đầy/)).toBeVisible();
+    expect(await localQueue(page)).toEqual({ drafts: 0, bytes: 0, statuses: [] });
+    await page.reload();
+    await photo.setInputFiles({ name: "anh-moi.jpg", mimeType: "image/jpeg", buffer: Buffer.from(JPEG_1PX_BASE64, "base64") });
+    await page.getByRole("button", { name: "Đạt", exact: true }).nth(2).click();
+    await expect(page.getByRole("status").filter({ hasText: "Đã lưu" })).toHaveCount(1);
+    expect((await db.query(`select cardinality(media_ids) n from stay.checklist_results where task_id = $1`, [taskId])).rows).toEqual([{ n: 1 }]);
+  } finally { await db.end(); }
+});

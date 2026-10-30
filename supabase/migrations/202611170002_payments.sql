@@ -119,13 +119,16 @@ begin
       update commerce.orders set paid_amount = paid_amount + v,
         payment_status = case when paid_amount + v >= total then (case when v_rest > 0 then 'overpaid' else 'paid' end) else 'partial' end
       where id = o.id;
-      if v_rest > 0 then
-        perform core.enqueue(o.entity_id, 'payment.overpaid', 'payment.overpaid:' || p.id, o.id, jsonb_build_object('orderCode', o.code, 'overpaid', v_rest));
-      end if;
       perform commerce.post_ledger(o.entity_id, o.location_id, 'payment.applied', 'payment.applied:' || p.id, o.id, p.id,
         jsonb_build_array(jsonb_build_object('account', 'customer_credit', 'amount', v), jsonb_build_object('account', 'deposit_liability', 'amount', -v)));
       update commerce.payments set state = 'allocated', review_reason = null where id = p.id;
       v_total := v_total + v;
+    end if;
+    -- A new receipt may have paid the entire balance before this helper ran.
+    -- The parked credit still needs a refund even when no money can be allocated.
+    if v_rest > 0 and o.paid_amount + v >= o.total then
+      update commerce.orders set payment_status = 'overpaid' where id = o.id;
+      perform core.enqueue(o.entity_id, 'payment.overpaid', 'payment.overpaid:' || p.id, o.id, jsonb_build_object('orderCode', o.code, 'overpaid', v_rest));
     end if;
   end loop;
   return v_total;
