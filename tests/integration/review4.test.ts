@@ -99,3 +99,34 @@ describe("review4 #1 #4 tiền tới muộn", () => {
     expect((await sql(`select status from commerce.orders where id = $1`, [h.orderId]))[0]!.status).toBe("needs_review");
   });
 });
+
+describe("review4 #6 dịch vụ đặt trước", () => {
+  it("#6 dịch vụ đặt trước quay lại hàng chờ khi tiền tới muộn xác nhận booking", async () => {
+    const [tea] = await sql<{ id: string }>(`select id from stay.services where slug = 'tra-thao-moc-tai-phong'`);
+    const h = await heldBooking(({ arrival }) => [{ serviceId: tea!.id, qty: 1, scheduledAt: `${arrival}T10:00:00+07:00` }]);
+    await expire(h);
+    expect((await sql(`select state from stay.service_requests where booking_id = $1`, [h.bookingId]))[0]!.state).toBe("cancelled");
+    const [o] = await sql<{ d: string }>(`select deposit_due::text d from commerce.orders where id = $1`, [h.orderId]);
+    const p = await cash(h.orderId, o!.d);
+    expect(p.ok && p.data.bookingState).toBe("confirmed");
+    expect((await sql(`select state from stay.service_requests where booking_id = $1`, [h.bookingId]))[0]!.state).toBe("requested");
+  });
+
+  it("#6 dịch vụ đã hủy trước khi hết hạn giữ chỗ không bị mở lại", async () => {
+    const svc = await sql<{ id: string; slug: string }>(`select id, slug from stay.services where slug in ('tra-thao-moc-tai-phong','giat-ui')`);
+    const id = (slug: string) => svc.find((s) => s.slug === slug)!.id;
+    const h = await heldBooking(({ arrival }) => [
+      { serviceId: id("tra-thao-moc-tai-phong"), qty: 1, scheduledAt: `${arrival}T10:00:00+07:00` },
+      { serviceId: id("giat-ui"), qty: 1, scheduledAt: `${arrival}T10:00:00+07:00` },
+    ]);
+    // Staff cancels the laundry while the hold is live: its request is cancelled and its order item reversed.
+    await sql(`select stay.reverse_service_item(order_item_id) from stay.service_requests where booking_id = $1 and service_id = $2`, [h.bookingId, id("giat-ui")]);
+    await sql(`update stay.service_requests set state = 'cancelled' where booking_id = $1 and service_id = $2`, [h.bookingId, id("giat-ui")]);
+    await expire(h);
+    const [o] = await sql<{ d: string }>(`select deposit_due::text d from commerce.orders where id = $1`, [h.orderId]);
+    const p = await cash(h.orderId, o!.d);
+    expect(p.ok && p.data.bookingState).toBe("confirmed");
+    expect((await sql(`select s.slug, r.state from stay.service_requests r join stay.services s on s.id = r.service_id where r.booking_id = $1 order by s.slug`, [h.bookingId])))
+      .toEqual([{ slug: "giat-ui", state: "cancelled" }, { slug: "tra-thao-moc-tai-phong", state: "requested" }]);
+  });
+});

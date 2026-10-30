@@ -118,11 +118,15 @@ end $$;
 -- Bookings are inserted before their items inside create_stay_hold, so the lookup succeeds.
 create trigger on_service_item after insert on commerce.order_items for each row execute function stay.on_service_item();
 
--- Expired/cancelled bookings cancel open prebook requests.
+-- Expired/cancelled bookings cancel open prebook requests; a late reconfirmation reopens the ones the guest still wants
+-- (guest/staff cancellations reverse their order item, so only items still active come back).
 create function stay.on_booking_closed() returns trigger language plpgsql security definer set search_path = '' as $$
 begin
   if new.state in ('expired','cancelled','no_show') and old.state <> new.state then
     update stay.service_requests set state = 'cancelled' where booking_id = new.id and state in ('requested','accepted');
+  elsif new.state = 'confirmed' and old.state in ('expired','needs_review') then
+    update stay.service_requests r set state = 'requested'
+    from commerce.order_items i where i.id = r.order_item_id and i.status = 'active' and r.booking_id = new.id and r.state = 'cancelled';
   end if;
   return null;
 end $$;
