@@ -70,8 +70,8 @@ describe("LT02 nhận phòng", () => {
     const [audit] = await sql<{ diff: Record<string, unknown> }>(`select diff from core.audit_logs where action = 'booking.check_in' and subject_id = $1`, [c.bookingId]);
     expect(audit!.diff.guestAcknowledged).toBe(true);
     expect(audit!.diff.identityVerified).toBe(true);
-    expect(audit!.diff.key).toBe("Chìa P01");
-    expect(audit!.diff.handedAt).not.toBeNull();
+    expect(audit!.diff.key).toBe("[redacted]"); // đã ghi nhận bàn giao khóa, giá trị bị che theo T3
+    expect(typeof audit!.diff.handedAt).toBe("string");
   });
 });
 
