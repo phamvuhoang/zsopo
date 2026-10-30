@@ -59,8 +59,11 @@ export default async function PaymentsAdmin() {
               {(open ?? []).map((o) => {
                 const held = o.booking_id ? heldUntil.get(o.booking_id) : null;
                 const warn = o.status === "needs_review" || o.payment_status === "overpaid";
-                // Live orders: paid_amount is what the order keeps, so only the excess is owed back (customer credit, or paid_amount above a returned order's lowered total); cancelled/expired orders refund everything held.
-                const refundDefault = o.status === "cancelled" || o.status === "expired" ? o.refundable : Math.max(o.refundable - o.paid_amount, o.paid_amount - o.total, 0) || o.refundable;
+                // Cancelled/expired orders refund everything held. A live order keeps min(paid, total), so only the rest is owed back (customer credit,
+                // or paid_amount above a returned order's lowered total), net of open requests; no excess means no default, never the whole deposit.
+                const excess = Math.max(o.refundable - Math.min(o.paid_amount, o.total), 0);
+                const refundDefault = o.status === "cancelled" || o.status === "expired" ? o.refundable
+                  : o.status === "pending" || o.status === "needs_review" ? excess || o.refundable : excess || undefined;
                 return (
                   <tr key={o.id} className="border-b border-[var(--line)] align-top">
                     <td className="py-2 font-mono">{o.code}</td>

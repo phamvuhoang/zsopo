@@ -175,6 +175,43 @@ const scratchPage = async (status: "published" | "draft") => (await sql<{ id: st
 const savePage = async (id: string, version: number, body: string, publish: boolean) =>
   (await clientFor(USERS.editor)).schema("content").rpc("save_page", { p_page: id, p_title: "Trang thử", p_excerpt: "x", p_body: body, p_expected_version: version, p_publish: publish });
 
+describe("review4 F1 hoàn phần thu thừa", () => {
+  const refund = async (orderId: string, amount: number, requester: Parameters<typeof clientFor>[0], approver: typeof USERS.finance) => {
+    const req = await (await clientFor(requester)).schema("commerce").rpc("request_refund", { p_order: orderId, p_amount: amount, p_reason: "Hoàn phần thu thừa" });
+    expect(req.error).toBeNull();
+    const ok = await aal2ClientFor(approver).schema("commerce").rpc("approve_refund", { p_refund: req.data, p_provider_ref: randomUUID(), p_evidence_note: "Sao kê hoàn", p_method: "bank" });
+    expect(ok.error).toBeNull();
+  };
+  const order = async (id: string) => (await sql<{ paid: string; total: string; payment_status: string }>(`select paid_amount::text paid, total::text, payment_status from commerce.orders where id = $1`, [id]))[0]!;
+  const listed = async (id: string) => ((await (await clientFor(USERS.finance)).schema("commerce").rpc("orders_to_settle", {})).data as { id: string }[]).some((r) => r.id === id);
+
+  it("F1 hoàn đúng phần thu thừa của booking đã xác nhận: đơn thành paid và rời danh sách cần xử lý tiền", async () => {
+    const h = await heldBooking();
+    expect((await cash(h.orderId, "1200000")).ok).toBe(true);
+    expect(await order(h.orderId)).toMatchObject({ paid: "1000000", payment_status: "overpaid" });
+    expect(await listed(h.orderId)).toBe(true);
+    await refund(h.orderId, 200000, USERS.frontDesk, USERS.finance);
+    expect(await order(h.orderId)).toMatchObject({ paid: "1000000", payment_status: "paid" });
+    expect(await listed(h.orderId)).toBe(false);
+  });
+
+  it("F1 đơn shop trả hàng, hoàn phần tiền hàng: đơn thành paid, đã thu bằng tổng mới", async () => {
+    const { variantId } = await seedSku({ price: 200000n, onHand: 2 });
+    const r = await placeShop(variantId, "cod");
+    if (!r.ok) throw new Error(r.error.message);
+    for (const to of ["confirmed", "packing", "ready_to_ship", "shipped"]) await move(r.data.orderId, to);
+    const fin = await clientFor(USERS.finance);
+    const { total } = await order(r.data.orderId);
+    expect((await recordPayment(fin, { orderId: r.data.orderId, provider: "cod", providerRef: randomUUID(), amount: total, receivedAt: new Date().toISOString(), idempotencyKey: randomUUID() })).ok).toBe(true);
+    await move(r.data.orderId, "returned");
+    expect(await order(r.data.orderId)).toMatchObject({ payment_status: "overpaid" });
+    await refund(r.data.orderId, 200000, USERS.finance, USERS.superAdmin);
+    const after = await order(r.data.orderId);
+    expect(after).toMatchObject({ paid: after.total, payment_status: "paid" });
+    expect(await listed(r.data.orderId)).toBe(false);
+  });
+});
+
 describe("review4 #2 lưu nháp trang", () => {
   it("bỏ chọn Đăng khi sửa trang đang công khai: trang vẫn công khai, bản sửa nằm ở bản nháp", async () => {
     const pg = await scratchPage("published");

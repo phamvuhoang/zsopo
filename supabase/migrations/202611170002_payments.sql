@@ -346,7 +346,7 @@ create index on commerce.ledger_events (order_id);
 
 create function commerce.approve_refund(p_refund uuid, p_provider_ref text, p_evidence_note text, p_method text default 'bank') returns void
 language plpgsql security definer set search_path = '' as $$
-declare r commerce.refund_requests; o commerce.orders; v_credit bigint; v_from_credit bigint;
+declare r commerce.refund_requests; o commerce.orders; v_credit bigint; v_from_credit bigint; v_paid bigint; v_status text;
 begin
   select * into r from commerce.refund_requests where id = p_refund for update;
   if not found or r.status <> 'requested' then perform core.fail('INVALID_TRANSITION'); end if;
@@ -359,10 +359,17 @@ begin
   select coalesce(-sum(e.amount), 0) into v_credit from commerce.ledger_entries e join commerce.ledger_events v on v.id = e.event_id
    where v.order_id = o.id and e.account = 'customer_credit';
   v_from_credit := least(v_credit, r.amount);
+  v_paid := greatest(o.paid_amount - (r.amount - v_from_credit), 0);
+  -- Status follows what the order still holds: refunding only the excess of an overpaid (or returned) order leaves it paid, not overpaid.
+  -- Credit-only orders (paid_amount stays 0, money parked in review) keep their status and are not touched.
+  v_status := case
+    when v_paid = 0 then (case when o.paid_amount > 0 then 'refunded' else o.payment_status end)
+    when v_paid < o.total then 'partial'
+    when v_paid > o.total or v_credit > v_from_credit then 'overpaid'
+    else 'paid' end;
   update commerce.refund_requests set status = 'paid', approved_by = auth.uid(), approved_at = now(), evidence_note = p_evidence_note where id = r.id;
-  update commerce.orders set paid_amount = greatest(paid_amount - (r.amount - v_from_credit), 0),
-    payment_status = case when paid_amount - (r.amount - v_from_credit) <= 0 then 'refunded' else 'partial' end
-  where id = o.id and r.amount > v_from_credit;
+  update commerce.orders set paid_amount = v_paid, payment_status = v_status
+  where id = o.id and (paid_amount, payment_status) is distinct from (v_paid, v_status);
   perform commerce.post_ledger(r.entity_id, o.location_id, 'refund.paid', 'refund:' || r.id, o.id, null,
     jsonb_build_array(
       jsonb_build_object('account', 'customer_credit', 'amount', v_from_credit),
