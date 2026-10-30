@@ -415,9 +415,23 @@ begin
   perform core.audit(o.entity_id, 'order.claim', 'order', o.id::text, '{}'::jsonb);
 end $$;
 
+-- Full ledger export as one scalar jsonb so PostgREST max_rows (1000) cannot truncate it; audited (ledger.export needs MFA).
+create function commerce.export_ledger(p_entity uuid, p_account text default null) returns jsonb
+language plpgsql security definer set search_path = '' as $$
+begin
+  if not core.has_permission('ledger.export', p_entity, null) then perform core.fail('FORBIDDEN'); end if;
+  if (select count(*) from (select 1 from commerce.ledger_entries where entity_id = p_entity and (p_account is null or account = p_account) limit 100001) t) > 100000 then
+    perform core.fail('VALIDATION', 'Quá 100.000 dòng, hãy lọc theo tài khoản');
+  end if;
+  perform core.audit(p_entity, 'ledger.export', 'ledger', null, jsonb_build_object('account', p_account));
+  return coalesce((select jsonb_agg(jsonb_build_object('recognitionDate', e.recognition_date, 'eventId', e.event_id, 'account', e.account,
+    'amount', e.amount::text, 'source', e.source, 'createdAt', e.created_at) order by e.id)
+    from commerce.ledger_entries e where e.entity_id = p_entity and (p_account is null or e.account = p_account)), '[]'::jsonb);
+end $$;
+
 revoke execute on function commerce.exchange_guest_token, commerce.report_transfer, commerce.can_record_payment, stay.try_reallocate,
   commerce.record_payment_atomic, stay.schedule_journey, stay.confirm_with_exception, commerce.request_refund, commerce.approve_refund,
-  commerce.orders_to_settle, commerce.get_guest_receipt, commerce.claim_order from public;
+  commerce.orders_to_settle, commerce.get_guest_receipt, commerce.claim_order, commerce.export_ledger from public;
 grant execute on function commerce.exchange_guest_token, commerce.report_transfer, commerce.get_guest_receipt to anon, authenticated;
-grant execute on function commerce.record_payment_atomic, stay.confirm_with_exception, commerce.request_refund, commerce.approve_refund, commerce.orders_to_settle, commerce.claim_order to authenticated;
+grant execute on function commerce.record_payment_atomic, stay.confirm_with_exception, commerce.request_refund, commerce.approve_refund, commerce.orders_to_settle, commerce.claim_order, commerce.export_ledger to authenticated;
 revoke execute on function commerce.apply_review_payments from public, anon, authenticated;

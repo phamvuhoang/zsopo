@@ -226,6 +226,9 @@ isOneToOne: false
 "exchange_guest_token":
 { Args: { "p_token": string }; Returns: Json
                            },
+"export_ledger":
+{ Args: { "p_account"?: string,"p_entity": string }; Returns: Json
+                           },
 "get_guest_receipt":
 { Args: { "p_token": string }; Returns: Json
                            },
@@ -1127,9 +1130,7 @@ isOneToOne: false
             }[]
                            },
 "export_segment":
-{ Args: { "p_entity": string,"p_filter": Json }; Returns: {
-              "display_name": string,"email": string,"marketing": boolean,"phone": string,"source": string
-            }[]
+{ Args: { "p_entity": string,"p_filter": Json }; Returns: Json
                            },
 "has_marketing_consent":
 { Args: { "p_customer": string }; Returns: boolean

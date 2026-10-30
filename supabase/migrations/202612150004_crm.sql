@@ -119,12 +119,14 @@ language sql stable security definer set search_path = '' as $$
 $$;
 
 -- Export needs crm.export (MFA) and is audited.
-create function crm.export_segment(p_entity uuid, p_filter jsonb) returns table(display_name text, email text, phone text, source text, marketing boolean)
+create function crm.export_segment(p_entity uuid, p_filter jsonb) returns jsonb
 language plpgsql security definer set search_path = '' as $$
 begin
   if not core.has_permission('crm.export', p_entity, null) then perform core.fail('FORBIDDEN'); end if;
   perform core.audit(p_entity, 'crm.export', 'segment', null, jsonb_build_object('filter', p_filter));
-  return query select l.display_name, l.email, l.phone, l.source, l.marketing from crm.segment_rows(p_entity, p_filter) l;
+  -- one scalar jsonb: PostgREST max_rows (1000) truncates row sets but not a single value
+  return coalesce((select jsonb_agg(jsonb_build_object('displayName', l.display_name, 'email', l.email, 'phone', l.phone, 'source', l.source, 'marketing', l.marketing))
+    from crm.segment_rows(p_entity, p_filter) l), '[]'::jsonb);
 end $$;
 
 -- Same contact = a suggestion only; never proof of identity.

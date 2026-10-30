@@ -5,7 +5,7 @@ import { afterAll, describe, expect, it } from "vitest";
 import { transitionBooking } from "../../packages/api/src/ops";
 import { recordPayment } from "../../packages/api/src/payments";
 import { transitionFulfillment } from "../../packages/api/src/shop";
-import { E1, USERS, aal2ClientFor, anonClient, asAal2, clientFor, db, heldBooking, move, onHand, placeShop, seedSku, sql } from "./helpers";
+import { E1, E2, USERS, aal2ClientFor, anonClient, asAal2, clientFor, db, heldBooking, move, onHand, placeShop, seedSku, sql } from "./helpers";
 
 afterAll(() => db.end());
 
@@ -276,5 +276,26 @@ describe("review4 #11 doanh thu dịch vụ trừ giảm giá đặt trước", 
     const d = new Date(Date.now() + 7 * 3600_000).toISOString().slice(0, 10);
     const { data } = await (await clientFor(USERS.finance)).schema("commerce").rpc("get_location_metrics", { p_entity: E1, p_location: loc!.id, p_from: d, p_to: d });
     expect((data as { recognizedRevenueBySource: Record<string, string> }).recognizedRevenueBySource.own_service).toBe("180000");
+  });
+});
+
+describe("review4 #12 export đủ dòng", () => {
+  it("#12 export sổ cái trả đủ hơn 1000 dòng và ghi audit", async () => {
+    await sql(`select commerce.post_ledger($1, null, 'test.bulk', 'bulk:' || g || ':' || $2, null, null,
+      jsonb_build_array(jsonb_build_object('account','cash','amount',1), jsonb_build_object('account','customer_credit','amount',-1)))
+      from generate_series(1, 1001) g`, [E2, randomUUID()]);
+    const { data, error } = await aal2ClientFor(USERS.superAdmin).schema("commerce").rpc("export_ledger", { p_entity: E2 });
+    expect(error).toBeNull();
+    expect((data as unknown[]).length).toBeGreaterThanOrEqual(2002);
+    expect((await sql(`select count(*)::int n from core.audit_logs where action = 'ledger.export' and entity_id = $1`, [E2]))[0]!.n).toBeGreaterThan(0);
+  });
+
+  it("#12 export khách hàng trả mảng jsonb và ghi audit", async () => {
+    const src = `rv4-${randomUUID().slice(0, 8)}`;
+    await sql(`select core.upsert_guest_customer($1, $2::jsonb, $3, $4::jsonb)`, [E1, JSON.stringify({ name: "Khách xuất", phone: "0933333331", email: `x-${src}@example.test` }), src, JSON.stringify({ terms: true, marketing: true })]);
+    const { data, error } = await aal2ClientFor(USERS.finance).schema("crm").rpc("export_segment", { p_entity: E1, p_filter: { source: src } });
+    expect(error).toBeNull();
+    expect(data).toEqual([{ displayName: "Khách xuất", email: `x-${src}@example.test`, phone: "0933333331", source: src, marketing: true }]);
+    expect((await sql(`select count(*)::int n from core.audit_logs where action = 'crm.export' and entity_id = $1`, [E1]))[0]!.n).toBeGreaterThan(0);
   });
 });
