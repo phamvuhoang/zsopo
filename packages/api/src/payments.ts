@@ -21,7 +21,7 @@ export type GuestReceipt = {
   due: string;
   dueAt: string | null;
   guestName: string;
-  lines: { title: string; amount: string }[];
+  lines: { title: string; amount: string; cancelled: boolean }[];
   booking: null | { id: string; state: string; roomName: string; arrival: string; departure: string; adults: number; children: number; heldUntil: string | null; checkIn: string; checkOut: string };
   transferReportedAt: string | null;
   vietqr: null | { bankBin: string; bankName: string; accountNo: string; accountName: string; amount: string; reference: string };

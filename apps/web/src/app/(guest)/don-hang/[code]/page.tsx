@@ -49,7 +49,7 @@ export default async function OrderPage({ params }: PageProps<"/don-hang/[code]"
         {s.rituals.length > 0 && <p className="mt-4 text-sm">Hướng dẫn nghi lễ: {s.rituals.map((slug) => <Link key={slug} href={`/la/${slug}`} className="mr-2 underline">mở hướng dẫn</Link>)}</p>}
       </div>
       <aside className="h-fit rounded-md border border-[var(--line)] bg-[var(--surface)] p-4">
-        <ul className="text-sm">{r.lines.map((l, i) => <li key={i} className="flex justify-between gap-2"><span>{l.title}</span><Price value={l.amount} /></li>)}</ul>
+        <ul className="text-sm">{r.lines.map((l, i) => <li key={i} className={`flex justify-between gap-2 ${l.cancelled ? "line-through opacity-60" : ""}`}><span>{l.title}{l.cancelled && " (đã hủy)"}</span><Price value={l.amount} /></li>)}</ul>
         <p className="mt-2 flex justify-between border-t border-[var(--line)] pt-2 font-semibold"><span>Tổng</span><Price value={r.total} /></p>
       </aside>
     </div>

@@ -76,7 +76,7 @@ function Summary({ r }: { r: NonNullable<Awaited<ReturnType<typeof loadReceipt>>
       <p className="text-sm text-[var(--ink-2)]">{b.arrival} đến {b.departure} · {b.adults} người lớn{b.children ? `, ${b.children} trẻ em` : ""}</p>
       <ul className="mt-3 flex flex-col gap-1 text-sm">
         {r.lines.map((l, i) => (
-          <li key={i} className="flex justify-between gap-2"><span>{l.title}</span><Price value={l.amount} /></li>
+          <li key={i} className={`flex justify-between gap-2 ${l.cancelled ? "line-through opacity-60" : ""}`}><span>{l.title}{l.cancelled && " (đã hủy)"}</span><Price value={l.amount} /></li>
         ))}
       </ul>
       <dl className="mt-3 border-t border-[var(--line)] pt-3 text-sm">

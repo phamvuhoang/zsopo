@@ -3,7 +3,7 @@ import { randomUUID } from "node:crypto";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { afterAll, describe, expect, it } from "vitest";
 import { transitionBooking } from "../../packages/api/src/ops";
-import { recordPayment } from "../../packages/api/src/payments";
+import { getGuestReceipt, recordPayment } from "../../packages/api/src/payments";
 import { transitionFulfillment } from "../../packages/api/src/shop";
 import { quoteStay } from "../../packages/api/src/stay";
 import { E1, E2, L1, USERS, aal2ClientFor, anonClient, asAal2, clientFor, db, heldBooking, move, onHand, placeShop, seedRoom, seedSku, sql } from "./helpers";
@@ -311,5 +311,32 @@ describe("review4 #13 dịch vụ đặt trước trong kỳ ở", () => {
     expect(!out.ok && out.error.code).toBe("VALIDATION");
     const inside = await quoteStay(anonClient(), { ...stay, services: [{ serviceId: car!.id, qty: 1, scheduledAt: "2031-03-11T09:00:00+07:00" }] });
     expect(inside.ok).toBe(true);
+  });
+});
+
+describe("review4 #14 biên nhận khách cộng đúng tổng", () => {
+  const sumLines = (rc: { lines: { amount: string }[] }) => rc.lines.reduce((s, l) => s + Number(l.amount), 0);
+
+  it("#14 hủy dịch vụ có giảm giá: mọi dòng cộng khớp total, dòng đã hủy được gắn cờ", async () => {
+    const [bf] = await sql<{ id: string }>(`select id from stay.services where slug = 'bua-sang-thuc-duong'`);
+    const h = await heldBooking(({ departure }) => [{ serviceId: bf!.id, qty: 1, scheduledAt: `${departure}T07:00:00+07:00` }]);
+    const [item] = await sql<{ id: string }>(`select id from commerce.order_items where order_id = $1 and item_type = 'service'`, [h.orderId]);
+    await sql(`select stay.reverse_service_item($1)`, [item!.id]);
+    const rc = await getGuestReceipt(anonClient(), h.guestToken!);
+    if (!rc.ok) throw new Error(rc.error.message);
+    expect(sumLines(rc.data)).toBe(Number(rc.data.total));
+    expect(rc.data.lines.filter((l) => l.cancelled).length).toBe(1);
+  });
+
+  it("#14 đơn shop trả hàng khi chưa hoàn tất: dòng gốc đã hủy + dòng đảo + phí ship cộng khớp total", async () => {
+    const { variantId } = await seedSku({ price: 200000n, onHand: 2 });
+    const r = await placeShop(variantId, "cod");
+    if (!r.ok) throw new Error(r.error.message);
+    for (const to of ["confirmed", "packing", "ready_to_ship", "shipped", "returned"]) await move(r.data.orderId, to);
+    const rc = await getGuestReceipt(anonClient(), r.data.guestToken!);
+    if (!rc.ok) throw new Error(rc.error.message);
+    expect(sumLines(rc.data)).toBe(Number(rc.data.total));
+    expect(rc.data.lines.filter((l) => l.cancelled).map((l) => l.amount)).toEqual(["200000"]);
+    expect(rc.data.lines.some((l) => l.title.startsWith("Trả hàng") && !l.cancelled && l.amount === "-200000")).toBe(true);
   });
 });

@@ -382,8 +382,9 @@ begin
     select * into r from stay.rooms where id = b.room_id;
     select * into l from core.locations where id = b.location_id;
   end if;
-  select coalesce(jsonb_agg(jsonb_build_object('title', i.title, 'amount', i.amount::text) order by i.created_at), '[]') into v_lines
-  from commerce.order_items i where i.order_id = o.id and i.status <> 'cancelled';
+  -- Every line, cancelled ones flagged: a cancelled line and its reversal line cancel out, so the lines add up to o.total.
+  select coalesce(jsonb_agg(jsonb_build_object('title', i.title, 'amount', i.amount::text, 'cancelled', i.status = 'cancelled') order by i.created_at), '[]') into v_lines
+  from commerce.order_items i where i.order_id = o.id;
   select max(reported_at) into v_claim from commerce.payment_claims where order_id = o.id;
   select value into v_cfg from ops_config.runtime_settings where key = 'payment.vietqr';
   if coalesce((v_cfg ->> 'approved')::boolean, false) and o.paid_amount < greatest(o.deposit_due, case when o.kind = 'stay' then 0 else o.total end) then
