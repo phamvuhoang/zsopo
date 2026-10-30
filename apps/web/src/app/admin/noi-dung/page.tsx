@@ -18,10 +18,11 @@ async function Editor({ searchParams }: Pick<PageProps<"/admin/noi-dung">, "sear
   await requirePermission("content.write", ctx.location.entity_id, null, "/admin/noi-dung");
   const sp = await searchParams;
   const db = await createClient();
-  const [{ data: posts }, { data: cats }, { data: pages }, { data: calendar }] = await Promise.all([
+  const [{ data: posts }, { data: cats }, { data: pages }, { data: pageDrafts }, { data: calendar }] = await Promise.all([
     db.schema("content").from("posts").select("id, slug, title, status, scheduled_at, version, updated_at").order("updated_at", { ascending: false }).limit(50),
     db.schema("content").from("categories").select("id, name").order("sort"),
     db.schema("content").from("pages").select("id, slug, title, excerpt, body_md, status, version").order("kind"),
+    db.schema("content").from("page_drafts").select("page_id, title, excerpt, body_md"),
     db.schema("content").from("campaign_calendar").select("id, week_start, topic, channel, owner, status").order("week_start").limit(30),
   ]);
   const id = typeof sp.id === "string" ? sp.id : null;
@@ -88,15 +89,20 @@ async function Editor({ searchParams }: Pick<PageProps<"/admin/noi-dung">, "sear
       </div>
       <section className="mt-10" aria-labelledby="trang">
         <h2 id="trang" className="text-lg font-semibold">Trang và chính sách</h2>
-        <ul className="mt-2 flex flex-col gap-2">{(pages ?? []).map((p) => (
-          <li key={p.id}><details className="rounded-md border border-[var(--line)] p-3"><summary className="cursor-pointer">{p.title} <StatusBadge>{STATUS[p.status]}</StatusBadge></summary>
+        <ul className="mt-2 flex flex-col gap-2">{(pages ?? []).map((live) => {
+          // A published page's pending edit fills the form; the public keeps the live text until "Đăng" is ticked.
+          const d = (pageDrafts ?? []).find((x) => x.page_id === live.id);
+          const p = { ...live, ...d };
+          return (
+          <li key={p.id}><details className="rounded-md border border-[var(--line)] p-3"><summary className="cursor-pointer">{live.title} <StatusBadge>{STATUS[live.status]}</StatusBadge>{d && <> <StatusBadge tone="info">Có bản nháp chưa đăng</StatusBadge></>}</summary>
             <ActionForm action={savePageAction} submit="Lưu trang" className="mt-2 grid gap-2">
               <input type="hidden" name="id" value={p.id} /><input type="hidden" name="version" value={p.version} /><input type="hidden" name="slug" value={p.slug} />
               <Field label="Tiêu đề"><input name="title" defaultValue={p.title} className={inputCls} /></Field>
               <Field label="Tóm tắt"><input name="excerpt" defaultValue={p.excerpt} className={inputCls} /></Field>
               <Field label="Nội dung"><textarea name="body" defaultValue={p.body_md} rows={8} className={`${inputCls} py-2 font-mono`} /></Field>
               <label className="flex min-h-11 items-center gap-2 text-sm"><input type="checkbox" name="publish" defaultChecked={p.status === "published"} /> Đăng (cần quyền duyệt)</label>
-            </ActionForm></details></li>))}</ul>
+            </ActionForm></details></li>);
+        })}</ul>
       </section>
       <section className="mt-10 grid gap-6 lg:grid-cols-2">
         <div>

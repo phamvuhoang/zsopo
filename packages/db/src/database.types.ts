@@ -358,6 +358,26 @@ isOneToOne: false
       referencedColumns: ["id"]
     }
                   ]
+                },"page_drafts": {
+                  Row: {
+                    "body_md": string,"excerpt": string,"page_id": string,"title": string,"updated_at": string,"updated_by": string | null
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "body_md": string,"excerpt": string,"page_id": string,"title": string,"updated_at"?: string,"updated_by"?: string | null
+                  }
+                  Update: {
+                    "body_md"?: string,"excerpt"?: string,"page_id"?: string,"title"?: string,"updated_at"?: string,"updated_by"?: string | null
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "page_drafts_page_id_fkey"
+      columns: ["page_id"]
+isOneToOne: true
+      referencedRelation: "pages"
+      referencedColumns: ["id"]
+    }
+                  ]
                 },"page_revisions": {
                   Row: {
                     "created_at": string,"created_by": string | null,"id": string,"page_id": string,"snapshot": NonNullable<Json>,"version": number

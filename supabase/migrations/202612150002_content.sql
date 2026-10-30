@@ -65,6 +65,16 @@ create table content.post_drafts (
   updated_at timestamptz not null default now()
 );
 
+-- Same for a published page: unchecking "Đăng" must not take a live policy page (and the gates built on it) offline.
+create table content.page_drafts (
+  page_id uuid primary key references content.pages(id),
+  title text not null,
+  excerpt text not null,
+  body_md text not null,
+  updated_by uuid,
+  updated_at timestamptz not null default now()
+);
+
 create table content.post_revisions (
   id uuid primary key default gen_random_uuid(),
   post_id uuid not null references content.posts(id),
@@ -269,7 +279,7 @@ begin
 end $$;
 select cron.schedule('publish-due', '* * * * *', 'select content.publish_due()');
 
--- Pages (policies/about) edits keep revisions too.
+-- Pages (policies/about) edits keep revisions too. Saving without publish keeps a published page live: the edit waits in page_drafts.
 create function content.save_page(p_page uuid, p_title text, p_excerpt text, p_body text, p_expected_version int, p_publish boolean) returns int
 language plpgsql security definer set search_path = '' as $$
 declare cur content.pages;
@@ -278,10 +288,16 @@ begin
   if not found or not core.has_permission('content.write', cur.entity_id, null) then perform core.fail('FORBIDDEN'); end if;
   if p_publish and not core.has_permission('content.publish', cur.entity_id, null) then perform core.fail('FORBIDDEN'); end if;
   if cur.version <> p_expected_version then perform core.fail('VERSION_CONFLICT'); end if;
+  if cur.status = 'published' and not p_publish then
+    insert into content.page_drafts(page_id, title, excerpt, body_md, updated_by) values (cur.id, p_title, p_excerpt, p_body, auth.uid())
+    on conflict (page_id) do update set title = excluded.title, excerpt = excluded.excerpt, body_md = excluded.body_md, updated_by = excluded.updated_by, updated_at = now();
+    return cur.version;
+  end if;
   update content.pages set title = p_title, excerpt = p_excerpt, body_md = p_body, updated_by = auth.uid(),
     status = case when p_publish then 'published' else 'draft' end, published_at = case when p_publish then coalesce(published_at, now()) else published_at end,
     approved_by = case when p_publish then auth.uid() else approved_by end
   where id = p_page returning * into cur;
+  delete from content.page_drafts where page_id = cur.id;
   insert into content.page_revisions(page_id, version, snapshot, created_by) values (cur.id, cur.version, to_jsonb(cur) - 'updated_at', auth.uid());
   return cur.version;
 end $$;
@@ -372,8 +388,9 @@ alter table content.contact_leads enable row level security;
 alter table content.newsletter_subscriptions enable row level security;
 alter table content.newsletter_tokens enable row level security;
 alter table content.post_drafts enable row level security;
+alter table content.page_drafts enable row level security;
 grant select on content.categories, content.posts, content.redirects to anon, authenticated;
-grant select on content.post_drafts, content.post_revisions, content.page_revisions, content.campaign_calendar, content.contact_leads, content.newsletter_subscriptions to authenticated;
+grant select on content.post_drafts, content.page_drafts, content.post_revisions, content.page_revisions, content.campaign_calendar, content.contact_leads, content.newsletter_subscriptions to authenticated;
 grant insert, update on content.campaign_calendar, content.categories to authenticated;
 grant update (handled_at) on content.contact_leads to authenticated;
 grant all on all tables in schema content to service_role;
@@ -381,6 +398,7 @@ create policy categories_read on content.categories for select using (true);
 create policy categories_write on content.categories for insert to authenticated with check (core.auth_has_role('super_admin', null, null) or exists (select 1 from core.user_roles ur where ur.user_id = auth.uid() and ur.role = 'editor' and ur.disabled_at is null));
 create policy posts_read on content.posts for select using ((status = 'published' and published_at <= now()) or core.has_permission('content.write', entity_id, null));
 create policy drafts_read on content.post_drafts for select to authenticated using (exists (select 1 from content.posts p where p.id = post_id and core.has_permission('content.write', p.entity_id, null)));
+create policy page_drafts_read on content.page_drafts for select to authenticated using (exists (select 1 from content.pages p where p.id = page_id and core.has_permission('content.write', p.entity_id, null)));
 create policy revisions_read on content.post_revisions for select to authenticated using (exists (select 1 from content.posts p where p.id = post_id and core.has_permission('content.write', p.entity_id, null)));
 create policy page_revisions_read on content.page_revisions for select to authenticated using (exists (select 1 from content.pages p where p.id = page_id and core.has_permission('content.write', p.entity_id, null)));
 create policy redirects_read on content.redirects for select using (true);

@@ -4,7 +4,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import { afterAll, describe, expect, it } from "vitest";
 import { transitionBooking } from "../../packages/api/src/ops";
 import { recordPayment } from "../../packages/api/src/payments";
-import { E1, USERS, aal2ClientFor, asAal2, clientFor, db, heldBooking, sql } from "./helpers";
+import { E1, USERS, aal2ClientFor, anonClient, asAal2, clientFor, db, heldBooking, sql } from "./helpers";
 
 afterAll(() => db.end());
 
@@ -163,5 +163,40 @@ describe("review4 #7 danh sách đơn cần xử lý tiền", () => {
     // Cùng thực thể nhưng khác cơ sở, và thực thể khác: không thấy đơn (contact_snapshot là PII).
     expect((await settle(USERS.frontDesk2)).find((r) => r.id === h.orderId)).toBeUndefined();
     expect((await settle(USERS.frontDeskB)).find((r) => r.id === h.orderId)).toBeUndefined();
+  });
+});
+
+const scratchPage = async (status: "published" | "draft") => (await sql<{ id: string; version: number }>(
+  `insert into content.pages(entity_id, slug, kind, title, excerpt, body_md, status, published_at)
+   values ($1, 'thu-' || substr(md5(random()::text),1,8), 'policy', 'Trang thử', 'x', 'Bản gốc', $2, case when $2 = 'published' then now() end)
+   returning id, version`, [E1, status]))[0]!;
+const savePage = async (id: string, version: number, body: string, publish: boolean) =>
+  (await clientFor(USERS.editor)).schema("content").rpc("save_page", { p_page: id, p_title: "Trang thử", p_excerpt: "x", p_body: body, p_expected_version: version, p_publish: publish });
+
+describe("review4 #2 lưu nháp trang", () => {
+  it("bỏ chọn Đăng khi sửa trang đang công khai: trang vẫn công khai, bản sửa nằm ở bản nháp", async () => {
+    const pg = await scratchPage("published");
+    expect((await savePage(pg.id, pg.version, "Bản nháp mới", false)).error).toBeNull();
+    expect((await sql(`select status, body_md from content.pages where id = $1`, [pg.id]))[0]).toMatchObject({ status: "published", body_md: "Bản gốc" });
+    expect((await sql(`select body_md from content.page_drafts where page_id = $1`, [pg.id]))[0]!.body_md).toBe("Bản nháp mới");
+    expect((await savePage(pg.id, pg.version, "Bản nháp mới", true)).error).toBeNull();
+    expect((await sql(`select body_md from content.pages where id = $1`, [pg.id]))[0]!.body_md).toBe("Bản nháp mới");
+    expect(await sql(`select 1 from content.page_drafts where page_id = $1`, [pg.id])).toHaveLength(0);
+  });
+
+  it("trang chưa đăng vẫn sửa tại chỗ, không tạo bản nháp", async () => {
+    const pg = await scratchPage("draft");
+    expect((await savePage(pg.id, pg.version, "Sửa nháp", false)).error).toBeNull();
+    expect((await sql(`select body_md from content.pages where id = $1`, [pg.id]))[0]!.body_md).toBe("Sửa nháp");
+    expect(await sql(`select 1 from content.page_drafts where page_id = $1`, [pg.id])).toHaveLength(0);
+  });
+
+  it("bản nháp chỉ biên tập xem được, không ai ghi trực tiếp", async () => {
+    const pg = await scratchPage("published");
+    expect((await savePage(pg.id, pg.version, "Chỉ biên tập thấy", false)).error).toBeNull();
+    const editor = (await clientFor(USERS.editor)).schema("content");
+    expect((await editor.from("page_drafts").select("body_md").eq("page_id", pg.id)).data).toEqual([{ body_md: "Chỉ biên tập thấy" }]);
+    expect((await anonClient().schema("content").from("page_drafts").select("body_md").eq("page_id", pg.id)).data ?? []).toHaveLength(0);
+    expect((await editor.from("page_drafts").update({ body_md: "x" }).eq("page_id", pg.id)).error).not.toBeNull();
   });
 });
