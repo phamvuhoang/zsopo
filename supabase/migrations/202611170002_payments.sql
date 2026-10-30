@@ -320,6 +320,30 @@ begin
   return v_id;
 end $$;
 
+-- Orders staff must act on for money: awaiting payment, held in review, or still holding refundable money
+-- (cancelled/expired/overpaid/returned). refundable = what request_refund would still accept (net of open requests).
+-- plpgsql, not sql: fulfillment_status is added by the later shop migration, so the body is only resolved at call time.
+create function commerce.orders_to_settle(p_limit int default 50)
+returns table(id uuid, code text, kind text, status text, payment_status text, fulfillment_status text, total bigint, deposit_due bigint, paid_amount bigint,
+  refundable bigint, booking_id uuid, booking_state text, due_at timestamptz, contact_snapshot jsonb, created_at timestamptz)
+language plpgsql stable security definer set search_path = '' as $$
+begin
+  return query
+  select o.id, o.code, o.kind, o.status, o.payment_status, o.fulfillment_status, o.total, o.deposit_due, o.paid_amount,
+         rf.v, bk.id, bk.state, o.due_at, o.contact_snapshot, o.created_at
+  from commerce.orders o
+  left join lateral (select b.id, b.state from stay.bookings b where b.order_id = o.id order by b.created_at desc limit 1) bk on true
+  cross join lateral (select greatest(commerce.refundable(o.id)
+    - (select coalesce(sum(r.amount), 0) from commerce.refund_requests r where r.order_id = o.id and r.status = 'requested'), 0)::bigint as v) rf
+  where (core.has_permission('payment.record', o.entity_id, o.location_id) or core.has_permission('orders.manage', o.entity_id, null))
+    and (o.status in ('pending','needs_review') or bk.state = 'needs_review'
+         or (rf.v > 0 and (o.status in ('cancelled','expired') or o.payment_status = 'overpaid' or o.paid_amount > o.total)))
+  order by o.created_at desc
+  limit least(greatest(coalesce(p_limit, 50), 1), 200);
+end $$;
+-- refundable() and orders_to_settle() read the ledger by order; without this each order costs a scan of ledger_events.
+create index on commerce.ledger_events (order_id);
+
 create function commerce.approve_refund(p_refund uuid, p_provider_ref text, p_evidence_note text, p_method text default 'bank') returns void
 language plpgsql security definer set search_path = '' as $$
 declare r commerce.refund_requests; o commerce.orders; v_credit bigint; v_from_credit bigint;
@@ -393,7 +417,7 @@ end $$;
 
 revoke execute on function commerce.exchange_guest_token, commerce.report_transfer, commerce.can_record_payment, stay.try_reallocate,
   commerce.record_payment_atomic, stay.schedule_journey, stay.confirm_with_exception, commerce.request_refund, commerce.approve_refund,
-  commerce.get_guest_receipt, commerce.claim_order from public;
+  commerce.orders_to_settle, commerce.get_guest_receipt, commerce.claim_order from public;
 grant execute on function commerce.exchange_guest_token, commerce.report_transfer, commerce.get_guest_receipt to anon, authenticated;
-grant execute on function commerce.record_payment_atomic, stay.confirm_with_exception, commerce.request_refund, commerce.approve_refund, commerce.claim_order to authenticated;
+grant execute on function commerce.record_payment_atomic, stay.confirm_with_exception, commerce.request_refund, commerce.approve_refund, commerce.orders_to_settle, commerce.claim_order to authenticated;
 revoke execute on function commerce.apply_review_payments from public, anon, authenticated;

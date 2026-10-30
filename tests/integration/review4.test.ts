@@ -2,6 +2,7 @@
 import { randomUUID } from "node:crypto";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { afterAll, describe, expect, it } from "vitest";
+import { transitionBooking } from "../../packages/api/src/ops";
 import { recordPayment } from "../../packages/api/src/payments";
 import { E1, USERS, aal2ClientFor, asAal2, clientFor, db, heldBooking, sql } from "./helpers";
 
@@ -128,5 +129,36 @@ describe("review4 #6 dịch vụ đặt trước", () => {
     expect(p.ok && p.data.bookingState).toBe("confirmed");
     expect((await sql(`select s.slug, r.state from stay.service_requests r join stay.services s on s.id = r.service_id where r.booking_id = $1 order by s.slug`, [h.bookingId])))
       .toEqual([{ slug: "giat-ui", state: "cancelled" }, { slug: "tra-thao-moc-tai-phong", state: "requested" }]);
+  });
+});
+
+describe("review4 #7 danh sách đơn cần xử lý tiền", () => {
+  const settle = async (user: Parameters<typeof clientFor>[0]) => {
+    const { data, error } = await (await clientFor(user)).schema("commerce").rpc("orders_to_settle", {});
+    expect(error).toBeNull();
+    return data as { id: string; refundable: number }[];
+  };
+
+  it("#7 booking đã xác nhận rồi bị hủy hiện trong danh sách cần hoàn, đúng số tiền", async () => {
+    const h = await heldBooking();
+    await cash(h.orderId, "300000");
+    const [b] = await sql<{ version: number }>(`select version from stay.bookings where id = $1`, [h.bookingId]);
+    const c = await transitionBooking(await clientFor(USERS.manager), { bookingId: h.bookingId, expectedVersion: b!.version, action: "cancel", reason: "Khách hủy", idempotencyKey: randomUUID() });
+    expect(c.ok).toBe(true);
+    expect((await settle(USERS.frontDesk)).find((r) => r.id === h.orderId)?.refundable).toBe(300000);
+    // Yêu cầu hoàn đang chờ được trừ khỏi số còn hoàn được; hết thì đơn rời danh sách.
+    const req = await (await clientFor(USERS.frontDesk)).schema("commerce").rpc("request_refund", { p_order: h.orderId, p_amount: 100000, p_reason: "Hoàn một phần" });
+    expect(req.error).toBeNull();
+    expect((await settle(USERS.frontDesk)).find((r) => r.id === h.orderId)?.refundable).toBe(200000);
+  });
+
+  it("#7 tiền kẹt ở needs_review hiện để xác nhận ngoại lệ; người không có quyền không thấy", async () => {
+    const h = await heldBooking();
+    await expire(h);
+    await block(h.bookingId);
+    expect((await cash(h.orderId, "300000")).ok).toBe(true);
+    const row = (await settle(USERS.frontDesk)).find((r) => r.id === h.orderId) as { booking_id: string; booking_state: string; status: string; refundable: number } | undefined;
+    expect(row).toMatchObject({ booking_id: h.bookingId, booking_state: "needs_review", status: "needs_review", refundable: 300000 });
+    expect((await settle(USERS.housekeeping)).find((r) => r.id === h.orderId)).toBeUndefined();
   });
 });

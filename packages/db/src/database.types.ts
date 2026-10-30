@@ -244,6 +244,11 @@ isOneToOne: false
 "idem_put":
 { Args: { "p_hash": string,"p_key": string,"p_result": Json,"p_scope": string }; Returns: Json
                            },
+"orders_to_settle":
+{ Args: { "p_limit"?: number }; Returns: {
+              "booking_id": string,"booking_state": string,"code": string,"contact_snapshot": Json,"created_at": string,"deposit_due": number,"due_at": string,"fulfillment_status": string,"id": string,"kind": string,"paid_amount": number,"payment_status": string,"refundable": number,"status": string,"total": number
+            }[]
+                           },
 "post_ledger":
 { Args: { "p_entity": string,"p_kind": string,"p_lines": Json,"p_location": string,"p_order": string,"p_payment": string,"p_recognition"?: string,"p_reversal_of"?: string,"p_source_key": string }; Returns: string
                            },
