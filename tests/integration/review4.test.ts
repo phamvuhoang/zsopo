@@ -225,3 +225,41 @@ describe("review4 #5 đơn chuyển khoản chưa trả", () => {
     expect(!res.ok && res.error.code).toBe("INVALID_TRANSITION");
   });
 });
+
+describe("review4 #10 trả hàng đảo doanh thu", () => {
+  it("trả hàng sau khi hoàn tất: doanh thu sản phẩm thuần bằng 0, đơn hiện để hoàn", async () => {
+    const { variantId } = await seedSku({ price: 200000n, onHand: 2 });
+    const r = await placeShop(variantId, "cod");
+    if (!r.ok) throw new Error(r.error.message);
+    for (const to of ["confirmed", "packing", "ready_to_ship", "shipped"]) await move(r.data.orderId, to);
+    const [o] = await sql<{ total: string }>(`select total::text from commerce.orders where id = $1`, [r.data.orderId]);
+    const fin = await clientFor(USERS.finance);
+    expect((await recordPayment(fin, { orderId: r.data.orderId, provider: "cod", providerRef: randomUUID(), amount: o!.total, receivedAt: new Date().toISOString(), idempotencyKey: randomUUID() })).ok).toBe(true);
+    await move(r.data.orderId, "completed");
+    const [orig] = await sql<{ id: string; completed_at: string }>(`select id, completed_at::text from commerce.order_items where order_id = $1 and item_type = 'product'`, [r.data.orderId]);
+    await move(r.data.orderId, "returned");
+    expect((await sql(`select coalesce(sum(amount),0)::text v from commerce.order_items where order_id = $1 and revenue_source = 'product' and status = 'completed'`, [r.data.orderId]))[0]!.v).toBe("0");
+    // dòng gốc giữ nguyên (kỳ cũ không đổi); dòng đảo liên kết về nó
+    expect((await sql(`select status, completed_at::text from commerce.order_items where id = $1`, [orig!.id]))[0]).toEqual({ status: "completed", completed_at: orig!.completed_at });
+    expect((await sql(`select title, qty, amount::text from commerce.order_items where reversal_of = $1`, [orig!.id]))[0]).toMatchObject({ qty: -1, amount: "-200000" });
+    // tổng đơn giảm đúng tiền hàng, giữ phí ship; phiếu khách vẫn cộng khớp
+    const [after] = await sql<{ total: string; subtotal: string; shipping_fee: string; payment_status: string }>(`select total::text, subtotal::text, shipping_fee::text, payment_status from commerce.orders where id = $1`, [r.data.orderId]);
+    expect(after).toMatchObject({ total: after!.shipping_fee, subtotal: "0", payment_status: "overpaid" });
+    expect((await sql(`select sum(amount)::text v from commerce.order_items where order_id = $1 and status <> 'cancelled'`, [r.data.orderId]))[0]!.v).toBe(after!.total);
+    const rows = (await fin.schema("commerce").rpc("orders_to_settle", {})).data as { id: string; refundable: number }[];
+    expect(rows.find((x) => x.id === r.data.orderId)?.refundable).toBeGreaterThan(0);
+  });
+
+  it("trả hàng khi chưa hoàn tất: dòng gốc hủy, không còn doanh thu, tổng chỉ còn phí ship", async () => {
+    const { variantId } = await seedSku({ price: 200000n, onHand: 2 });
+    const r = await placeShop(variantId, "cod");
+    if (!r.ok) throw new Error(r.error.message);
+    for (const to of ["confirmed", "packing", "ready_to_ship", "shipped", "returned"]) await move(r.data.orderId, to);
+    const items = await sql<{ item_type: string; status: string; revenue_source: string | null; amount: string }>(
+      `select item_type, status, revenue_source, amount::text from commerce.order_items where order_id = $1 and item_type in ('product','adjustment') order by amount desc`, [r.data.orderId]);
+    expect(items).toEqual([{ item_type: "product", status: "cancelled", revenue_source: "product", amount: "200000" }, { item_type: "adjustment", status: "cancelled", revenue_source: null, amount: "-200000" }]);
+    const [after] = await sql<{ total: string; shipping_fee: string; payment_status: string }>(`select total::text, shipping_fee::text, payment_status from commerce.orders where id = $1`, [r.data.orderId]);
+    expect(after).toMatchObject({ total: after!.shipping_fee, payment_status: "unpaid" });
+    expect((await sql(`select coalesce(sum(amount),0)::text v from commerce.order_items where order_id = $1 and revenue_source = 'product' and status = 'completed'`, [r.data.orderId]))[0]!.v).toBe("0");
+  });
+});

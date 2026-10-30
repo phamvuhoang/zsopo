@@ -162,7 +162,7 @@ end $$;
 
 create function shop.transition_fulfillment(p_order uuid, p_to text, p_expected_version int, p_note text default null, p_tracking text default null)
 returns jsonb language plpgsql security definer set search_path = '' as $$
-declare o commerce.orders; v_from text; r record; v_ok boolean; v_hours int;
+declare o commerce.orders; v_from text; r record; v_ok boolean; v_hours int; v_back bigint := 0;
 begin
   select * into o from commerce.orders where id = p_order and kind = 'shop' for update;
   if not found then perform core.fail('NOT_FOUND'); end if;
@@ -185,7 +185,23 @@ begin
   end if;
   if p_to = 'shipped' and coalesce(trim(p_tracking), '') = '' then perform core.fail('VALIDATION', 'Cần mã vận đơn hoặc ghi chú giao tay'); end if;
 
-  update commerce.orders set fulfillment_status = p_to,
+  -- Returned goods stop being revenue and the order shrinks by their price (shipping stays). A completed line keeps its row, so the period it
+  -- was recognised in does not change, and gets a negative product line dated now. A line not yet completed is cancelled with a non-revenue
+  -- reversal, born cancelled so the guest receipt (which hides cancelled lines) shows neither the old line nor a lone negative one.
+  if p_to = 'returned' then
+    with rev as (
+      insert into commerce.order_items(entity_id, order_id, item_type, item_id, title, qty, unit_price, amount, revenue_source, status, completed_at, reversal_of, snapshot, created_by)
+      select entity_id, order_id, 'adjustment', item_id, 'Trả hàng: ' || title, -qty, unit_price, -amount,
+        case when status = 'completed' then 'product' end, case when status = 'completed' then 'completed' else 'cancelled' end,
+        case when status = 'completed' then now() end, id, jsonb_build_object('reason', 'order returned'), auth.uid()
+      from commerce.order_items where order_id = o.id and item_type = 'product' and status in ('active','completed')
+      returning amount)
+    select coalesce(-sum(amount), 0) into v_back from rev;
+    update commerce.order_items set status = 'cancelled' where order_id = o.id and item_type = 'product' and status = 'active';
+  end if;
+
+  update commerce.orders set fulfillment_status = p_to, total = total - v_back, subtotal = subtotal - v_back,
+    payment_status = case when p_to = 'returned' and paid_amount > total - v_back then 'overpaid' else payment_status end,
     ritual_started_at = case when p_to = 'ritual_hold' then now() else ritual_started_at end,
     status = case when p_to = 'cancelled' then 'cancelled' when p_to = 'completed' and payment_status in ('paid','overpaid') then 'completed' when p_to = 'confirmed' and status = 'pending' and (payment_method = 'cod' or payment_status in ('paid','overpaid')) then 'confirmed' else status end
   where id = o.id returning * into o;
