@@ -152,7 +152,7 @@ describe("review4 #7 danh sách đơn cần xử lý tiền", () => {
     expect((await settle(USERS.frontDesk)).find((r) => r.id === h.orderId)?.refundable).toBe(200000);
   });
 
-  it("#7 tiền kẹt ở needs_review hiện để xác nhận ngoại lệ; người không có quyền không thấy", async () => {
+  it("#7 tiền kẹt ở needs_review hiện để xác nhận ngoại lệ; không thấy nếu thiếu quyền, khác cơ sở hoặc khác thực thể", async () => {
     const h = await heldBooking();
     await expire(h);
     await block(h.bookingId);
@@ -160,5 +160,8 @@ describe("review4 #7 danh sách đơn cần xử lý tiền", () => {
     const row = (await settle(USERS.frontDesk)).find((r) => r.id === h.orderId) as { booking_id: string; booking_state: string; status: string; refundable: number } | undefined;
     expect(row).toMatchObject({ booking_id: h.bookingId, booking_state: "needs_review", status: "needs_review", refundable: 300000 });
     expect((await settle(USERS.housekeeping)).find((r) => r.id === h.orderId)).toBeUndefined();
+    // Cùng thực thể nhưng khác cơ sở, và thực thể khác: không thấy đơn (contact_snapshot là PII).
+    expect((await settle(USERS.frontDesk2)).find((r) => r.id === h.orderId)).toBeUndefined();
+    expect((await settle(USERS.frontDeskB)).find((r) => r.id === h.orderId)).toBeUndefined();
   });
 });

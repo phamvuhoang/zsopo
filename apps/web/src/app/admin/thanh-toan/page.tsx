@@ -59,6 +59,8 @@ export default async function PaymentsAdmin() {
               {(open ?? []).map((o) => {
                 const held = o.booking_id ? heldUntil.get(o.booking_id) : null;
                 const warn = o.status === "needs_review" || o.payment_status === "overpaid";
+                // Live orders: paid_amount is what the order keeps, so only the excess is owed back; cancelled/expired orders refund everything held.
+                const refundDefault = o.status === "cancelled" || o.status === "expired" ? o.refundable : Math.max(o.refundable - o.paid_amount, 0) || o.refundable;
                 return (
                   <tr key={o.id} className="border-b border-[var(--line)] align-top">
                     <td className="py-2 font-mono">{o.code}</td>
@@ -85,7 +87,7 @@ export default async function PaymentsAdmin() {
                           <summary className="cursor-pointer text-xs underline">Yêu cầu hoàn tiền (còn hoàn được <Price value={String(o.refundable)} />)</summary>
                           <ActionForm action={requestRefundAction} submit="Gửi yêu cầu" className="mt-1 flex flex-wrap items-end gap-1">
                             <input type="hidden" name="orderId" value={o.id} />
-                            <Field label="Số tiền"><input name="amount" type="number" min={1} max={o.refundable} defaultValue={o.refundable} required className={`${inputCls} w-28`} /></Field>
+                            <Field label="Số tiền"><input name="amount" type="number" min={1} max={o.refundable} defaultValue={refundDefault} required className={`${inputCls} w-28`} /></Field>
                             <Field label="Lý do"><input name="reason" required className={`${inputCls} w-40`} /></Field>
                           </ActionForm>
                         </details>
