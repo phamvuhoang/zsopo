@@ -280,6 +280,8 @@ end $$;
 create function stay.confirm_with_exception(p_booking uuid, p_reason text, p_due bigint) returns void language plpgsql security definer set search_path = '' as $$
 declare b stay.bookings; o commerce.orders;
 begin
+  -- Same lock order as record_payment_atomic (order, booking, room) so the two cannot deadlock on one booking.
+  perform 1 from commerce.orders where id = (select order_id from stay.bookings where id = p_booking) for update;
   select * into b from stay.bookings where id = p_booking for update;
   if not found then perform core.fail('NOT_FOUND'); end if;
   if not core.has_permission('booking.exception', b.entity_id, b.location_id) then perform core.fail('FORBIDDEN'); end if;
@@ -290,7 +292,7 @@ begin
   update stay.room_allocations set kind = 'booking' where source_id = b.id and active;
   update commerce.orders set status = 'confirmed', policy_snapshot = policy_snapshot || jsonb_build_object('exception', jsonb_build_object('reason', p_reason, 'due', p_due, 'by', auth.uid(), 'at', now()))
   where id = b.order_id returning * into o;
-  perform commerce.apply_review_payments(o.id); -- money held in review now counts as paid (the order row is locked by the update above)
+  perform commerce.apply_review_payments(o.id); -- money held in review now counts as paid (the order row is locked above)
   perform core.enqueue(b.entity_id, 'booking.confirmed', 'booking.confirmed:' || b.id, b.id, jsonb_build_object('orderCode', o.code));
   perform stay.schedule_journey(b.id);
   perform core.audit(b.entity_id, 'booking.exception', 'booking', b.id::text, jsonb_build_object('due', p_due), p_reason);
