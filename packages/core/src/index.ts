@@ -4,6 +4,7 @@ export * from "./contracts";
 export * from "./auth/safe-path";
 export * from "./pricing/quote";
 export * from "./commerce/vietqr";
+export * from "./commerce/payment-input";
 export * from "./commerce/state-machine";
 export * from "./ops/cash-shift";
 export * from "./shop/shipping";

@@ -1,6 +1,7 @@
 "use server";
 
 import { createManualBooking, recordPayment, transitionBooking } from "@zsopo/api";
+import { deskReceiptRef } from "@zsopo/core";
 import { randomUUID } from "node:crypto";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
@@ -52,10 +53,11 @@ export async function manualBooking(_: ActionState, f: FormData): Promise<Action
 
 export async function staffPayment(_: ActionState, f: FormData): Promise<ActionState> {
   const supabase = await createClient();
+  const key = str(f, "idempotencyKey") ?? randomUUID();
   const r = await recordPayment(supabase, {
-    orderId: str(f, "orderId")!, provider: str(f, "provider") ?? "cash", providerRef: str(f, "providerRef") ?? `QUAY-${Date.now()}`,
+    orderId: str(f, "orderId")!, provider: str(f, "provider") ?? "cash", providerRef: deskReceiptRef(str(f, "providerRef") ?? undefined, key),
     amount: String(int(f, "amount") ?? 0), receivedAt: new Date().toISOString(), evidenceNote: str(f, "evidence") ?? undefined,
-    shiftId: str(f, "shiftId") ?? undefined, idempotencyKey: str(f, "idempotencyKey") ?? randomUUID(),
+    shiftId: str(f, "shiftId") ?? undefined, idempotencyKey: key,
   });
   refresh();
   return r.ok ? { status: "Đã ghi nhận tiền." } : { error: r.error.message };

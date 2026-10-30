@@ -1,6 +1,7 @@
 "use server";
 
 import { recordPayment } from "@zsopo/api";
+import { vnLocalToIso } from "@zsopo/core";
 import { randomUUID } from "node:crypto";
 import { revalidatePath } from "next/cache";
 import type { ActionState } from "@/components/action-form";
@@ -14,9 +15,10 @@ export async function recordPaymentAction(_: ActionState, f: FormData): Promise<
   const supabase = await createClient();
   const { data: order } = await supabase.schema("commerce").from("orders").select("id").eq("code", code).maybeSingle();
   if (!order) return { error: "Không tìm thấy đơn trong phạm vi quyền của bạn." };
+  const receivedLocal = str(f, "receivedAt");
   const r = await recordPayment(supabase, {
     orderId: order.id, provider: str(f, "provider") ?? "bank_transfer", providerRef: str(f, "providerRef") ?? "",
-    amount: String(amount), receivedAt: new Date(str(f, "receivedAt") ?? Date.now()).toISOString(),
+    amount: String(amount), receivedAt: receivedLocal ? vnLocalToIso(receivedLocal) : new Date().toISOString(),
     evidenceNote: str(f, "evidence") ?? undefined, idempotencyKey: str(f, "idempotencyKey") ?? randomUUID(),
   });
   if (!r.ok) return { error: r.error.message };
