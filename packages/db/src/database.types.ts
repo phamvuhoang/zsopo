@@ -113,14 +113,14 @@ isOneToOne: false
                   ]
                 },"orders": {
                   Row: {
-                    "code": string,"collected_by": string | null,"contact_snapshot": NonNullable<Json>,"created_at": string,"created_by": string | null,"currency": string,"customer_id": string | null,"deposit_due": number,"discount": number,"due_at": string | null,"entity_id": string,"fulfillment_status": string | null,"id": string,"kind": string,"location_id": string | null,"paid_amount": number,"payment_method": string | null,"payment_status": string,"policy_snapshot": NonNullable<Json>,"ritual_required": boolean,"ritual_started_at": string | null,"shipping_fee": number,"source": string,"status": string,"subtotal": number,"total": number,"updated_at": string,"version": number,"can_record_payment": boolean | null
+                    "cod_overdue_at": string | null,"code": string,"collected_by": string | null,"contact_snapshot": NonNullable<Json>,"created_at": string,"created_by": string | null,"currency": string,"customer_id": string | null,"deposit_due": number,"discount": number,"due_at": string | null,"entity_id": string,"fulfillment_status": string | null,"id": string,"kind": string,"location_id": string | null,"paid_amount": number,"payment_method": string | null,"payment_status": string,"policy_snapshot": NonNullable<Json>,"ritual_required": boolean,"ritual_started_at": string | null,"shipping_fee": number,"source": string,"status": string,"subtotal": number,"total": number,"updated_at": string,"version": number,"can_record_payment": boolean | null
                   }
                   ComputedFields: "can_record_payment"
                   Insert: {
-                    "code"?: string,"collected_by"?: string | null,"contact_snapshot"?: NonNullable<Json>,"created_at"?: string,"created_by"?: string | null,"currency"?: string,"customer_id"?: string | null,"deposit_due"?: number,"discount"?: number,"due_at"?: string | null,"entity_id": string,"fulfillment_status"?: string | null,"id"?: string,"kind": string,"location_id"?: string | null,"paid_amount"?: number,"payment_method"?: string | null,"payment_status"?: string,"policy_snapshot"?: NonNullable<Json>,"ritual_required"?: boolean,"ritual_started_at"?: string | null,"shipping_fee"?: number,"source"?: string,"status"?: string,"subtotal"?: number,"total"?: number,"updated_at"?: string,"version"?: number
+                    "cod_overdue_at"?: string | null,"code"?: string,"collected_by"?: string | null,"contact_snapshot"?: NonNullable<Json>,"created_at"?: string,"created_by"?: string | null,"currency"?: string,"customer_id"?: string | null,"deposit_due"?: number,"discount"?: number,"due_at"?: string | null,"entity_id": string,"fulfillment_status"?: string | null,"id"?: string,"kind": string,"location_id"?: string | null,"paid_amount"?: number,"payment_method"?: string | null,"payment_status"?: string,"policy_snapshot"?: NonNullable<Json>,"ritual_required"?: boolean,"ritual_started_at"?: string | null,"shipping_fee"?: number,"source"?: string,"status"?: string,"subtotal"?: number,"total"?: number,"updated_at"?: string,"version"?: number
                   }
                   Update: {
-                    "code"?: string,"collected_by"?: string | null,"contact_snapshot"?: NonNullable<Json>,"created_at"?: string,"created_by"?: string | null,"currency"?: string,"customer_id"?: string | null,"deposit_due"?: number,"discount"?: number,"due_at"?: string | null,"entity_id"?: string,"fulfillment_status"?: string | null,"id"?: string,"kind"?: string,"location_id"?: string | null,"paid_amount"?: number,"payment_method"?: string | null,"payment_status"?: string,"policy_snapshot"?: NonNullable<Json>,"ritual_required"?: boolean,"ritual_started_at"?: string | null,"shipping_fee"?: number,"source"?: string,"status"?: string,"subtotal"?: number,"total"?: number,"updated_at"?: string,"version"?: number
+                    "cod_overdue_at"?: string | null,"code"?: string,"collected_by"?: string | null,"contact_snapshot"?: NonNullable<Json>,"created_at"?: string,"created_by"?: string | null,"currency"?: string,"customer_id"?: string | null,"deposit_due"?: number,"discount"?: number,"due_at"?: string | null,"entity_id"?: string,"fulfillment_status"?: string | null,"id"?: string,"kind"?: string,"location_id"?: string | null,"paid_amount"?: number,"payment_method"?: string | null,"payment_status"?: string,"policy_snapshot"?: NonNullable<Json>,"ritual_required"?: boolean,"ritual_started_at"?: string | null,"shipping_fee"?: number,"source"?: string,"status"?: string,"subtotal"?: number,"total"?: number,"updated_at"?: string,"version"?: number
                   }
                   Relationships: [
                     
@@ -1604,6 +1604,9 @@ isOneToOne: false
 { Args: { "p_address": Json,"p_consents": Json,"p_email": string,"p_idempotency": string,"p_lines": Json,"p_method": string,"p_notes"?: string }; Returns: Json
                            },
 "expire_unpaid_orders":
+{ Args: Record<PropertyKey, never>; Returns: number
+                           },
+"flag_overdue_cod":
 { Args: Record<PropertyKey, never>; Returns: number
                            },
 "merge_cart":

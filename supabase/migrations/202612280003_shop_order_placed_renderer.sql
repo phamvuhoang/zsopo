@@ -24,11 +24,14 @@ begin
       'guestToken', core.issue_guest_token('order', ord.id, (b.departure + 30)::timestamptz),
       'reviewUrl', (select value ->> 'reviewUrl' from ops_config.runtime_settings where key = 'site.contact'));
     return jsonb_build_object('channels', jsonb_build_array('email','zalo'), 'to', v_to, 'template', o.kind, 'vars', v_vars, 'entityId', o.entity_id);
-  elsif o.kind in ('payment.reported','payment.review','payment.overpaid','calendar.sync_failed','calendar.conflict','ticket.escalated','contact.received','service.requested') then
+  elsif o.kind in ('payment.reported','payment.review','payment.overpaid','calendar.sync_failed','calendar.conflict','ticket.escalated','contact.received','service.requested','cod.overdue') then
     select value ->> 'alertEmail' into v_alert from ops_config.runtime_settings where key = 'ops.alerts';
     if coalesce(v_alert, '') = '' then return jsonb_build_object('disabled', 'Chưa cấu hình email nhận cảnh báo vận hành (ops.alerts)'); end if;
     return jsonb_build_object('channels', jsonb_build_array('email'), 'to', v_alert, 'template', 'ops.alert',
-      'vars', jsonb_build_object('kind', o.kind, 'detail', o.payload::text), 'entityId', o.entity_id);
+      'vars', jsonb_build_object('kind', o.kind, 'detail', case when o.kind = 'cod.overdue'
+        then 'Đơn COD ' || (o.payload ->> 'orderCode') || ' chưa được xác nhận sau '
+          || coalesce((select (policy_snapshot -> 'params' ->> 'cod_confirm_hours')::int from commerce.orders where id = o.aggregate_id), 24) || ' giờ'
+        else o.payload::text end), 'entityId', o.entity_id);
   elsif o.kind = 'campaign.email' then
     -- Re-check consent and suppression at the moment of sending.
     return (select case when not crm.has_marketing_consent(r.customer_id) then jsonb_build_object('skip', 'opted out')

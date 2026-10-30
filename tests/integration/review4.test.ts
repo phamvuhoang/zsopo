@@ -418,3 +418,35 @@ describe("review4 G2 lịch dọn khu chung", () => {
     expect(q.error).not.toBeNull();
   });
 });
+
+describe("review4 G3 COD quá hạn xác nhận", () => {
+  it("G3 COD quá 24 giờ chưa xác nhận: báo vận hành đúng một lần, không hủy đơn", async () => {
+    const { variantId } = await seedSku({ onHand: 2 });
+    const r = await placeShop(variantId, "cod");
+    if (!r.ok) throw new Error(r.error.message);
+    await sql(`update commerce.orders set created_at = now() - interval '25 hours' where id = $1`, [r.data.orderId]);
+    await sql(`select shop.flag_overdue_cod()`);
+    await sql(`select shop.flag_overdue_cod()`);
+    expect((await sql<{ n: number }>(`select count(*)::int n from core.outbox where kind = 'cod.overdue' and aggregate_id = $1`, [r.data.orderId]))[0]!.n).toBe(1);
+    expect((await sql(`select status, fulfillment_status from commerce.orders where id = $1`, [r.data.orderId]))[0]).toMatchObject({ fulfillment_status: "new" });
+    // Ops alert email: template ops.alert with a Vietnamese detail line.
+    const [ob] = await sql<{ id: string }>(`select id from core.outbox where kind = 'cod.overdue' and aggregate_id = $1`, [r.data.orderId]);
+    const code = (await sql<{ code: string }>(`select code from commerce.orders where id = $1`, [r.data.orderId]))[0]!.code;
+    const [{ rendered }] = await sql<{ rendered: { template: string; vars: { detail: string } } }>(`select core.render_outbox($1) rendered`, [ob!.id]);
+    expect(rendered.template).toBe("ops.alert");
+    expect(rendered.vars.detail).toBe(`Đơn COD ${code} chưa được xác nhận sau 24 giờ`);
+  });
+  it("G3 không báo đơn COD còn trong hạn, đã xác nhận hoặc không phải COD", async () => {
+    const { variantId } = await seedSku({ onHand: 3 });
+    const flagged = async (id: string) => (await sql<{ n: number }>(`select count(*)::int n from core.outbox where kind = 'cod.overdue' and aggregate_id = $1`, [id]))[0]!.n;
+    const fresh = await placeShop(variantId, "cod");
+    const confirmed = await placeShop(variantId, "cod");
+    const bank = await placeShop(variantId, "bank");
+    if (!fresh.ok || !confirmed.ok || !bank.ok) throw new Error("place");
+    await sql(`update commerce.orders set created_at = now() - interval '23 hours' where id = $1`, [fresh.data.orderId]);
+    await sql(`update commerce.orders set created_at = now() - interval '30 hours', fulfillment_status = 'confirmed' where id = $1`, [confirmed.data.orderId]);
+    await sql(`update commerce.orders set created_at = now() - interval '30 hours' where id = $1`, [bank.data.orderId]);
+    await sql(`select shop.flag_overdue_cod()`);
+    expect([await flagged(fresh.data.orderId), await flagged(confirmed.data.orderId), await flagged(bank.data.orderId)]).toEqual([0, 0, 0]);
+  });
+});

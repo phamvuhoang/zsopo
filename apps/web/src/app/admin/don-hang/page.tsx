@@ -15,7 +15,7 @@ export default async function OrdersAdmin() {
   const ctx = await getStaffContext("/admin/don-hang");
   await requirePermission("orders.read", ctx.location.entity_id, null, "/admin/don-hang");
   const db = await createClient();
-  const { data: orders } = await db.schema("commerce").from("orders").select("id, code, kind, status, payment_status, payment_method, fulfillment_status, total, paid_amount, ritual_required, ritual_started_at, contact_snapshot, created_at, version")
+  const { data: orders } = await db.schema("commerce").from("orders").select("id, code, kind, status, payment_status, payment_method, fulfillment_status, total, paid_amount, ritual_required, ritual_started_at, cod_overdue_at, contact_snapshot, created_at, version")
     .eq("kind", "shop").order("created_at", { ascending: false }).limit(50);
   return (
     <>
@@ -28,6 +28,7 @@ export default async function OrdersAdmin() {
               <span className="font-mono">{o.code}</span><span>{(o.contact_snapshot as { name?: string }).name}</span><Price value={String(o.total)} />
               <StatusBadge tone="info">{o.fulfillment_status}</StatusBadge><StatusBadge tone={o.payment_status === "paid" ? "success" : "warning"}>{o.payment_status}</StatusBadge><StatusBadge>{o.payment_method}</StatusBadge>
               {o.ritual_required && <StatusBadge tone="accent">Nghi lễ 24h</StatusBadge>}
+              {o.cod_overdue_at && o.fulfillment_status === "new" && <StatusBadge tone="danger">Quá hạn xác nhận</StatusBadge>}
             </div>
             <div className="mt-2 flex flex-wrap gap-2">
               {(NEXT[o.fulfillment_status ?? ""] ?? []).filter((to) => to !== "ritual_hold" || o.ritual_required).map((to) => (

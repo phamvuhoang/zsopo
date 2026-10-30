@@ -25,7 +25,8 @@ alter table commerce.orders
   add column payment_method text check (payment_method in ('cod','bank','vietqr_manual','cash')),
   add column ritual_required boolean not null default false,
   add column ritual_started_at timestamptz,
-  add column shipping_fee bigint not null default 0;
+  add column shipping_fee bigint not null default 0,
+  add column cod_overdue_at timestamptz;
 
 create table shop.shipments (
   id uuid primary key default gen_random_uuid(),
@@ -259,6 +260,21 @@ begin
 end $$;
 select cron.schedule('expire-shop-orders', '*/5 * * * *', 'select shop.expire_unpaid_orders()');
 
+-- Spec section 6: a pending COD order must be confirmed (or the customer contacted) within cod_confirm_hours. Flag it once and tell ops; never cancel.
+create function shop.flag_overdue_cod() returns int language plpgsql security definer set search_path = '' as $$
+declare o commerce.orders; v_n int := 0;
+begin
+  for o in select * from commerce.orders where kind = 'shop' and payment_method = 'cod' and fulfillment_status = 'new' and status not in ('cancelled','expired')
+    and cod_overdue_at is null
+    and created_at + make_interval(hours => coalesce((policy_snapshot -> 'params' ->> 'cod_confirm_hours')::int, 24)) <= now() for update skip locked loop
+    update commerce.orders set cod_overdue_at = now() where id = o.id;
+    perform core.enqueue(o.entity_id, 'cod.overdue', 'cod.overdue:' || o.id, o.id, jsonb_build_object('orderCode', o.code));
+    v_n := v_n + 1;
+  end loop;
+  return v_n;
+end $$;
+select cron.schedule('flag-overdue-cod', '*/15 * * * *', 'select shop.flag_overdue_cod()');
+
 -- Account cart: merge a guest's local cart on login (per variant, capped by availability), and replace items.
 create function shop.merge_cart(p_lines jsonb) returns jsonb language plpgsql security definer set search_path = '' as $$
 declare v_cart uuid; l jsonb;
@@ -319,5 +335,6 @@ create policy fulfillment_events_read on shop.fulfillment_events for select to a
 
 revoke execute on function shop.rule_for, shop.price_cart, shop.create_shop_order, shop.transition_fulfillment, shop.restock_return, shop.expire_unpaid_orders,
   shop.merge_cart, shop.set_cart, commerce.get_guest_receipt_v3 from public;
+revoke execute on function shop.flag_overdue_cod from public, anon, authenticated;
 grant execute on function shop.price_cart, shop.create_shop_order, commerce.get_guest_receipt_v3 to anon, authenticated;
 grant execute on function shop.transition_fulfillment, shop.restock_return, shop.merge_cart, shop.set_cart to authenticated;
