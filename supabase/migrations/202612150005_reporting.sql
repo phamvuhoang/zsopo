@@ -3,6 +3,7 @@
 
 -- Revenue recognition (operational, pending Finance sign-off):
 --   room: per night served (service_date < today) of checked-in/out stays; services/products/manual: when completed.
+--   Prebooked service lines are net of their snapshot 'discount' (the discount sits on a separate adjustment line with no revenue source).
 create function commerce.get_location_metrics(p_entity uuid, p_location uuid, p_from date, p_to date) returns jsonb
 language plpgsql stable security definer set search_path = '' as $$
 declare v_today date := (now() at time zone 'Asia/Ho_Chi_Minh')::date; v_rev jsonb; v_cash bigint; v_liab bigint; v_occ int; v_sell int; v_room bigint; v_nights int; v_channels jsonb; v_shop jsonb; v_online bigint;
@@ -12,7 +13,7 @@ begin
 
   with recognized as (
     -- Online shop orders have no location: they count in the entity view, and appear separately (onlineShopRevenue) per location.
-    select i.revenue_source, i.amount, i.order_id, (o.location_id is null and p_location is not null) as online from commerce.order_items i
+    select i.revenue_source, case when i.revenue_source = 'room' then i.amount else i.amount - coalesce((i.snapshot ->> 'discount')::bigint, 0) end as amount, i.order_id, (o.location_id is null and p_location is not null) as online from commerce.order_items i
     join commerce.orders o on o.id = i.order_id and o.entity_id = p_entity and (o.location_id = p_location or (o.location_id is null and o.kind = 'shop'))
     left join stay.bookings b on b.order_id = o.id
     where i.status <> 'cancelled' and i.revenue_source is not null and (
@@ -40,7 +41,7 @@ begin
       -- Net of refunds: deposit liability postings for the order (payment credits, refund debits).
       (select coalesce(-sum(e.amount), 0) from commerce.ledger_entries e join commerce.ledger_events v on v.id = e.event_id
         where v.order_id = o.id and e.account = 'deposit_liability' and e.recognition_date <= p_to) as paid,
-      (select coalesce(sum(i.amount), 0) from commerce.order_items i left join stay.bookings b on b.order_id = o.id
+      (select coalesce(sum(case when i.revenue_source = 'room' then i.amount else i.amount - coalesce((i.snapshot ->> 'discount')::bigint, 0) end), 0) from commerce.order_items i left join stay.bookings b on b.order_id = o.id
         where i.order_id = o.id and i.status <> 'cancelled' and i.revenue_source is not null and (
           (i.revenue_source = 'room' and i.service_date <= p_to and i.service_date < v_today and b.state in ('checked_in','checked_out'))
           or (i.revenue_source <> 'room' and i.status = 'completed' and (i.completed_at at time zone 'Asia/Ho_Chi_Minh')::date <= p_to))) as recog

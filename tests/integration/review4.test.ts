@@ -265,3 +265,16 @@ describe("review4 #10 trả hàng đảo doanh thu", () => {
     expect((await sql(`select coalesce(sum(amount),0)::text v from commerce.order_items where order_id = $1 and revenue_source = 'product' and status = 'completed'`, [r.data.orderId]))[0]!.v).toBe("0");
   });
 });
+
+describe("review4 #11 doanh thu dịch vụ trừ giảm giá đặt trước", () => {
+  it("#11 doanh thu dịch vụ ghi nhận đã trừ giảm giá đặt trước", async () => {
+    const [loc] = await sql<{ id: string }>(`insert into core.locations(entity_id, slug, name, status) values ($1, 'rv4-' || substr(md5(random()::text),1,8), 'Điểm review 4', 'test') returning id`, [E1]);
+    const [o] = await sql<{ id: string }>(`insert into commerce.orders(entity_id, location_id, kind, status, subtotal, discount, total, deposit_due) values ($1, $2, 'manual', 'confirmed', 200000, 20000, 180000, 0) returning id`, [E1, loc!.id]);
+    await sql(`insert into commerce.order_items(entity_id, order_id, item_type, title, qty, unit_price, amount, revenue_source, status, completed_at, snapshot) values
+      ($1, $2, 'service', 'Bữa sáng', 1, 200000, 200000, 'own_service', 'completed', now(), '{"discount":"20000"}'),
+      ($1, $2, 'adjustment', 'Ưu đãi đặt trước dịch vụ', 1, -20000, -20000, null, 'active', null, '{}')`, [E1, o!.id]);
+    const d = new Date(Date.now() + 7 * 3600_000).toISOString().slice(0, 10);
+    const { data } = await (await clientFor(USERS.finance)).schema("commerce").rpc("get_location_metrics", { p_entity: E1, p_location: loc!.id, p_from: d, p_to: d });
+    expect((data as { recognizedRevenueBySource: Record<string, string> }).recognizedRevenueBySource.own_service).toBe("180000");
+  });
+});
