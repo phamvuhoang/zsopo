@@ -2301,7 +2301,7 @@ isOneToOne: false
             }[]
                            },
 "quote_services":
-{ Args: { "p_arrival": string,"p_room": string,"p_services": Json }; Returns: Json
+{ Args: { "p_arrival": string,"p_departure": string,"p_room": string,"p_services": Json }; Returns: Json
                            },
 "quote_stay":
 { Args: { "p_adults": number,"p_arrival": string,"p_children"?: (number)[],"p_departure": string,"p_room": string,"p_services"?: Json }; Returns: Json

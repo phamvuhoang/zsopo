@@ -5,7 +5,8 @@ import { afterAll, describe, expect, it } from "vitest";
 import { transitionBooking } from "../../packages/api/src/ops";
 import { recordPayment } from "../../packages/api/src/payments";
 import { transitionFulfillment } from "../../packages/api/src/shop";
-import { E1, E2, USERS, aal2ClientFor, anonClient, asAal2, clientFor, db, heldBooking, move, onHand, placeShop, seedSku, sql } from "./helpers";
+import { quoteStay } from "../../packages/api/src/stay";
+import { E1, E2, L1, USERS, aal2ClientFor, anonClient, asAal2, clientFor, db, heldBooking, move, onHand, placeShop, seedRoom, seedSku, sql } from "./helpers";
 
 afterAll(() => db.end());
 
@@ -297,5 +298,18 @@ describe("review4 #12 export đủ dòng", () => {
     expect(error).toBeNull();
     expect(data).toEqual([{ displayName: "Khách xuất", email: `x-${src}@example.test`, phone: "0933333331", source: src, marketing: true }]);
     expect((await sql(`select count(*)::int n from core.audit_logs where action = 'crm.export' and entity_id = $1`, [E1]))[0]!.n).toBeGreaterThan(0);
+  });
+});
+
+describe("review4 #13 dịch vụ đặt trước trong kỳ ở", () => {
+  it("#13 dịch vụ đặt trước ngoài kỳ ở bị từ chối, trong kỳ ở thì được", async () => {
+    const room = (await seedRoom()).id;
+    await sql(`insert into stay.rate_plans(entity_id, location_id, room_id, kind, price) values ($1, $2, $3, 'base', 1000000)`, [E1, L1, room]);
+    const [car] = await sql<{ id: string }>(`select id from stay.services where slug = 'xe-don-lien-khuong'`);
+    const stay = { roomId: room, arrival: "2031-03-10", departure: "2031-03-11", adults: 2, childrenAges: [] };
+    const out = await quoteStay(anonClient(), { ...stay, services: [{ serviceId: car!.id, qty: 1, scheduledAt: "2031-04-10T09:00:00+07:00" }] });
+    expect(!out.ok && out.error.code).toBe("VALIDATION");
+    const inside = await quoteStay(anonClient(), { ...stay, services: [{ serviceId: car!.id, qty: 1, scheduledAt: "2031-03-11T09:00:00+07:00" }] });
+    expect(inside.ok).toBe(true);
   });
 });

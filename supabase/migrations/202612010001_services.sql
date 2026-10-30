@@ -76,7 +76,7 @@ create policy request_events_read on stay.service_request_events for select to a
 alter publication supabase_realtime add table stay.service_requests;
 
 -- ---------------------------------------------------------------- pricing (replaces the T05 stub)
-create or replace function stay.quote_services(p_room uuid, p_arrival date, p_services jsonb) returns jsonb
+create or replace function stay.quote_services(p_room uuid, p_arrival date, p_departure date, p_services jsonb) returns jsonb
 language plpgsql stable security definer set search_path = '' as $$
 declare s jsonb; svc stay.services; r stay.rooms; v_out jsonb := '[]'; v_at timestamptz; v_local time; v_amount bigint;
 begin
@@ -87,6 +87,9 @@ begin
     v_at := (s ->> 'scheduledAt')::timestamptz;
     if v_at < now() + make_interval(mins => svc.lead_time_min) then
       perform core.fail('VALIDATION', format('%s cần đặt trước ít nhất %s phút', svc.name, svc.lead_time_min));
+    end if;
+    if (v_at at time zone 'Asia/Ho_Chi_Minh')::date not between p_arrival and p_departure then
+      perform core.fail('VALIDATION', format('%s chỉ đặt trong kỳ ở (%s đến %s)', svc.name, to_char(p_arrival, 'DD/MM'), to_char(p_departure, 'DD/MM')));
     end if;
     v_local := (v_at at time zone 'Asia/Ho_Chi_Minh')::time;
     if v_local < svc.serve_from or v_local > svc.serve_to then

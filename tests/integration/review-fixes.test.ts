@@ -65,7 +65,7 @@ describe("review: tiền và hoàn tiền", () => {
 describe("review: dịch vụ, sự cố, buồng phòng", () => {
   it("#4 hủy dịch vụ đặt trước hoàn đúng phần đã giảm", async () => {
     const [s] = await sql<{ id: string }>(`insert into stay.services(entity_id, location_id, group_key, slug, name, unit, price, lead_time_min, prebook_discount_bp, revenue_source) values ($1, $2, 'food', 'rv-' || substr(md5(random()::text),1,8), 'Dịch vụ review', 'phần', 100000, 0, 1000, 'own_service') returning id`, [E1, L1]);
-    const h = await heldBooking(() => [{ serviceId: s!.id, qty: 2, scheduledAt: `${iso(day + 30)}T01:00:00Z` }]);
+    const h = await heldBooking(({ arrival }) => [{ serviceId: s!.id, qty: 2, scheduledAt: `${arrival}T08:00:00+07:00` }]);
     const [before] = await sql<{ total: string }>(`select total from commerce.orders where id = $1`, [h.orderId]);
     await sql(`update stay.bookings set state = 'confirmed' where id = $1`, [h.bookingId]);
     const [req] = await sql<{ id: string; version: number }>(`select id, version from stay.service_requests where booking_id = $1`, [h.bookingId]);

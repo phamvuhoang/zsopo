@@ -323,7 +323,7 @@ begin
   -- Services are added by stay.quote_services (T09); keep the hook explicit.
   select coalesce(sum((s ->> 'amount')::bigint), 0), coalesce(sum((s ->> 'discount')::bigint), 0), coalesce(jsonb_agg(s), '[]')
     into strict v_extra, v_discount, p_services
-    from jsonb_array_elements(stay.quote_services(r.id, p_arrival, p_services)) s;
+    from jsonb_array_elements(stay.quote_services(r.id, p_arrival, p_departure, p_services)) s;
   v_subtotal := v_subtotal + v_extra;
   v_lines := v_lines || p_services;
   if v_discount > 0 then v_lines := v_lines || jsonb_build_object('title', 'Ưu đãi đặt trước dịch vụ', 'amount', (-v_discount)::text, 'kind', 'discount'); end if;
@@ -342,7 +342,7 @@ begin
 end $$;
 
 -- T09 replaces this with real service pricing; returns priced service lines [{title, amount, discount, ...}].
-create function stay.quote_services(p_room uuid, p_arrival date, p_services jsonb) returns jsonb
+create function stay.quote_services(p_room uuid, p_arrival date, p_departure date, p_services jsonb) returns jsonb
 language plpgsql stable security definer set search_path = '' as $$
 begin
   if jsonb_array_length(coalesce(p_services, '[]')) > 0 then perform core.fail('VALIDATION', 'Dịch vụ đặt trước chưa mở'); end if;
