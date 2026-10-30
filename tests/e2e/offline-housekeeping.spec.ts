@@ -165,3 +165,69 @@ test("BP01: chụp ảnh cho một mục, đồng bộ xong có đúng một ả
   expect(rows).toEqual([{ n: 1 }]);
   await db.end();
 });
+
+test("BP01: ảnh sai loại hoặc quá 10MB bị chặn ngay khi chọn, không vào hàng đợi", async ({ page }) => {
+  const { db, taskId } = await taskInFreshRoom();
+  await login(page, `/ops/buong-phong/${taskId}`);
+  await controlled(page);
+  const photo = page.getByLabel(/^Ảnh: Kiểm tra đồ khách để quên/);
+  const err = page.getByRole("status").filter({ hasText: /JPEG, PNG hoặc WebP/ });
+  await photo.setInputFiles({ name: "anh.gif", mimeType: "image/gif", buffer: Buffer.from("R0lGODlhAQABAAAAACw=", "base64") });
+  await expect(err).toHaveCount(1);
+  await photo.setInputFiles({ name: "to.jpg", mimeType: "image/jpeg", buffer: Buffer.alloc(10 * 1024 * 1024 + 1) });
+  await expect(err).toHaveCount(1);
+  // The rejected files are not kept: the answer goes through with no photo, and nothing waits on the device.
+  await page.getByRole("button", { name: "Đạt", exact: true }).nth(2).click();
+  await expect(page.getByRole("status").filter({ hasText: "Đã lưu" })).toHaveCount(1);
+  const { rows } = await db.query(`select cardinality(media_ids)::int n from stay.checklist_results where task_id = $1 and item_code = 'G2-1'`, [taskId]);
+  expect(rows).toEqual([{ n: 0 }]);
+  expect((await db.query(`select count(*)::int n from core.media where path like $1`, [`%/${taskId}/%`])).rows[0].n).toBe(0);
+  await db.end();
+});
+
+test("BP01: mạng rớt sau khi ảnh đã tải lên nhưng trước khi lưu mục, đồng bộ lại vẫn đính đúng một ảnh", async ({ page }) => {
+  const { db, taskId } = await taskInFreshRoom();
+  await login(page, `/ops/buong-phong/${taskId}`);
+  await controlled(page);
+  let dropped = 0;
+  await page.route("**/ops/buong-phong/**", (route) => {
+    const r = route.request();
+    if (r.method() === "POST" && r.headers()["next-action"] && dropped++ === 0) return route.abort("connectionfailed"); // the server action only
+    return route.continue();
+  });
+  await page.getByLabel(/^Ảnh: Kiểm tra đồ khách để quên/).setInputFiles({ name: "do-quen.jpg", mimeType: "image/jpeg", buffer: Buffer.from(JPEG_1PX_BASE64, "base64") });
+  await page.getByRole("button", { name: "Đạt", exact: true }).nth(2).click();
+  await expect.poll(() => dropped).toBe(1); // upload + media row come first, then the answer is sent (and dropped)
+  await expect(page.getByRole("status").filter({ hasText: "Chờ đồng bộ" }).first()).toBeVisible();
+  const media = () => db.query(`select count(*)::int n from core.media where path like $1`, [`%/${taskId}/%`]).then((r) => r.rows[0].n);
+  expect(await media()).toBe(1); // uploaded and registered, but the answer never reached the server
+  expect((await db.query(`select 1 from stay.checklist_results where task_id = $1`, [taskId])).rows).toHaveLength(0);
+  await page.getByRole("button", { name: "Đồng bộ ngay" }).click();
+  await expect(page.getByText("Đã đồng bộ", { exact: true })).toBeVisible();
+  const { rows } = await db.query(`select cardinality(media_ids)::int n, media_ids[1] id from stay.checklist_results where task_id = $1 and item_code = 'G2-1'`, [taskId]);
+  expect(rows[0].n).toBe(1);
+  expect(await media()).toBe(1); // re-uploaded on retry without a second media row
+  expect((await db.query(`select id from core.media where path like $1`, [`%/${taskId}/%`])).rows[0].id).toBe(rows[0].id);
+  await db.end();
+});
+
+test("BP01: ảnh chờ gửi đã mất khỏi thiết bị thì việc bị từ chối kèm lý do, không lưu lặng lẽ thiếu ảnh", async ({ page, context }) => {
+  const { db, taskId } = await taskInFreshRoom();
+  await login(page, `/ops/buong-phong/${taskId}`);
+  await controlled(page);
+  await context.setOffline(true);
+  await page.getByLabel(/^Ảnh: Kiểm tra đồ khách để quên/).setInputFiles({ name: "do-quen.jpg", mimeType: "image/jpeg", buffer: Buffer.from(JPEG_1PX_BASE64, "base64") });
+  await page.getByRole("button", { name: "Đạt", exact: true }).nth(2).click();
+  await expect(page.getByText(/Chờ đồng bộ \(1\)/)).toBeVisible();
+  await page.evaluate(async () => { // the 7-day TTL prune (or a storage clean-up) removed the draft
+    const name = (await indexedDB.databases()).find((d) => d.name?.startsWith("zsopo-ops"))!.name!;
+    const idb: IDBDatabase = await new Promise((ok) => { const q = indexedDB.open(name); q.onsuccess = () => ok(q.result); });
+    await new Promise((ok) => { const t = idb.transaction("mediaDrafts", "readwrite"); t.objectStore("mediaDrafts").clear(); t.oncomplete = () => ok(null); });
+    idb.close();
+  });
+  await context.setOffline(false);
+  await page.getByRole("button", { name: "Đồng bộ ngay" }).click();
+  await expect(page.getByText(/Ảnh chờ gửi không còn trên thiết bị/)).toBeVisible();
+  expect((await db.query(`select 1 from stay.checklist_results where task_id = $1`, [taskId])).rows).toHaveLength(0);
+  await db.end();
+});

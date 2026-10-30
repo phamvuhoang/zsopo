@@ -1,5 +1,5 @@
 import type { ChecklistOp } from "@zsopo/core";
-import { MEDIA_MAX_BYTES, MEDIA_TTL_MS } from "./cache-policy";
+import { MEDIA_MAX_BYTES, MEDIA_TTL_MS, photoError } from "./cache-policy";
 import { opsDb, type QueuedOp } from "./db";
 
 export const SYNC_EVENT = "zs-ops-sync";
@@ -16,6 +16,8 @@ export async function enqueue(userId: string, op: ChecklistOp, mediaDraftIds: st
 }
 
 export async function saveMediaDraft(userId: string, taskId: string, file: File): Promise<string> {
+  const bad = photoError(file);
+  if (bad) throw new Error(bad);
   const db = opsDb(userId);
   const used = (await db.mediaDrafts.toArray()).reduce((a, m) => a + m.size, 0);
   if (used + file.size > MEDIA_MAX_BYTES) throw new Error("Ảnh chờ đồng bộ đã đầy (20MB). Hãy đồng bộ trước khi chụp thêm.");

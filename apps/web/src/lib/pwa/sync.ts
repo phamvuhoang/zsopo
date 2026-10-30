@@ -5,14 +5,18 @@ import { SYNC_EVENT } from "./queue";
 
 type Apply = (op: ChecklistOp) => Promise<SyncResult | { error: string }>;
 
-/** Upload offline photos (private evidence bucket, staff-scoped path) and register media rows. */
-async function uploadDrafts(userId: string, locationId: string, entityId: string, ids: string[]): Promise<string[]> {
+/**
+ * Upload offline photos (private evidence bucket, staff-scoped path) and register media rows.
+ * Drafts stay on the device until the op is final, so a retry after a failed apply uploads again
+ * (upsert + same media id: no second row) instead of sending the op without its photo.
+ */
+async function uploadDrafts(userId: string, locationId: string, entityId: string, ids: string[]): Promise<string[] | { error: string }> {
   const db = opsDb(userId);
   const supabase = createClient();
   const out: string[] = [];
   for (const id of ids) {
     const d = await db.mediaDrafts.get(id);
-    if (!d) continue;
+    if (!d) return { error: "Ảnh chờ gửi không còn trên thiết bị (quá 7 ngày hoặc đã bị xóa)" }; // never apply the answer without its photo
     const path = `${locationId}/${d.taskId}/${id}.jpg`;
     const up = await supabase.storage.from("evidence").upload(path, d.blob, { contentType: d.mime, upsert: true });
     if (up.error) throw new Error(up.error.message);
@@ -21,7 +25,6 @@ async function uploadDrafts(userId: string, locationId: string, entityId: string
       .select("id").maybeSingle();
     if (error && !/duplicate/.test(error.message)) throw new Error(error.message);
     out.push(data?.id ?? id);
-    await db.mediaDrafts.delete(id);
   }
   return out;
 }
@@ -39,10 +42,12 @@ export async function syncNow(userId: string, ctx: { locationId: string; entityI
       pending.filter(() => navigator.onLine),
       async (q) => {
         const mediaIds = q.mediaDraftIds.length ? await uploadDrafts(userId, ctx.locationId, ctx.entityId, q.mediaDraftIds) : q.op.mediaIds;
-        return apply({ ...q.op, mediaIds });
+        return "error" in mediaIds ? mediaIds : apply({ ...q.op, mediaIds });
       },
       async (q, patch) => {
-        await db.operations.update(q.operationId, { ...patch, ...(patch.status === "queued" ? { attempts: q.attempts + 1 } : {}), ...(patch.status === "applied" ? { mediaDraftIds: [] } : {}) });
+        const final = patch.status !== "queued" && patch.status !== "syncing"; // applied, conflict, forbidden, rejected: never re-sent
+        if (final && q.mediaDraftIds.length) await db.mediaDrafts.bulkDelete(q.mediaDraftIds);
+        await db.operations.update(q.operationId, { ...patch, ...(patch.status === "queued" ? { attempts: q.attempts + 1 } : {}), ...(final ? { mediaDraftIds: [] } : {}) });
       },
     );
     window.dispatchEvent(new Event(SYNC_EVENT));

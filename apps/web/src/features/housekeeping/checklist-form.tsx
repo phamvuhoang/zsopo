@@ -2,6 +2,7 @@
 
 import type { ChecklistOp } from "@zsopo/core";
 import { useState, useTransition } from "react";
+import { photoError } from "@/lib/pwa/cache-policy";
 import { applyChecklistOp } from "./actions";
 
 export type ChecklistItem = { code: string; group: string; label: string; safety?: boolean; naAllowed?: boolean };
@@ -18,6 +19,13 @@ export function ChecklistForm({ taskId, version, items, saved, send = applyCheck
   const [photos, setPhotos] = useState<Record<string, File[]>>({}); // picked per item, sent with that item's next answer
   const [, start] = useTransition();
   const groups = [...new Set(items.map((i) => i.group))];
+
+  // Refuse a photo the server would reject now, while the user can still retake it; it is never kept in the selection.
+  const pick = (code: string, files: File[]) => {
+    const bad = files.map(photoError).find(Boolean);
+    if (bad) setMsg((m) => ({ ...m, [code]: bad }));
+    setPhotos((p) => ({ ...p, [code]: [...(p[code] ?? []), ...files.filter((f) => !photoError(f))] }));
+  };
 
   const answer = (item: ChecklistItem, result: "pass" | "fail" | "na", note: string) =>
     start(async () => {
@@ -43,7 +51,7 @@ export function ChecklistForm({ taskId, version, items, saved, send = applyCheck
                 <li key={i.code}>
                   <p className="text-sm">{i.label} {i.safety && <span className="text-xs text-[var(--danger)]">(an toàn)</span>}</p>
                   <ItemControls item={i} current={cur} onAnswer={answer} photos={photos[i.code]?.length ?? 0}
-                    onPhotos={(files) => setPhotos((p) => ({ ...p, [i.code]: [...(p[i.code] ?? []), ...files] }))} />
+                    onPhotos={(files) => pick(i.code, files)} />
                   {msg[i.code] && <p role="status" className="mt-1 text-xs text-[var(--ink-2)]">{msg[i.code]}</p>}
                 </li>
               );

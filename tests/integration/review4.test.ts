@@ -354,4 +354,19 @@ describe("review4 G1 ảnh checklist (kho evidence)", () => {
     const anon = await anonClient().storage.from("evidence").upload(`${L1}/${randomUUID()}/${randomUUID()}.jpg`, jpeg, { contentType: "image/jpeg" });
     expect(anon.error).not.toBeNull();
   });
+
+  // The offline sync keeps drafts until the op is applied, so a retry uploads and registers the same photo again.
+  it("G1 tải lại cùng ảnh (upsert) và đăng ký lại cùng mã media chỉ cho một dòng core.media", async () => {
+    const hk = await clientFor(USERS.housekeeping);
+    const id = randomUUID();
+    const path = `${L1}/${randomUUID()}/${id}.jpg`;
+    const row = { id, entity_id: E1, location_id: L1, bucket: "evidence", path, classification: "evidence", alt: "Ảnh checklist buồng phòng", mime: "image/jpeg", bytes: 4, owner_id: USERS.housekeeping.id };
+    for (const attempt of [1, 2]) {
+      expect((await hk.storage.from("evidence").upload(path, jpeg, { contentType: "image/jpeg", upsert: true })).error, `upload ${attempt}`).toBeNull();
+      const ins = await hk.schema("core").from("media").insert(row).select("id").maybeSingle();
+      if (attempt === 1) expect(ins.error).toBeNull();
+      else expect(ins.error?.message).toMatch(/duplicate/); // sync.ts tolerates exactly this
+    }
+    expect(await sql(`select 1 from core.media where id = $1`, [id])).toHaveLength(1);
+  });
 });
